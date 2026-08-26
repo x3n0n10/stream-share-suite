@@ -1,0 +1,48 @@
+services:
+  suite:
+    build: .
+    # Or use a published image once one exists:
+    #   image: ghcr.io/x3n0n10/stream-share-suite:latest
+    container_name: stream-share-suite
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      # Where the SQLite store lives. Back this path up and you have backed up
+      # the Suite's entire configuration.
+      SUITE_DATA_DIR: /data
+
+      # --- First-run import (optional) -------------------------------------
+      # If you are coming from stream-share-dashboard, paste its INSTANCE_N_*
+      # and GLUETUN_* variables here for the first boot. They are copied into
+      # the database once and then ignored forever: after the import the store
+      # is the source of truth, so an env var left behind here can never
+      # silently override an edit made in the UI. Once it has run, delete them.
+      #
+      # INSTANCE_1_NAME: "Provider 1"
+      # INSTANCE_1_URL: "http://172.18.0.11:8080"
+      # INSTANCE_1_API_KEY: ""
+      # GLUETUN_URL: "http://172.18.0.11:8000"
+      # GLUETUN_USER: "admin"
+      # GLUETUN_PASSWORD: ""
+
+    volumes:
+      - suite_data:/data
+
+    # The Suite must reach the instances and, later, PostgreSQL. It deliberately
+    # does NOT join gluetun's network namespace: from phase 1 it manages gluetun,
+    # and a service inside that namespace would sever its own connection the
+    # moment it recreated it. Attach it to the network your stack already uses
+    # and address the instances through gluetun's own address on it.
+    #
+    # networks:
+    #   ssbackend:
+    #   default:
+
+# networks:
+#   ssbackend:
+#     external: true
+
+volumes:
+  suite_data:
