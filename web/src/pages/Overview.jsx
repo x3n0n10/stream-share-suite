@@ -8,6 +8,7 @@ import { IconOverview, IconPlay, IconUsers, IconHistory, IconRefresh, IconTag } 
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, formatNumber, formatRelativeTime, titleCase } from "../lib/format.js";
+import { isAliasableId } from "../lib/aliasing.js";
 
 // stream-share instances running the IP-alias feature return viewers as
 // {id, display_name} objects instead of plain username/IP strings — support
@@ -18,16 +19,8 @@ function viewerId(v) {
 function viewerLabel(v) {
   return typeof v === "string" ? v : v.display_name || v.id;
 }
-
-// A viewer is only ever aliased when LDAP is disabled and the raw client IP
-// stands in as their identity (see displayNameFor in stream-share), so only
-// offer the "add alias" shortcut for identifiers that actually look like an
-// IP address, and only when it doesn't already have one.
-const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-fA-F]*:[0-9a-fA-F:]*$/;
 function isAliasable(v) {
-  const id = viewerId(v);
-  if (!IP_RE.test(id)) return false;
-  return viewerLabel(v) === id;
+  return isAliasableId(viewerId(v), viewerLabel(v));
 }
 
 export default function Overview({ pollIntervalMs }) {

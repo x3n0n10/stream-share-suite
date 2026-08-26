@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import HoursSelect from "../components/HoursSelect.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Skeleton } from "../components/common.jsx";
-import { IconRefresh } from "../components/Icons.jsx";
+import { IconRefresh, IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, formatDateTime, formatRelativeTime, titleCase } from "../lib/format.js";
+import { isAliasableId } from "../lib/aliasing.js";
 
 export default function History({ pollIntervalMs }) {
   const [hours, setHours] = useState(24);
@@ -133,6 +135,15 @@ export default function History({ pollIntervalMs }) {
                           <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                             {e.username}
                           </span>
+                        )}
+                        {isAliasableId(e.username, e.display_name) && (
+                          <Link
+                            to={`/aliases?ip=${encodeURIComponent(e.username)}`}
+                            title={`Add an alias for ${e.username}`}
+                            className="ml-1.5 inline-flex items-center align-middle text-slate-400 hover:text-accent-600 dark:text-slate-500 dark:hover:text-accent-400"
+                          >
+                            <IconTag className="h-3 w-3" />
+                          </Link>
                         )}
                       </td>
                       <td className="max-w-[16rem] truncate px-4 py-2.5">{e.stream_title}</td>
