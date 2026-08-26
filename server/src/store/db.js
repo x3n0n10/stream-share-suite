@@ -5,7 +5,7 @@
 // recompile when the base image moves.
 
 import { DatabaseSync } from "node:sqlite";
-import { chmodSync, mkdirSync, readFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,10 +19,27 @@ let db = null;
 export function openDatabase(dataDir) {
   if (db) return db;
 
-  mkdirSync(dataDir, { recursive: true });
+  try {
+    mkdirSync(dataDir, { recursive: true });
+  } catch (err) {
+    throw new Error(
+      `Cannot create the data directory ${dataDir}: ${err.message}\n` +
+        describePermissions(dataDir)
+    );
+  }
+
   const file = path.join(dataDir, "suite.db");
 
-  db = new DatabaseSync(file);
+  try {
+    db = new DatabaseSync(file);
+  } catch (err) {
+    // SQLITE_CANTOPEN on a directory that exists is almost always ownership:
+    // the process cannot create a file in it. The raw error says none of that,
+    // and it is the first thing anyone hits on a bind-mounted volume.
+    throw new Error(
+      `Cannot open the store at ${file}: ${err.message}\n` + describePermissions(dataDir)
+    );
+  }
   db.exec(readFileSync(path.join(__dirname, "schema.sql"), "utf8"));
 
   const row = db.prepare("SELECT version FROM schema_version LIMIT 1").get();
@@ -44,6 +61,25 @@ export function openDatabase(dataDir) {
   }
 
   return db;
+}
+
+// Turns a permission failure into something an operator can act on: who we are,
+// who owns the directory, and the two ways to reconcile them. Best-effort — if
+// even stat fails we still want the original error to surface.
+function describePermissions(dataDir) {
+  const me = `uid ${process.getuid?.() ?? "?"}:${process.getgid?.() ?? "?"}`;
+  let owner = "unknown";
+  try {
+    const st = statSync(dataDir);
+    owner = `uid ${st.uid}:${st.gid}`;
+  } catch {
+    // directory may not exist — the message below still applies
+  }
+  return (
+    `  This process runs as ${me}; ${dataDir} is owned by ${owner}.\n` +
+    `  In Docker, set PUID/PGID to the owning ids (Unraid uses PUID=99 PGID=100)\n` +
+    `  so the entrypoint can take ownership, or chown the directory on the host.`
+  );
 }
 
 // Forward-only migrations. Each case falls through to the next so a store

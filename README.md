@@ -47,7 +47,24 @@ UI under **Settings**.
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on |
 | `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives |
+| `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory. **Unraid: set `99` / `100`.** |
 | `NODE_ENV` | — | Set to `production` in the image |
+
+### PUID / PGID
+
+The entrypoint starts as root, takes ownership of `SUITE_DATA_DIR`, then runs the
+app as `PUID:PGID` — never as root. This is what makes a bind-mounted directory
+work: a named volume inherits the image's ownership, but a bind mount keeps
+whatever the host says, and that rarely matches a uid baked into an image.
+
+Get it wrong and SQLite fails with a bare `unable to open database file`
+(`SQLITE_CANTOPEN`). The Suite catches that and tells you which uid it is
+running as and which owns the directory, but the fix is always the same: match
+the ids, or let the container chown for you.
+
+If you would rather the container never start as root, pin `user:` in compose
+instead. The entrypoint detects that, skips the chown, and fails with a clear
+message if the directory is not writable.
 
 ### Where to put it on the network
 
@@ -61,6 +78,23 @@ database is on, and addressing the instances through gluetun's address on that
 network (`http://172.18.0.11:8080`, not `http://localhost:8080`). Gluetun's
 `FIREWALL_OUTBOUND_SUBNETS` must include that subnet — it already must for the
 instances to reach the database.
+
+It needs **two** networks, and the second is easy to miss. An `internal: true`
+network has no route in or out, so a container attached only to it cannot
+publish a usable port — the UI would be unreachable. Keep the compose project's
+default network for that, and add the internal one for talking to the stack:
+
+```yaml
+services:
+  suite:
+    networks:
+      - default     # published port, and outbound from phase 4 on
+      - ssbackend   # reaching gluetun and, later, PostgreSQL
+
+networks:
+  ssbackend:
+    external: true  # already created by your main stack
+```
 
 ## Data and backups
 
