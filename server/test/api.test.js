@@ -4,7 +4,7 @@
 
 import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
-import { freshDatabase } from "./helpers.js";
+import { freshDatabase, apiClient, signedInClient, TEST_PASSWORD } from "./helpers.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
 
@@ -25,48 +25,9 @@ beforeEach(() => {
   _resetLoginThrottle();
 });
 
-// Threads the session cookie and the CSRF echo through, the way the browser
-// client does.
-function client() {
-  let cookie = null;
-  let csrf = null;
-
-  async function call(method, path, body) {
-    const res = await fetch(`${base}${path}`, {
-      method,
-      headers: {
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
-        ...(cookie ? { Cookie: cookie } : {}),
-        ...(csrf ? { "X-Suite-CSRF": csrf } : {}),
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-    const setCookie = res.headers.get("set-cookie");
-    if (setCookie) cookie = setCookie.split(";")[0];
-    const json = await res.json().catch(() => ({}));
-    if (json.csrfToken) csrf = json.csrfToken;
-    return { status: res.status, body: json };
-  }
-
-  return {
-    get: (p) => call("GET", p),
-    post: (p, b) => call("POST", p, b),
-    put: (p, b) => call("PUT", p, b),
-    del: (p) => call("DELETE", p),
-    dropCsrf: () => {
-      csrf = null;
-    },
-    hasCookie: () => !!cookie,
-  };
-}
-
-const PASSWORD = "a-sufficiently-long-password";
-
-async function signedIn() {
-  const c = client();
-  await c.post("/api/auth/setup", { username: "admin", password: PASSWORD });
-  return c;
-}
+const client = () => apiClient(base);
+const signedIn = () => signedInClient(base);
+const PASSWORD = TEST_PASSWORD;
 
 test("healthz answers without a session", async () => {
   const res = await fetch(`${base}/healthz`);

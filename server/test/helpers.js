@@ -16,3 +16,47 @@ export function freshDatabase() {
   _setDatabaseForTests(db);
   return db;
 }
+
+// Threads the session cookie and the CSRF echo through a real HTTP server the
+// way the browser client does — shared by every end-to-end test file so the
+// auth boundary is exercised identically everywhere it's touched.
+export function apiClient(base) {
+  let cookie = null;
+  let csrf = null;
+
+  async function call(method, path, body) {
+    const res = await fetch(`${base}${path}`, {
+      method,
+      headers: {
+        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(cookie ? { Cookie: cookie } : {}),
+        ...(csrf ? { "X-Suite-CSRF": csrf } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    const setCookie = res.headers.get("set-cookie");
+    if (setCookie) cookie = setCookie.split(";")[0];
+    const json = await res.json().catch(() => ({}));
+    if (json.csrfToken) csrf = json.csrfToken;
+    return { status: res.status, body: json };
+  }
+
+  return {
+    get: (p) => call("GET", p),
+    post: (p, b) => call("POST", p, b),
+    put: (p, b) => call("PUT", p, b),
+    del: (p) => call("DELETE", p),
+    dropCsrf: () => {
+      csrf = null;
+    },
+    hasCookie: () => !!cookie,
+  };
+}
+
+export const TEST_PASSWORD = "a-sufficiently-long-password";
+
+export async function signedInClient(base) {
+  const c = apiClient(base);
+  await c.post("/api/auth/setup", { username: "admin", password: TEST_PASSWORD });
+  return c;
+}

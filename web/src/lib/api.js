@@ -125,6 +125,14 @@ export const api = {
   updateInstance: (id, payload) => put(`/api/settings/instances/${id}`, payload),
   deleteInstance: (id) => del(`/api/settings/instances/${id}`),
   testInstance: (payload) => post("/api/settings/instances/test", payload),
+
+  dockerStatus: () => get("/api/stack/docker/status"),
+  stackComponents: () => get("/api/stack/components"),
+  componentFields: (kind) => get(`/api/stack/components/${kind}`),
+  saveComponent: (kind, payload) => put(`/api/stack/components/${kind}`, payload),
+  componentPlan: (kind) => get(`/api/stack/components/${kind}/plan`),
+  applyComponent: (kind, payload) => post(`/api/stack/components/${kind}/apply`, payload),
+  job: (jobId) => get(`/api/stack/jobs/${jobId}`),
 };
 
 export { ApiError };

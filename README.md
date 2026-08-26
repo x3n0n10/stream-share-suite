@@ -40,14 +40,15 @@ import has run — the startup log says when it has.
 
 ## Configuration
 
-Only three environment variables matter; everything else is configured in the
-UI under **Settings**.
+Only a handful of environment variables matter; everything else — including
+every component the reconciler manages — is configured in the UI.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on |
 | `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives |
 | `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory. **Unraid: set `99` / `100`.** |
+| `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Where the Docker socket proxy is reachable. See **Stack management** below. |
 | `NODE_ENV` | — | Set to `production` in the image |
 
 ### PUID / PGID
@@ -68,33 +69,69 @@ message if the directory is not writable.
 
 ### Where to put it on the network
 
-The Suite needs to reach your instances, and from phase 1 it will need to reach
-PostgreSQL and the Docker daemon. It deliberately does **not** join gluetun's
-network namespace: it manages gluetun, and a service inside that namespace
-would sever its own connection the moment it recreated it.
+The Suite needs to reach your instances, PostgreSQL, and (via the socket
+proxy — see below) the Docker daemon. It deliberately does **not** join
+gluetun's network namespace: it manages gluetun, and a service inside that
+namespace would sever its own connection the moment it recreated it.
 
 In a typical stack that means attaching it to the internal network your
 database is on, and addressing the instances through gluetun's address on that
 network (`http://172.18.0.11:8080`, not `http://localhost:8080`). Gluetun's
-`FIREWALL_OUTBOUND_SUBNETS` must include that subnet — it already must for the
-instances to reach the database.
+`FIREWALL_OUTBOUND_SUBNETS` must include that subnet — the reconciler sets this
+automatically for gluetun itself (see below), but it must already be true for
+your existing instances to reach the database.
 
-It needs **two** networks, and the second is easy to miss. An `internal: true`
-network has no route in or out, so a container attached only to it cannot
-publish a usable port — the UI would be unreachable. Keep the compose project's
-default network for that, and add the internal one for talking to the stack:
+The bundled `docker-compose.yml` puts the Suite on two networks — `default`
+(the published port, and outbound from phase 4 on) and `docker-proxy-net` (an
+`internal: true` network shared only with the socket proxy). Add your stack's
+own network as a third, external one to reach gluetun and PostgreSQL:
 
 ```yaml
 services:
   suite:
     networks:
-      - default     # published port, and outbound from phase 4 on
+      - default
+      - docker-proxy-net
       - ssbackend   # reaching gluetun and, later, PostgreSQL
 
 networks:
   ssbackend:
     external: true  # already created by your main stack
 ```
+
+## Stack management
+
+The Suite reconciles a component's desired configuration against what's
+actually running: save a configuration under **Stack**, and it renders a
+container spec, hashes it, and compares that hash to what's deployed. Applying
+does whatever the comparison calls for — create, recreate, or nothing — as a
+background job with a log you can watch.
+
+It never touches `/var/run/docker.sock` directly. All Docker API calls go
+through [`tecnativa/docker-socket-proxy`](https://github.com/Tecnativa/docker-socket-proxy),
+included in `docker-compose.yml`, with an allowlist granting only what the
+reconciler actually calls (`CONTAINERS`, `NETWORKS`, `POST`) — everything else
+is denied by default. A service that can create containers is root-equivalent
+on the host, so it never gets unmediated access to the thing that lets it do
+that.
+
+**Gluetun** is the only component this phase manages — deliberately: it's the
+one everything else shares a network namespace with, so it's where a mistake
+costs the most. Four outcomes when you hit Apply:
+
+| Outcome | When | What happens |
+| --- | --- | --- |
+| Create | Nothing by that name exists | A new, managed container is created and started |
+| No-op | A managed container already matches | Nothing — safe to click Apply on every page load |
+| Recreate | A managed container's config has changed | Stop, remove, create, start — everything sharing its namespace loses its connection until it's back |
+| Adopt | A container exists but carries none of the Suite's labels | Left running, untouched — almost certainly one you set up by hand |
+
+Adopt is what you'll see the first time you point the Suite at a stack you
+already run: Docker labels can't be added to a container after it's created,
+so there is no way to bring an existing container under management without
+either leaving it alone or replacing it. The Suite defaults to leaving it
+alone. "Take over anyway" on the Stack page does the replacement explicitly,
+never automatically.
 
 ## Data and backups
 
@@ -120,15 +157,16 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 
 | Phase | Ships | Status |
 | --- | --- | --- |
-| 0 | Ops surface on a database, with real auth | **this branch** |
-| 1 | Schema registry and the reconciler; adopt an existing stack by label | planned |
-| 2 | Setup wizard, port band allocation, per-instance database creation, Caddy route generation | planned |
+| 0 | Ops surface on a database, with real auth | shipped |
+| 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | **this branch** |
+| 2 | Instances, Caddy and UHF as reconciled components; the setup wizard; port band allocation; per-instance database creation | planned |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
 
-Phase 0 needs no access to the Docker socket at all. That arrives in phase 1,
-behind a socket proxy, and is the point at which the Suite's threat model
-changes — see the architecture notes for why that boundary matters.
+Phase 1 is the one that changes the Suite's threat model: it's the first
+phase with any access to the Docker API at all, even mediated by the socket
+proxy. See **Stack management** above for what that access is scoped to, and
+the architecture notes for the fuller reasoning.
 
 ## Licence
 

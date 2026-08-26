@@ -61,3 +61,22 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+
+-- One row per reconciler-managed component kind (see server/src/schema/ for
+-- what each kind's fields mean). config_json holds a schema's field values as
+-- a flat object — secrets included, in the clear, same as everywhere else in
+-- this store; see the blueprint's write-only-in-the-UI note for why that is
+-- an accepted tradeoff rather than an oversight.
+--
+-- adopted_container_id is set when the reconciler finds a container already
+-- running under this component's expected name without our labels on it — a
+-- foreign container from a hand-written compose file. Once adopted, the
+-- reconciler leaves it alone rather than recreating it under management; see
+-- reconcile/reconciler.js for the exact rule.
+CREATE TABLE IF NOT EXISTS components (
+  kind                 TEXT PRIMARY KEY,
+  config_json          TEXT NOT NULL DEFAULT '{}',
+  adopted_container_id TEXT,
+  created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+);

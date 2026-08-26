@@ -1,0 +1,128 @@
+// Generic engine over a component's field schema: validate values against it,
+// render them to the environment variables a container spec needs, and
+// project them for the HTTP API and a generic frontend form.
+//
+// The point of a schema is that a new field is a data change, not a new form
+// to hand-write. A field descriptor looks like:
+//
+//   {
+//     key: "vpnServiceProvider",   // storage key and the object key everywhere below
+//     envVar: "VPN_SERVICE_PROVIDER", // null for fields that don't become env vars
+//     label: "VPN provider",
+//     help: "...",                 // optional
+//     group: "VPN",                // for grouping the rendered form
+//     type: "text" | "select" | "checkbox",
+//     options: [...],              // required for "select"
+//     secret: true,                // write-only: see applyPatch and toPublicFields
+//     advanced: false,             // collapsed behind an "Advanced" toggle
+//     required: true,
+//     default: "wireguard",
+//     dependsOn: { key: "vpnType", equals: "wireguard" }, // optional
+//   }
+
+function resolvedValue(field, values) {
+  const raw = values[field.key];
+  if (raw === undefined || raw === null || raw === "") {
+    return field.default !== undefined ? field.default : raw;
+  }
+  return raw;
+}
+
+// Checked against the referenced field's *resolved* value (default applied),
+// not the raw stored one — otherwise a field whose visibility depends on
+// another field's default would incorrectly read as hidden until that other
+// field had actually been saved once.
+function isVisible(field, values, schema) {
+  if (!field.dependsOn) return true;
+  const depField = schema.fields.find((f) => f.key === field.dependsOn.key);
+  const depValue = depField ? resolvedValue(depField, values) : values[field.dependsOn.key];
+  return depValue === field.dependsOn.equals;
+}
+
+// Required fields are only enforced when visible (dependsOn satisfied) — a
+// WireGuard-only field is not "missing" on an OpenVPN configuration.
+export function validate(schema, values) {
+  const errors = [];
+  for (const field of schema.fields) {
+    if (!isVisible(field, values, schema)) continue;
+    if (!field.required) continue;
+    const value = resolvedValue(field, values);
+    if (value === undefined || value === null || value === "") {
+      errors.push({ key: field.key, message: `${field.label} is required.` });
+    }
+    if (field.type === "select" && value !== undefined && !field.options.includes(value)) {
+      errors.push({ key: field.key, message: `${field.label} must be one of: ${field.options.join(", ")}.` });
+    }
+  }
+  return errors;
+}
+
+// Renders visible fields with an envVar to a flat {ENV_VAR: value} object,
+// coercing booleans to the "true"/"false" strings env vars expect. A field
+// hidden by dependsOn is omitted entirely rather than sent empty — an unset
+// var and an empty one are not always the same thing to what reads it.
+export function renderEnv(schema, values) {
+  const env = {};
+  for (const field of schema.fields) {
+    if (!field.envVar) continue;
+    if (!isVisible(field, values, schema)) continue;
+    const value = resolvedValue(field, values);
+    if (value === undefined || value === null || value === "") continue;
+    env[field.envVar] = typeof value === "boolean" ? String(value) : value;
+  }
+  return env;
+}
+
+// What the HTTP API and the generic frontend form see: every field's
+// metadata, plus its current value — except a secret field, which reports
+// only whether one is set. This is the same write-only convention already
+// used for instance API keys and the gluetun ops credentials; the schema
+// registry just makes it apply uniformly to every field of every component.
+export function toPublicFields(schema, values) {
+  return schema.fields.map((field) => {
+    const base = {
+      key: field.key,
+      label: field.label,
+      help: field.help || null,
+      group: field.group || null,
+      type: field.type || "text",
+      options: field.options || null,
+      secret: !!field.secret,
+      advanced: !!field.advanced,
+      required: !!field.required,
+      dependsOn: field.dependsOn || null,
+    };
+    if (field.secret) {
+      return { ...base, valueSet: !!values[field.key] };
+    }
+    return { ...base, value: resolvedValue(field, values) };
+  });
+}
+
+// Merges a patch into stored values under the write-only convention:
+//   - a secret field: undefined leaves the stored value alone, null clears
+//     it, a non-empty string replaces it.
+//   - any other field: undefined leaves it alone, anything else (including
+//     "") replaces it — there is nothing to protect, so there is no reason
+//     to distinguish "clear" from "set to empty".
+// Keys not present in the schema are dropped rather than stored, so a typo
+// in a request body silently vanishes instead of accumulating as junk that
+// renderEnv will never read.
+export function applyPatch(schema, existingValues, patch) {
+  const next = { ...existingValues };
+  for (const field of schema.fields) {
+    if (!(field.key in patch)) continue;
+    const incoming = patch[field.key];
+
+    if (field.secret) {
+      if (incoming === undefined) continue;
+      if (incoming === null || incoming === "") delete next[field.key];
+      else next[field.key] = String(incoming);
+      continue;
+    }
+
+    if (incoming === undefined) continue;
+    next[field.key] = field.type === "checkbox" ? !!incoming : incoming;
+  }
+  return next;
+}

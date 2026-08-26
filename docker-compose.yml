@@ -39,43 +39,86 @@ services:
       # GLUETUN_USER: "admin"
       # GLUETUN_PASSWORD: ""
 
+      # Where to reach the Docker API. Never point this at the real socket —
+      # see the docker-socket-proxy service below and the Networking note.
+      DOCKER_PROXY_URL: http://docker-socket-proxy:2375
+
     volumes:
       - suite_data:/data
       # Or a bind mount, which is where PUID/PGID earns its keep:
       # - /mnt/user/appdata/stream-share-suite:/data
 
+    depends_on:
+      - docker-socket-proxy
+
+    networks:
+      - default
+      - docker-proxy-net
+      # - ssbackend   # see the Networking note below
+
+  # Stands between the Suite and the real Docker socket. The Suite process
+  # never touches /var/run/docker.sock — only this proxy does, and only the
+  # calls the allowlist below actually permits reach it. A service that can
+  # create arbitrary containers is root-equivalent on the host, so it never
+  # gets unmediated access to the thing that lets it do that; see the
+  # blueprint's threat-model section for the reasoning.
+  #
+  # Everything not explicitly granted below defaults to denied. The three
+  # flags here are exactly what the reconciler calls today — CONTAINERS for
+  # create/inspect/start/stop/remove, NETWORKS for joining a second network
+  # after creation, POST because the proxy denies every method but GET/HEAD
+  # unless it's turned on. Widen this only alongside new reconciler code that
+  # actually needs it, never ahead of it.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: stream-share-suite-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      POST: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-proxy-net
+    # Deliberately no `ports:` — nothing outside docker-proxy-net can reach
+    # this, including the Suite's own other networks.
+
 volumes:
   suite_data:
+
+networks:
+  docker-proxy-net:
+    internal: true
 
 # ---------------------------------------------------------------------------
 # Networking
 #
-# Standalone (as written above) the Suite sits on this compose project's own
-# default network and reaches nothing else — fine for a first look at the UI,
-# but it cannot see your instances.
+# As written above, the Suite is on two networks: the project's own `default`
+# (published port, outbound) and `docker-proxy-net` (reaching the socket
+# proxy, and nothing else — it's `internal: true`). That's enough to run the
+# wizard and manage gluetun once it's reconciled, but not enough to see
+# instances that predate the Suite or reach PostgreSQL: those live on your
+# main stack's own network, not this compose project's.
 #
-# To point it at a real stack it needs to reach gluetun, because the instances
-# live inside gluetun's network namespace and publish their ports on gluetun's
-# address rather than their own. Attach it to the network gluetun is on, and
-# address the instances there — `http://172.18.0.11:8080`, not `localhost`.
-#
-# It needs TWO networks, and the second one is easy to miss: an `internal: true`
-# network has no route in or out, so a container attached only to it cannot
-# publish a usable port — you would not be able to open the UI. Keep the default
-# network for that (and, from phase 4, for reaching the image registries), and
-# add the internal one for talking to the stack.
+# Add that network as a THIRD one, external so compose doesn't try to create
+# it, and address things there — `http://172.18.0.11:8080`, not `localhost`,
+# once gluetun is what the Suite created:
 #
 #   services:
 #     suite:
 #       networks:
-#         - default     # published port + outbound
+#         - default
+#         - docker-proxy-net
 #         - ssbackend   # reaching gluetun and, later, PostgreSQL
 #
 #   networks:
+#     docker-proxy-net:
+#       internal: true
 #     ssbackend:
 #       external: true  # already created by your main stack
 #
-# The Suite deliberately does NOT use `network_mode: "service:gluetun"` the way
-# the dashboard did. From phase 1 it manages gluetun, and a container inside
-# that namespace would sever its own connection the moment it recreated it.
+# The Suite deliberately does NOT use `network_mode: "service:gluetun"` the
+# way the dashboard did. It manages gluetun, and a container inside that
+# namespace would sever its own connection the moment it recreated it.
 # ---------------------------------------------------------------------------

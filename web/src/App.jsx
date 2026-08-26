@@ -9,6 +9,7 @@ import Vpn from "./pages/Vpn.jsx";
 import Vod from "./pages/Vod.jsx";
 import Aliases from "./pages/Aliases.jsx";
 import Settings from "./pages/Settings.jsx";
+import Stack from "./pages/Stack.jsx";
 import SignIn from "./pages/SignIn.jsx";
 import { api, setCsrfToken, setUnauthorizedHandler } from "./lib/api.js";
 import { ConfigProvider } from "./lib/ConfigContext.jsx";
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/vpn" element={<Vpn pollIntervalMs={pollIntervalMs} />} />
         <Route path="/vod" element={<Vod />} />
         <Route path="/settings" element={<Settings onConfigChanged={loadConfig} />} />
+        <Route path="/stack" element={<Stack />} />
       </Routes>
     </ConfigProvider>
   );

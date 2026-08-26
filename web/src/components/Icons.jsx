@@ -222,3 +222,13 @@ export function IconSignOut({ className }) {
     </svg>
   );
 }
+
+export function IconStack({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 13 9 5 9-5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="m3 18 9 5 9-5" />
+    </svg>
+  );
+}

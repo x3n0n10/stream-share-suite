@@ -16,6 +16,7 @@ import {
   IconClose,
   IconSettings,
   IconSignOut,
+  IconStack,
 } from "./Icons.jsx";
 import { useTheme } from "../lib/useTheme.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { to: "/instances", label: "Instances", icon: IconServer },
   { to: "/vpn", label: "VPN", icon: IconShield },
   { to: "/vod", label: "VOD Search", icon: IconSearch },
+  { to: "/stack", label: "Stack", icon: IconStack },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
