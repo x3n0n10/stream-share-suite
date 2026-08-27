@@ -20,7 +20,6 @@ import { provisionInstance, instanceKeyFor } from "../src/reconcile/provisioning
 import { databaseNamesFor } from "../src/reconcile/database.js";
 import { planStack } from "../src/reconcile/reconciler.js";
 import { VPN_ENABLED_SETTING } from "../src/reconcile/catalog.js";
-import { setPaths } from "../src/store/paths.js";
 import { setSetting } from "../src/store/settings.js";
 import { saveComponentValues, getComponentValues } from "../src/store/components.js";
 import { managedLabels } from "../src/docker/labels.js";
@@ -64,6 +63,8 @@ before(async () => {
 after(() => {
   server.close();
   if (root) rmSync(root, { recursive: true, force: true });
+  delete process.env.SUITE_DATA_DIR;
+  delete process.env.SUITE_CACHE_DIR;
 });
 
 beforeEach(() => {
@@ -71,9 +72,11 @@ beforeEach(() => {
   containers = new Map();
   // A real directory, because validatePath deliberately refuses a path the
   // Suite cannot see — the whole point of it is to fail here rather than at
-  // container-start time.
+  // container-start time. Both paths now come from the environment, same as
+  // they would from compose's SUITE_DATA_DIR / SUITE_CACHE_DIR.
   root = mkdtempSync(path.join(tmpdir(), "suite-stack-"));
-  setPaths({ dataPath: root, cachePath: root });
+  process.env.SUITE_DATA_DIR = root;
+  process.env.SUITE_CACHE_DIR = root;
 });
 
 const PROVIDER = {
@@ -288,7 +291,8 @@ test("gluetun is planned before the instances that live inside it", async () => 
 
 test("an instance with no usable stack paths is incomplete rather than mis-mounted", async () => {
   configureStack();
-  setPaths({ dataPath: "", cachePath: "" });
+  delete process.env.SUITE_DATA_DIR;
+  delete process.env.SUITE_CACHE_DIR;
   provisionInstance(PROVIDER);
 
   const { plans } = await planStack();

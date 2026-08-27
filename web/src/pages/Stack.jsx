@@ -94,8 +94,6 @@ export default function Stack() {
     }
   }
 
-  // Throws on a rejected path so the settings card can render the field-level
-  // message rather than silently keeping a value the server refused.
   async function saveSettings(patch) {
     const next = await api.saveStackSettings(patch);
     setSettings(next);
@@ -133,7 +131,7 @@ export default function Stack() {
   return (
     <Layout title="Stack">
       <div className="flex flex-col gap-4">
-        {settings && <StackSettings settings={settings} onSave={saveSettings} busy={busy} />}
+        {settings && <VpnToggle settings={settings} onSave={saveSettings} busy={busy} />}
 
         {planError && <ErrorNote message={planError} />}
 
@@ -275,110 +273,34 @@ const FIELD =
   "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
   "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
-function StackSettings({ settings, onSave, busy }) {
-  const [dataPath, setDataPath] = useState(settings.dataPath || "");
-  const [cachePath, setCachePath] = useState(settings.cachePath || "");
-  const [errors, setErrors] = useState([]);
-  const [saving, setSaving] = useState(false);
-
-  async function savePaths() {
-    setSaving(true);
-    setErrors([]);
-    try {
-      await onSave({ dataPath, cachePath });
-    } catch (err) {
-      setErrors(err.body?.errors || [{ message: err.message }]);
-    } finally {
-      setSaving(false);
-    }
-  }
-
+// Data and cache paths are SUITE_DATA_DIR / SUITE_CACHE_DIR, set once in
+// compose — deliberately not shown here. A UI override would just be
+// retyping the same string the compose file already carries; a path that is
+// wrong still surfaces, as an "incomplete" row on whichever component needs
+// it, which is where a bad value actually has a consequence worth explaining.
+function VpnToggle({ settings, onSave, busy }) {
   return (
-    <Card className="flex flex-col gap-5 p-5">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-            Route traffic through a VPN
-          </h2>
-          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            {settings.vpnEnabled
-              ? "Instances share gluetun's network namespace and are published through it. Replacing gluetun briefly takes them with it."
-              : "Every container gets its own network and publishes its own port. Turning this back on rebuilds everything that would share the tunnel."}
-          </p>
-        </div>
-        <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <input
-            type="checkbox"
-            checked={settings.vpnEnabled}
-            disabled={busy}
-            onChange={(e) => onSave({ vpnEnabled: e.target.checked })}
-            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
-          />
-          {settings.vpnEnabled ? "On" : "Off"}
-        </label>
-      </div>
-
-      <div className="border-t border-slate-200 pt-5 dark:border-slate-800">
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Where data lives</h2>
+    <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+          Route traffic through a VPN
+        </h2>
         <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-          Set once via <code>SUITE_DATA_DIR</code> / <code>SUITE_CACHE_DIR</code> in compose,
-          normally — the fields below just show what's already configured. Each host path must
-          be mounted into the Suite at the same path — add{" "}
-          <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">- /your/path:/your/path</code> to
-          its volumes — so the path means the same thing on both sides.
-          {settings.runsAs && ` Directories are created as ${settings.runsAs}, and containers run as those ids.`}
+          {settings.vpnEnabled
+            ? "Instances share gluetun's network namespace and are published through it. Replacing gluetun briefly takes them with it."
+            : "Every container gets its own network and publishes its own port. Turning this back on rebuilds everything that would share the tunnel."}
         </p>
-
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Configuration path
-            </span>
-            <input
-              className={FIELD}
-              value={dataPath}
-              placeholder="/mnt/user/appdata/stream-share-suite"
-              onChange={(e) => setDataPath(e.target.value)}
-            />
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              Defaults to <code>SUITE_DATA_DIR</code>, right where <code>suite.db</code> already
-              lives. Only change this if you want component configuration somewhere else — a
-              subfolder per component either way.
-            </span>
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Cache path</span>
-            <input
-              className={FIELD}
-              value={cachePath}
-              placeholder="/mnt/user/cache/stream-share-suite"
-              onChange={(e) => setCachePath(e.target.value)}
-            />
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              Defaults to <code>SUITE_CACHE_DIR</code>. VOD and catchup — tens of GB per
-              instance — kept separate so it can point somewhere with room.
-            </span>
-          </label>
-        </div>
-
-        {errors.map((error, i) => (
-          <p key={i} className="mt-3 text-xs text-rose-600 dark:text-rose-400">
-            {error.message}
-          </p>
-        ))}
-        {settings.dataPathError && !errors.length && (
-          <p className="mt-3 text-xs text-rose-600 dark:text-rose-400">{settings.dataPathError}</p>
-        )}
-        {settings.cachePathError && !errors.length && (
-          <p className="mt-3 text-xs text-rose-600 dark:text-rose-400">{settings.cachePathError}</p>
-        )}
-
-        <div className="mt-4">
-          <Button tone="accent" onClick={savePaths} loading={saving} disabled={saving || busy}>
-            Save paths
-          </Button>
-        </div>
       </div>
+      <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+        <input
+          type="checkbox"
+          checked={settings.vpnEnabled}
+          disabled={busy}
+          onChange={(e) => onSave({ vpnEnabled: e.target.checked })}
+          className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+        />
+        {settings.vpnEnabled ? "On" : "Off"}
+      </label>
     </Card>
   );
 }

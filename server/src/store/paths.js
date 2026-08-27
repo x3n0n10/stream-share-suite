@@ -19,50 +19,41 @@
 // is nothing to translate. validatePath below is what turns getting this wrong
 // into a sentence rather than a container that fails to start.
 //
-// Both paths default from environment variables — SUITE_DATA_DIR (the same
-// folder suite.db already lives in) and SUITE_CACHE_DIR — so a stack laid out
-// that way needs no path ever typed into the UI at all; see the README's
-// "Where component data lives" section. Saving an explicit value through the
-// Settings page still overrides its default, for anyone who wants either path
-// somewhere the environment doesn't already say.
+// Both paths come from environment variables — SUITE_DATA_DIR (the same
+// folder suite.db already lives in) and SUITE_CACHE_DIR — set once in compose
+// and never touched in the UI; see the README's "Where component data lives"
+// section. There is deliberately no UI-facing override: the only consumer of
+// one would have been re-declaring the exact same string the compose file
+// already carries, which is the retyping this was built to avoid, not a
+// second real use case.
 //
 // Self-inspection (the same trick that computes gluetun's
 // FIREWALL_OUTBOUND_SUBNETS from the Suite's own networks) was considered and
-// rejected for this: `docker inspect` would hand back every one of the
-// Suite's bind mounts, but not which one is "the cache path" — that's a
-// question about intent, not topology, and there is no reliable way to tell a
-// config mount from a cache mount from an unrelated one an operator happens to
-// have without some deliberate signal. An env var already is that signal, and
-// declaring it once in compose is exactly as much typing as a label would
-// have been — so self-inspection would have added ambiguity without actually
-// removing the one declaration this still requires.
+// rejected for reading these at all: `docker inspect` would hand back every
+// one of the Suite's bind mounts, but not which one is "the cache path" —
+// that's a question about intent, not topology, and there is no reliable way
+// to tell a config mount from a cache mount from an unrelated one an operator
+// happens to have without some deliberate signal. An env var already is that
+// signal, and declaring it once in compose is exactly as much typing as a
+// label would have been.
 //
-// The default is only correct if the backing variable is itself a bind mount
-// rather than a Docker-managed named volume, though: the Suite cannot tell
-// the two apart by looking at it from inside — both simply appear as a
-// writable directory. Someone who keeps a named volume from an earlier phase
-// and upgrades without changing it will have the default silently resolve to
-// the wrong kind of path, so the shipped compose file uses bind mounts for
-// both variables for exactly this reason.
+// Reading these correctly depends on the backing variable being a bind mount
+// rather than a Docker-managed named volume: the Suite cannot tell the two
+// apart by looking at it from inside — both simply appear as a writable
+// directory. Someone who keeps a named volume from an earlier phase and
+// upgrades without changing it will have this silently resolve to the wrong
+// kind of path, so the shipped compose file uses bind mounts for both
+// variables for exactly this reason.
 
 import { mkdirSync, statSync, accessSync, constants } from "node:fs";
 import path from "node:path";
-import { getSetting, setSetting } from "./settings.js";
-
-export const DATA_PATH_SETTING = "stack.data_path";
-export const CACHE_PATH_SETTING = "stack.cache_path";
 
 export function getDataPath() {
-  return getSetting(DATA_PATH_SETTING) || String(process.env.SUITE_DATA_DIR || "").trim();
+  return String(process.env.SUITE_DATA_DIR || "").trim();
 }
 
 export function getCachePath() {
-  return getSetting(CACHE_PATH_SETTING) || String(process.env.SUITE_CACHE_DIR || "").trim();
-}
-
-export function setPaths({ dataPath, cachePath }) {
-  if (dataPath !== undefined) setSetting(DATA_PATH_SETTING, dataPath);
-  if (cachePath !== undefined) setSetting(CACHE_PATH_SETTING, cachePath);
+  return String(process.env.SUITE_CACHE_DIR || "").trim();
 }
 
 // The ids component data is created as. The Suite already runs as these (the

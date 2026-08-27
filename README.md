@@ -71,9 +71,8 @@ The entrypoint only chowns `SUITE_DATA_DIR` — it starts as root for exactly
 long enough to fix that one directory, and nothing else. `SUITE_CACHE_DIR` gets
 no such treatment, so its host directory needs to already be owned by (or
 writable by) `PUID:PGID` before the Suite tries to use it. Get it wrong and the
-Settings page's `validatePath` check catches it with the same message a
-mistyped path would get, rather than a component silently failing to write its
-cache.
+first instance that needs it comes back "incomplete" naming exactly that,
+rather than silently failing to write its cache.
 
 Get it wrong and SQLite fails with a bare `unable to open database file`
 (`SQLITE_CANTOPEN`). The Suite catches that and tells you which uid it is
@@ -179,8 +178,8 @@ rebuilt and watch history is not.
 
 ### Where component data lives
 
-Two host paths — configuration and cache — and neither has to be typed into
-the UI. Both are environment variables, read once at startup, exactly like
+Two host paths — configuration and cache — set only in compose, never in the
+UI. Both are environment variables, read once at startup, exactly like
 `SUITE_DATA_DIR` already was for `suite.db`:
 
 ```yaml
@@ -209,10 +208,12 @@ That's a question about intent, and an environment variable is the cheapest
 honest way to answer it — cheaper than a label, and no more typing than the
 bind-mount line already needs.
 
-The Settings page still has both fields, for anyone who wants either path
-somewhere other than what the environment says; saving one there overrides
-its default. Whichever paths you land on, each must be mounted into the Suite
-**at the same path on both sides**, as above.
+There is no UI for either path — only these two environment variables. A
+wrong or unmounted value still surfaces, just not as a settings-form error: it
+shows up as an "incomplete" row on whichever component needs it (PostgreSQL,
+an instance), naming exactly what's missing, the same way any other
+unconfigured field does. Whichever paths you use, each must be mounted into
+the Suite **at the same path on both sides**, as above.
 
 That looks redundant and isn't. A bind mount is resolved by the Docker daemon
 on the *host*, not inside the Suite's own container — so when the Suite tells

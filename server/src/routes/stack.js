@@ -17,13 +17,6 @@ import {
 } from "../store/components.js";
 import { setSetting } from "../store/settings.js";
 import {
-  getDataPath,
-  getCachePath,
-  setPaths,
-  validatePath,
-  ownershipString,
-} from "../store/paths.js";
-import {
   getCatalogEntry,
   catalogKinds,
   activeComponents,
@@ -102,21 +95,16 @@ export function createStackRouter() {
     res.json({ reachable });
   });
 
-  // Stack-wide settings. Only one for now, but it is the one that changes the
-  // shape of every other component's spec.
+  // Stack-wide settings. Only the VPN toggle — the data and cache paths are
+  // environment variables the operator sets once in compose (SUITE_DATA_DIR,
+  // SUITE_CACHE_DIR) and are never surfaced here for the same reason they are
+  // never asked for twice: a UI override would just be retyping the same
+  // string the compose file already carries. A path that is set but
+  // unreachable still surfaces — as an "incomplete" row on the component that
+  // needs it, from catalog.js's readiness check, which is where a wrong value
+  // actually has a consequence worth explaining.
   function stackSettings() {
-    const dataPath = getDataPath();
-    const cachePath = getCachePath();
-    return {
-      vpnEnabled: isVpnEnabled(),
-      dataPath,
-      cachePath,
-      // Reported rather than enforced on read, so the page can explain a path
-      // that is set but unreachable instead of only refusing to save it.
-      dataPathError: dataPath ? validatePath(dataPath, "The stack data path") : null,
-      cachePathError: cachePath ? validatePath(cachePath, "The cache path") : null,
-      runsAs: ownershipString(),
-    };
+    return { vpnEnabled: isVpnEnabled() };
   }
 
   router.get("/settings", (req, res) => {
@@ -124,28 +112,9 @@ export function createStackRouter() {
   });
 
   router.put("/settings", (req, res) => {
-    const errors = [];
-
-    // Paths are validated before being stored: a path the Suite cannot see is
-    // a message on this form, rather than a container that fails to start with
-    // an error naming none of this.
-    for (const [key, label] of [
-      ["dataPath", "The stack data path"],
-      ["cachePath", "The cache path"],
-    ]) {
-      const value = req.body?.[key];
-      if (value === undefined) continue;
-      const problem = validatePath(value, label);
-      if (problem) errors.push({ key, message: problem });
-    }
-
-    if (errors.length > 0) return res.status(400).json({ errors });
-
     if (typeof req.body?.vpnEnabled === "boolean") {
       setSetting(VPN_ENABLED_SETTING, req.body.vpnEnabled ? "true" : "false");
     }
-    setPaths({ dataPath: req.body?.dataPath, cachePath: req.body?.cachePath });
-
     res.json(stackSettings());
   });
 
