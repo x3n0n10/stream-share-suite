@@ -46,8 +46,8 @@ every component the reconciler manages — is configured in the UI.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on |
-| `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives |
-| `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory. **Unraid: set `99` / `100`.** |
+| `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives. From phase 2b, also the default location for every component's own configuration — see **Where component data lives** below. |
+| `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory, and who every component the Suite creates runs as. **Unraid: set `99` / `100`.** |
 | `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Where the Docker socket proxy is reachable. See **Stack management** below. |
 | `NODE_ENV` | — | Set to `production` in the image |
 
@@ -57,6 +57,14 @@ The entrypoint starts as root, takes ownership of `SUITE_DATA_DIR`, then runs th
 app as `PUID:PGID` — never as root. This is what makes a bind-mounted directory
 work: a named volume inherits the image's ownership, but a bind mount keeps
 whatever the host says, and that rarely matches a uid baked into an image.
+
+**Use a bind mount for `SUITE_DATA_DIR`, not a named volume** — this changed
+from earlier phases. From phase 2b the Suite bind-mounts a subfolder of this
+same directory into every component it creates, and that only works if it's a
+real host path: see **Where component data lives** below for why. Every
+component the Suite creates also runs as this same `PUID:PGID`, for the same
+reason the Suite itself does — a bind-mounted directory it creates needs to be
+writable by whatever actually runs inside the container using it.
 
 Get it wrong and SQLite fails with a bare `unable to open database file`
 (`SQLITE_CANTOPEN`). The Suite catches that and tells you which uid it is
@@ -162,28 +170,53 @@ rebuilt and watch history is not.
 
 ### Where component data lives
 
-Two host paths, set under **Stack**: a base path whose subfolders hold each
-component's configuration, and a separate cache root for VOD and catchup
-(which reaches tens of gigabytes per instance, and usually belongs on a
-different disk).
+Two host paths, and only one of them is a setting you have to make.
 
-Both must be mounted into the Suite **at the same path on both sides**:
+**Configuration** defaults to `SUITE_DATA_DIR` — the same folder `suite.db`
+already lives in. Every component gets its own subfolder there
+(`gluetun/`, `provider-1/config/`, `postgres/data/`, ...), and if that
+directory is already a bind mount for the Suite's own database, there is
+nothing further to configure. Override it under **Stack** only if you want
+component configuration to live somewhere other than next to `suite.db`.
+
+**Cache** is a separate path, set under **Stack**, with no default — VOD and
+catchup reach tens of gigabytes per instance and usually belong on a
+different disk from a few kilobytes of config, so defaulting it to the same
+place as everything else would be the wrong guess more often than the right
+one.
+
+Whichever paths you use, each must be mounted into the Suite **at the same
+path on both sides**:
 
 ```yaml
 volumes:
-  - /mnt/user/appdata/streamshare:/mnt/user/appdata/streamshare
-  - /mnt/user/cache/streamshare:/mnt/user/cache/streamshare
+  - /mnt/user/appdata/stream-share-suite:/mnt/user/appdata/stream-share-suite
+  - /mnt/user/cache/stream-share-suite:/mnt/user/cache/stream-share-suite
 ```
 
-That looks redundant and isn't: a bind mount is resolved by the Docker daemon
-on the host, so the Suite cannot create a directory at a path it can't itself
-see, and mapping each path to itself means there is nothing to translate. The
-paths are validated when you save them, so a path that isn't mounted is a
-message on the form rather than a container that fails to start.
+That looks redundant and isn't. A bind mount is resolved by the Docker daemon
+on the *host*, not inside the Suite's own container — so when the Suite tells
+Docker to bind-mount a component's subfolder into a new container, the string
+it hands over has to already mean the right thing to the daemon. Mounting
+each path at the identical location on both sides is what makes that true
+without needing a second "and where is that inside you" setting for every
+path. Get this wrong — say, keep the old named-volume `suite_data:/data` from
+an earlier phase instead of a bind mount — and it fails silently in the worst
+way: the Suite can still read and write `/data` for its own database just
+fine, so nothing looks wrong until it tries to share a subfolder of it with a
+component's container and either can't find a real host path at all or,
+worse, creates one somewhere unexpected. **Use a bind mount for
+`SUITE_DATA_DIR`**, not a named volume, for exactly this reason.
 
-The Suite creates each directory as its own `PUID:PGID` and runs instances as
-those same ids — the stream-share image runs as a non-root user and never
-chowns what it's given, so the two have to agree.
+Paths are validated when you save them, so a mistyped or unmounted one is a
+message on the form rather than a container that fails to start — but that
+check can only see "is this a writable directory from where I'm standing," so
+it can't catch the named-volume case above from the inside.
+
+The Suite creates each directory as its own `PUID:PGID` and runs every
+component it creates as those same ids — the stream-share image runs as a
+non-root user and never chowns what it's given, so the two have to agree, and
+this is the mechanism that makes them.
 
 ### Other VPN providers
 
@@ -240,10 +273,15 @@ expect the plan to show the whole stack recreating when it flips.
 
 ## Data and backups
 
-Everything is one SQLite file at `$SUITE_DATA_DIR/suite.db`, created `0600`.
-Back up that file and you have backed up the entire configuration. It contains
-instance API keys and VPN credentials in the clear, so treat a copy of it the
-way you would treat the `.env` it replaces.
+The configuration that matters is one SQLite file at `$SUITE_DATA_DIR/suite.db`,
+created `0600`. Back up that file and you have backed up every credential,
+instance definition and component setting — it contains API keys and VPN
+credentials in the clear, so treat a copy of it the way you would treat the
+`.env` it replaces.
+
+Everything else under `SUITE_DATA_DIR` (each component's own subfolder) and
+under the cache path is runtime state stream-share itself manages — useful to
+keep, but reconstructible, not the source of truth the way `suite.db` is.
 
 ## Development
 

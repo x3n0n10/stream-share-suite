@@ -18,6 +18,16 @@
 // Then the path means the same thing on both sides of the boundary and there
 // is nothing to translate. validatePath below is what turns getting this wrong
 // into a sentence rather than a container that fails to start.
+//
+// The data path defaults to SUITE_DATA_DIR — the same folder suite.db already
+// lives in — so a stack laid out that way needs no separate setting at all;
+// see the README's "Where component data lives" section. That default is only
+// correct if SUITE_DATA_DIR is itself a bind mount, though: the Suite cannot
+// tell a bind mount apart from a Docker-managed named volume by looking at it
+// from inside — both simply appear as a writable directory. Someone who keeps
+// the named-volume default from earlier phases and upgrades without changing
+// it will have this default silently resolve to the wrong kind of path, so
+// the shipped compose file switches to a bind mount for exactly this reason.
 
 import { mkdirSync, statSync, accessSync, constants } from "node:fs";
 import path from "node:path";
@@ -27,7 +37,7 @@ export const DATA_PATH_SETTING = "stack.data_path";
 export const CACHE_PATH_SETTING = "stack.cache_path";
 
 export function getDataPath() {
-  return getSetting(DATA_PATH_SETTING) || "";
+  return getSetting(DATA_PATH_SETTING) || String(process.env.SUITE_DATA_DIR || "").trim();
 }
 
 export function getCachePath() {

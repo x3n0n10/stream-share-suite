@@ -335,11 +335,13 @@ function StackSettings({ settings, onSave, busy }) {
             <input
               className={FIELD}
               value={dataPath}
-              placeholder="/mnt/user/appdata/streamshare"
+              placeholder="/mnt/user/appdata/stream-share-suite"
               onChange={(e) => setDataPath(e.target.value)}
             />
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              A subfolder per component.
+              Defaults to <code>SUITE_DATA_DIR</code>, right where <code>suite.db</code> already
+              lives. Only change this if you want component configuration somewhere else — a
+              subfolder per component either way.
             </span>
           </label>
           <label className="flex flex-col gap-1.5">
@@ -347,7 +349,7 @@ function StackSettings({ settings, onSave, busy }) {
             <input
               className={FIELD}
               value={cachePath}
-              placeholder="/mnt/user/cache/streamshare"
+              placeholder="/mnt/user/cache/stream-share-suite"
               onChange={(e) => setCachePath(e.target.value)}
             />
             <span className="text-[11px] text-slate-400 dark:text-slate-500">

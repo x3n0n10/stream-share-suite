@@ -21,9 +21,11 @@ services:
       PUID: 1000
       PGID: 1000
 
-      # Where the SQLite store lives. Back this path up and you have backed up
-      # the Suite's entire configuration.
-      SUITE_DATA_DIR: /data
+      # Where the SQLite store lives, and — from phase 2b — where every
+      # component's own configuration lives too, one subfolder each, unless you
+      # set a separate path under Stack settings. Back this path up and you
+      # have backed up everything except the cache below.
+      SUITE_DATA_DIR: /mnt/user/appdata/stream-share-suite
 
       # --- First-run import (optional) -------------------------------------
       # If you are coming from stream-share-dashboard, paste its INSTANCE_N_*
@@ -44,9 +46,21 @@ services:
       DOCKER_PROXY_URL: http://docker-socket-proxy:2375
 
     volumes:
-      - suite_data:/data
-      # Or a bind mount, which is where PUID/PGID earns its keep:
-      # - /mnt/user/appdata/stream-share-suite:/data
+      # A bind mount, not a named volume — deliberately. From phase 2b the
+      # Suite bind-mounts a subfolder of this same path into every component
+      # it creates (an instance's config, PostgreSQL's data directory), and a
+      # bind mount is resolved by the Docker daemon on the HOST, not inside
+      # this container. A named volume has no host path the Suite could hand
+      # back to Docker for someone else's container — see the README's
+      # "Where component data lives" section for the fuller reasoning. This is
+      # also where PUID/PGID earns its keep: the entrypoint chowns this to
+      # them, and every component the Suite creates runs as them too.
+      - /mnt/user/appdata/stream-share-suite:/mnt/user/appdata/stream-share-suite
+      # VOD and catchup caching reach tens of gigabytes per instance and
+      # usually belong on a different disk from the config above — a separate
+      # bind mount, set as its own path under Stack settings (never defaulted,
+      # unlike the one above).
+      - /mnt/user/cache/stream-share-suite:/mnt/user/cache/stream-share-suite
 
     depends_on:
       - docker-socket-proxy
@@ -83,9 +97,6 @@ services:
       - docker-proxy-net
     # Deliberately no `ports:` — nothing outside docker-proxy-net can reach
     # this, including the Suite's own other networks.
-
-volumes:
-  suite_data:
 
 networks:
   docker-proxy-net:
