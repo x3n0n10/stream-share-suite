@@ -117,14 +117,15 @@ that.
 
 **Gluetun** is the only component this phase manages — deliberately: it's the
 one everything else shares a network namespace with, so it's where a mistake
-costs the most. Four outcomes when you hit Apply:
+costs the most. Five outcomes:
 
 | Outcome | When | What happens |
 | --- | --- | --- |
 | Create | Nothing by that name exists | A new, managed container is created and started |
 | No-op | A managed container already matches | Nothing — safe to click Apply on every page load |
-| Recreate | A managed container's config has changed | Stop, remove, create, start — everything sharing its namespace loses its connection until it's back |
+| Recreate | A managed container's config has changed | Stop, remove, create, start — everything sharing its namespace briefly loses its connection |
 | Adopt | A container exists but carries none of the Suite's labels | Left running, untouched — almost certainly one you set up by hand |
+| Orphaned | The Suite created it, but its component has left the stack | Left running and reported. Removing it is its own confirmed action, never part of an Apply |
 
 Adopt is what you'll see the first time you point the Suite at a stack you
 already run: Docker labels can't be added to a container after it's created,
@@ -146,14 +147,40 @@ named fields are, and a named field always wins if it sets the same key — so
 it fills gaps without being able to silently override something the form
 already validated.
 
-### Adding (or removing) VPN later
+### The stack plan
 
-Whether traffic routes through gluetun is a single stack-wide setting, not a
-one-time setup choice — change it later and the reconciler picks it up the
-same way it picks up any other configuration change. The catch is blast
-radius: everything sharing gluetun's network namespace gets recreated, so
-expect the plan to show `recreate` for every such component at once instead
-of one at a time, with the accompanying downtime while they restart.
+Changes are reviewed across the whole stack rather than one component at a
+time, because once components depend on each other the order matters and some
+changes are not the single change they look like. The plan is ordered by
+dependency, and each row says whether it is something you asked for or a
+consequence of something else.
+
+**The cascade.** A container that shares gluetun's network namespace does not
+survive gluetun being replaced — Docker does not re-attach it, so it is left
+with no network at all. Any plan that recreates gluetun therefore also
+recreates everything inside it, marked as a cascade rather than as separate
+decisions. Containers the Suite only adopted are the exception: they get a
+warning instead, because recreating one would be a takeover nobody asked for.
+
+**Orphans.** Switching the VPN off, or removing a component, can leave behind
+a container the Suite created but no longer has any configuration for. Those
+are reported as orphaned and left running. Apply never removes them — that is
+a separate action with its own confirmation, because the reconciler should not
+destroy a container it can no longer describe.
+
+### Turning the VPN off (and back on)
+
+Whether traffic routes through gluetun is one stack-wide setting rather than a
+one-time setup choice, and rather than a per-instance one: a StreamShare
+deployment shares a single tunnel, and per-instance tunnels would mean a
+gluetun container each.
+
+Switch it off and gluetun leaves the stack entirely — its card stays
+configurable, but it no longer appears in any plan, and a running container
+becomes an orphan you can remove when you're ready. Switch it back on and it
+returns with its configuration intact. From 2b onwards this also changes how
+every other component is addressed, so expect the plan to show the whole stack
+recreating when it flips.
 
 ## Data and backups
 
@@ -180,15 +207,21 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | Phase | Ships | Status |
 | --- | --- | --- |
 | 0 | Ops surface on a database, with real auth | shipped |
-| 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | **this branch** |
-| 2 | Instances, Caddy and UHF as reconciled components; the setup wizard; port band allocation; per-instance database creation | planned |
+| 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | shipped |
+| 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | **this branch** |
+| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | planned |
+| 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | planned |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
 
-Phase 1 is the one that changes the Suite's threat model: it's the first
+Phase 1 is the one that changed the Suite's threat model: it was the first
 phase with any access to the Docker API at all, even mediated by the socket
 proxy. See **Stack management** above for what that access is scoped to, and
 the architecture notes for the fuller reasoning.
+
+Phase 2a adds no new Docker permissions — it only widens what the Suite does
+with the access it already had, and adds one read (listing containers by
+label) that the socket proxy's existing `CONTAINERS` grant already allowed.
 
 ## Licence
 

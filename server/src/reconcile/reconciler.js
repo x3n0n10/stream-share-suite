@@ -1,7 +1,7 @@
 // The core apply engine: given a desired spec, decide what — if anything —
 // needs to happen to a real container, and do it.
 //
-// Four outcomes, and the third is the one that makes this safe to point at a
+// Five outcomes, and the third and fifth are what make this safe to point at a
 // stack someone is already running:
 //
 //   create   — no container with this name exists yet.
@@ -15,9 +15,14 @@
 //              are immutable after creation, so there is no way to "adopt in
 //              place" — recognising it without touching it is the only safe
 //              reading of what the blueprint calls adopt-by-label.
+//   orphaned — a container we created, for a component that is no longer part
+//              of the stack (the VPN was switched off, an instance removed).
+//              Never removed automatically: the plan surfaces it and removing
+//              it is its own confirmed action.
 
 import {
   inspectContainer,
+  listContainers,
   createContainer,
   startContainer,
   stopContainer,
@@ -25,41 +30,153 @@ import {
   connectNetwork,
 } from "../docker/client.js";
 import { computeSpecHash, toCreatePayload } from "../docker/spec.js";
-import { LABEL_SPEC_HASH, managedLabels, isManaged } from "../docker/labels.js";
-import { setAdoptedContainer, clearAdoption } from "../store/components.js";
+import { LABEL_MANAGED, LABEL_SPEC_HASH, managedLabels, isManaged, componentOf } from "../docker/labels.js";
+import { setAdoptedContainer, clearAdoption, getComponentValues, componentId } from "../store/components.js";
+import { validate } from "../schema/registry.js";
+import { activeComponents } from "./catalog.js";
+import { orderComponents, applyCascade, summarize } from "./graph.js";
 
-export async function planComponent(kind, spec) {
+// Plans one component against what is actually deployed. `node` carries the
+// component's identity and its edges; the edges are copied onto the plan so
+// the cascade pass can work from plans alone.
+export async function planComponent(node, spec) {
   const desiredHash = computeSpecHash(spec);
   const existing = await inspectContainer(spec.name);
 
+  const base = {
+    id: node.id,
+    kind: node.kind,
+    key: node.key || "",
+    label: node.label,
+    namespaceHost: node.namespaceHost || null,
+    cascadedFrom: null,
+    warnings: [],
+    spec,
+    desiredHash,
+  };
+
   if (!existing) {
-    return { action: "create", kind, spec, desiredHash };
+    return { ...base, action: "create", reason: `No container named ${spec.name} exists yet` };
   }
 
   const labels = existing.Config?.Labels || {};
+
   if (!isManaged(labels)) {
-    return { action: "adopt", kind, spec, desiredHash, containerId: existing.Id };
+    return {
+      ...base,
+      action: "adopt",
+      reason: "Running since before the Suite — never touched without a takeover",
+      containerId: existing.Id,
+    };
   }
 
   if (labels[LABEL_SPEC_HASH] === desiredHash) {
-    return { action: "noop", kind, spec, desiredHash, containerId: existing.Id };
+    return {
+      ...base,
+      action: "noop",
+      reason: "Matches the saved configuration",
+      containerId: existing.Id,
+    };
   }
 
   return {
+    ...base,
     action: "recreate",
-    kind,
-    spec,
-    desiredHash,
+    reason: "The saved configuration has changed",
     containerId: existing.Id,
     previousHash: labels[LABEL_SPEC_HASH],
   };
 }
 
-// Executes a plan, narrating progress through `log` so a caller can stream it
-// to whoever is watching an apply happen. Returns the container id the
-// component now runs as (or already ran as, for noop/adopt-without-takeover).
+// Managed containers that no longer correspond to anything in the stack.
+//
+// Found by label rather than by name, because the whole point is to catch
+// something whose component the Suite has forgotten about — there is no
+// desired spec left to derive a name from.
+async function findOrphans(activeIds) {
+  const containers = await listContainers({
+    all: true,
+    filters: { label: [`${LABEL_MANAGED}=true`] },
+  });
+
+  return containers
+    .map((container) => {
+      const component = componentOf(container.Labels || {});
+      if (!component) return null;
+
+      const id = componentId(component.kind, component.key);
+      if (activeIds.has(id)) return null;
+
+      return {
+        id,
+        kind: component.kind,
+        key: component.key,
+        label: component.kind,
+        action: "orphaned",
+        reason: "The Suite created this, but it is no longer part of the stack",
+        containerId: container.Id,
+        containerName: (container.Names || [])[0]?.replace(/^\//, "") || container.Id,
+        namespaceHost: null,
+        cascadedFrom: null,
+        warnings: [],
+      };
+    })
+    .filter(Boolean);
+}
+
+// The whole stack, in dependency order, with the cascade applied.
+//
+// A component that is present but not yet fully configured gets an
+// "incomplete" row rather than being silently skipped: leaving it out would
+// make the plan claim the stack is fine when a required field is empty.
+export async function planStack() {
+  const nodes = orderComponents(activeComponents());
+  const plans = [];
+
+  for (const node of nodes) {
+    const values = getComponentValues(node.kind, node.key);
+    const errors = validate(node.schema, values);
+
+    if (errors.length > 0) {
+      plans.push({
+        id: node.id,
+        kind: node.kind,
+        key: node.key || "",
+        label: node.label,
+        action: "incomplete",
+        reason: `Not configured yet — ${errors[0].message}`,
+        errors,
+        namespaceHost: node.namespaceHost || null,
+        cascadedFrom: null,
+        warnings: [],
+      });
+      continue;
+    }
+
+    plans.push(await planComponent(node, await node.render(values)));
+  }
+
+  const cascaded = applyCascade(plans);
+  const orphans = await findOrphans(new Set(nodes.map((node) => node.id)));
+  const all = [...cascaded, ...orphans];
+
+  return { plans: all, summary: summarize(all) };
+}
+
+// Executes one plan, narrating progress through `log`. Returns the container
+// id the component now runs as (or already ran as, for noop/adopt).
 export async function applyPlan(plan, { log = () => {}, takeover = false } = {}) {
-  const { action, kind, spec, desiredHash } = plan;
+  const { action, kind, key, spec, desiredHash } = plan;
+
+  if (action === "incomplete") {
+    log(`${plan.label} is not fully configured — skipped.`);
+    return null;
+  }
+
+  if (action === "orphaned") {
+    log(`${plan.containerName} is orphaned. Removing it is a separate action — leaving it alone.`);
+    return plan.containerId;
+  }
 
   if (action === "noop") {
     log(`${spec.name} already matches the desired configuration.`);
@@ -69,7 +186,8 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   if (action === "adopt" && !takeover) {
     log(`Found an existing container named "${spec.name}" without the Suite's labels — adopting without recreating.`);
     log("It stays exactly as it is until you explicitly ask the Suite to take over.");
-    setAdoptedContainer(kind, plan.containerId);
+    for (const warning of plan.warnings || []) log(`Warning: ${warning}`);
+    setAdoptedContainer(kind, plan.containerId, key);
     return plan.containerId;
   }
 
@@ -77,13 +195,14 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
     log(`Taking over "${spec.name}": stopping and removing the unmanaged container.`);
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
     await removeContainer(plan.containerId, { force: true });
-    clearAdoption(kind);
+    clearAdoption(kind, key);
   }
 
   if (action === "recreate") {
-    log(
-      `Configuration changed (${(plan.previousHash || "").slice(0, 12)} -> ${desiredHash.slice(0, 12)}). Recreating "${spec.name}".`
-    );
+    const why = plan.cascadedFrom
+      ? `${plan.cascadedFrom} was replaced, taking its network namespace with it`
+      : `configuration changed (${(plan.previousHash || "").slice(0, 12)} -> ${desiredHash.slice(0, 12)})`;
+    log(`Recreating "${spec.name}" — ${why}.`);
     log("Stopping the current container...");
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
     log("Removing it...");
@@ -91,7 +210,7 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   }
 
   log(`Creating "${spec.name}"...`);
-  const labels = managedLabels(kind, desiredHash);
+  const labels = managedLabels(kind, desiredHash, key);
   const created = await createContainer(spec.name, toCreatePayload(spec, { labels }));
 
   for (const networkName of (spec.networks || []).slice(1)) {
@@ -104,4 +223,47 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
 
   log("Done.");
   return created.Id;
+}
+
+// The actions a stack apply carries out. Everything else is either nothing to
+// do (noop), not ours to touch (adopt, orphaned) or not ready (incomplete).
+//
+// Adopt is deliberately not here even though applyPlan can handle it: on the
+// stack path there is genuinely nothing to do to a foreign container, and
+// counting it would make the button promise a change it is not going to make.
+// Taking one over is an explicit per-component action.
+const APPLIES = new Set(["create", "recreate"]);
+
+// Applies a whole stack plan in order, stopping at the first failure.
+//
+// Stopping rather than continuing is the right call for a dependency-ordered
+// list: if gluetun fails to come back, recreating the four containers that
+// were going to join its namespace only produces four more broken things.
+export async function applyStack(plans, { log = () => {} } = {}) {
+  const actionable = plans.filter((plan) => APPLIES.has(plan.action));
+
+  if (actionable.length === 0) {
+    log("Nothing to apply — the stack already matches its configuration.");
+    return;
+  }
+
+  let done = 0;
+  for (const plan of actionable) {
+    done += 1;
+    log(`[${done}/${actionable.length}] ${plan.label}`);
+    await applyPlan(plan, { log });
+  }
+
+  log(`Applied ${actionable.length} change${actionable.length === 1 ? "" : "s"}.`);
+}
+
+// Removes an orphaned container. Separate from applyStack on purpose: nothing
+// the reconciler does automatically should ever destroy a container it can no
+// longer describe.
+export async function removeOrphan(containerId, { log = () => {} } = {}) {
+  log(`Stopping ${containerId}...`);
+  await stopContainer(containerId, { timeoutSeconds: 30 });
+  log("Removing it...");
+  await removeContainer(containerId, { force: true });
+  log("Done.");
 }

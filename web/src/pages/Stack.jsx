@@ -1,83 +1,62 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Layout from "../components/Layout.jsx";
-import { Card, Badge, Button, ErrorNote } from "../components/common.jsx";
+import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../components/common.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
 
-// Phase 1 proves the reconciler on exactly one component — gluetun, the
-// highest-risk one, since everything else shares its network namespace. Later
-// phases add more kinds; this page becomes a loop over them rather than a
-// hardcoded "gluetun" once there is more than one.
-const KIND = "gluetun";
-
-const ACTION_COPY = {
-  create: { label: "Will create", tone: "accent" },
-  recreate: { label: "Will recreate", tone: "rose" },
-  adopt: { label: "Found, unmanaged", tone: "amber" },
-  noop: { label: "Up to date", tone: "slate" },
+// How each plan action reads on screen. The wording matters more than usual
+// here: this is the last thing anyone sees before containers get replaced.
+const ACTION = {
+  create: { label: "Create", tone: "accent" },
+  recreate: { label: "Recreate", tone: "rose" },
+  adopt: { label: "Adopted", tone: "amber" },
+  noop: { label: "No change", tone: "slate" },
+  orphaned: { label: "Orphaned", tone: "amber" },
+  incomplete: { label: "Not configured", tone: "slate" },
 };
 
 function ActionBadge({ action }) {
-  const copy = ACTION_COPY[action] || { label: action, tone: "slate" };
+  const copy = ACTION[action] || { label: action, tone: "slate" };
   return <Badge tone={copy.tone}>{copy.label}</Badge>;
 }
 
 export default function Stack() {
   const [dockerReachable, setDockerReachable] = useState(null);
-  const [fields, setFields] = useState(null);
+  const [components, setComponents] = useState([]);
+  const [vpnEnabled, setVpnEnabled] = useState(null);
   const [plan, setPlan] = useState(null);
-  const [planIncomplete, setPlanIncomplete] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [saving, setSaving] = useState(false);
+  const [planError, setPlanError] = useState(null);
   const [job, setJob] = useState(null);
-  const [applying, setApplying] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [orphanToRemove, setOrphanToRemove] = useState(null);
   const pollRef = useRef(null);
 
-  async function reload() {
-    const [status, componentRes] = await Promise.all([
+  const refreshPlan = useCallback(async () => {
+    try {
+      const result = await api.stackPlan();
+      setPlan(result);
+      setVpnEnabled(result.vpnEnabled);
+      setPlanError(null);
+    } catch (err) {
+      setPlan(null);
+      setPlanError(err instanceof ApiError ? err.message : String(err));
+    }
+  }, []);
+
+  const reload = useCallback(async () => {
+    const [status, list] = await Promise.all([
       api.dockerStatus().catch(() => ({ reachable: false })),
-      api.componentFields(KIND),
+      api.stackComponents().catch(() => ({ components: [] })),
     ]);
     setDockerReachable(status.reachable);
-    setFields(componentRes.fields);
-    await refreshPlan();
-  }
-
-  async function refreshPlan() {
-    try {
-      const result = await api.componentPlan(KIND);
-      setPlan(result);
-      setPlanIncomplete(false);
-    } catch (err) {
-      if (err instanceof ApiError && err.body?.incomplete) {
-        setPlan(null);
-        setPlanIncomplete(true);
-      } else {
-        setPlan(null);
-        setPlanIncomplete(false);
-      }
-    }
-  }
+    setComponents(list.components);
+    if (status.reachable) await refreshPlan();
+  }, [refreshPlan]);
 
   useEffect(() => {
     reload();
     return () => clearTimeout(pollRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function save(patch) {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const result = await api.saveComponent(KIND, patch);
-      setFields(result.fields);
-      await refreshPlan();
-    } catch (err) {
-      setSaveError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
+  }, [reload]);
 
   function pollJob(jobId) {
     clearTimeout(pollRef.current);
@@ -88,129 +67,295 @@ export default function Stack() {
       if (current.status === "running") {
         pollJob(jobId);
       } else {
-        setApplying(false);
+        setBusy(false);
         refreshPlan();
       }
     }, 500);
   }
 
-  async function apply(takeover) {
-    setApplying(true);
+  async function runJob(start) {
+    setBusy(true);
     setJob(null);
     try {
-      const { jobId } = await api.applyComponent(KIND, { takeover });
+      const { jobId } = await start();
       pollJob(jobId);
     } catch (err) {
-      setApplying(false);
+      setBusy(false);
       setJob({ status: "failed", error: err.message, log: [] });
     }
   }
 
+  async function toggleVpn(next) {
+    setVpnEnabled(next);
+    await api.saveStackSettings({ vpnEnabled: next });
+    await reload();
+  }
+
+  async function confirmRemoveOrphan() {
+    const target = orphanToRemove;
+    setOrphanToRemove(null);
+    await runJob(() => api.removeOrphan(target.containerId));
+  }
+
+  if (dockerReachable === false) {
+    return (
+      <Layout title="Stack">
+        <ErrorNote message="Can't reach the Docker socket proxy. Set DOCKER_PROXY_URL, or check that the docker-socket-proxy service is running and reachable." />
+      </Layout>
+    );
+  }
+
   return (
     <Layout title="Stack">
-      {dockerReachable === false && (
-        <div className="mb-4">
-          <ErrorNote message="Can't reach the Docker socket proxy. Set DOCKER_PROXY_URL, or check that the docker-socket-proxy service is running and reachable." />
-        </div>
-      )}
-
       <div className="flex flex-col gap-4">
-        <Card className="p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Gluetun (VPN)</h2>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                The highest-risk component: every StreamShare instance, Caddy and UHF share its network
-                namespace. Recreating it recreates all of them.
-              </p>
-            </div>
-            {plan && <ActionBadge action={plan.action} />}
-          </div>
+        <VpnToggle enabled={vpnEnabled} onChange={toggleVpn} disabled={busy} />
 
-          {fields === null ? (
-            <p className="text-sm text-slate-400">Loading…</p>
-          ) : (
-            <SchemaForm fields={fields} onSave={save} saving={saving} error={saveError} submitLabel="Save configuration" />
-          )}
-        </Card>
-
-        {planIncomplete && (
-          <Card className="p-5">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Save a complete configuration above to see what applying it would do.
-            </p>
-          </Card>
-        )}
+        {planError && <ErrorNote message={planError} />}
 
         {plan && (
-          <Card className="p-5">
-            <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Plan</h2>
-            <PlanSummary plan={plan} />
-
-            <div className="mt-4 flex items-center gap-2">
-              <Button tone="accent" onClick={() => apply(false)} loading={applying} disabled={applying || plan.action === "noop"}>
-                {plan.action === "noop" ? "Nothing to apply" : "Apply"}
-              </Button>
-              {plan.action === "adopt" && (
-                <Button tone="rose" onClick={() => apply(true)} loading={applying} disabled={applying}>
-                  Take over anyway
-                </Button>
-              )}
-            </div>
-
-            {job && <JobLog job={job} />}
-          </Card>
+          <PlanCard
+            plan={plan}
+            busy={busy}
+            onApply={() => runJob(() => api.applyStack())}
+            onRemoveOrphan={setOrphanToRemove}
+          />
         )}
+
+        {job && <JobLog job={job} />}
+
+        {components.map((component) => (
+          <ComponentCard
+            key={component.kind}
+            component={component}
+            onSaved={refreshPlan}
+            busy={busy}
+            onApplyTakeover={() =>
+              runJob(() => api.applyComponent(component.kind, { takeover: true }))
+            }
+            takeoverAvailable={
+              plan?.plans.some((row) => row.kind === component.kind && row.action === "adopt") || false
+            }
+          />
+        ))}
       </div>
+
+      <ConfirmDialog
+        open={!!orphanToRemove}
+        title="Remove this container?"
+        body={
+          orphanToRemove
+            ? `${orphanToRemove.containerName} was created by the Suite but is no longer part of your stack. Removing it stops and deletes the container.`
+            : ""
+        }
+        confirmLabel="Remove"
+        onConfirm={confirmRemoveOrphan}
+        onCancel={() => setOrphanToRemove(null)}
+      />
     </Layout>
   );
 }
 
-function PlanSummary({ plan }) {
-  if (plan.action === "noop") {
-    return <p className="text-sm text-slate-500 dark:text-slate-400">Already matches the desired configuration.</p>;
-  }
-  if (plan.action === "adopt") {
-    return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        A container named <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{plan.spec.name}</code> is
-        already running without the Suite's labels — almost certainly one you set up by hand. Applying will leave
-        it exactly as it is. "Take over anyway" stops and replaces it with a managed one instead.
-      </p>
-    );
-  }
-  if (plan.action === "recreate") {
-    return (
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        The saved configuration differs from what's running. Applying stops, removes, and recreates{" "}
-        <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{plan.spec.name}</code> — every instance
-        sharing its network namespace loses its connection until it comes back up.
-      </p>
-    );
-  }
+function VpnToggle({ enabled, onChange, disabled }) {
+  if (enabled === null) return null;
+
   return (
-    <p className="text-sm text-slate-500 dark:text-slate-400">
-      No container named <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{plan.spec.name}</code> exists
-      yet. Applying creates and starts it with {plan.spec.env.length} environment variable
-      {plan.spec.env.length === 1 ? "" : "s"} set.
-    </p>
+    <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+          Route traffic through a VPN
+        </h2>
+        <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+          {enabled
+            ? "Instances, Caddy and the recorder share gluetun's network namespace. Replacing gluetun briefly takes them with it."
+            : "Every container gets its own network. Turning this back on rebuilds everything that would share the tunnel."}
+        </p>
+      </div>
+      <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+        <input
+          type="checkbox"
+          checked={enabled}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.checked)}
+          className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+        />
+        {enabled ? "On" : "Off"}
+      </label>
+    </Card>
+  );
+}
+
+function PlanCard({ plan, busy, onApply, onRemoveOrphan }) {
+  const { plans, summary } = plan;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Stack plan</h2>
+        <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
+          <PlanSummary summary={summary} />
+        </p>
+      </div>
+
+      {plans.length === 0 ? (
+        <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
+          Nothing in the stack yet. Configure a component below to get started.
+        </p>
+      ) : (
+        <ul>
+          {plans.map((row, index) => (
+            <PlanRow key={row.id + row.action} row={row} ordinal={index + 1} onRemoveOrphan={onRemoveOrphan} />
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-800">
+        <Button tone="accent" onClick={onApply} loading={busy} disabled={busy || summary.changes === 0}>
+          {summary.changes === 0
+            ? "Nothing to apply"
+            : `Apply ${summary.changes} change${summary.changes === 1 ? "" : "s"}`}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function PlanSummary({ summary }) {
+  const parts = [];
+  if (summary.changes > 0) parts.push(`${summary.changes} change${summary.changes === 1 ? "" : "s"}`);
+  if (summary.restarts > 0)
+    parts.push(`${summary.restarts} container${summary.restarts === 1 ? "" : "s"} restart`);
+  if (summary.orphans > 0) parts.push(`${summary.orphans} orphaned`);
+  if (parts.length === 0) parts.push("Everything matches its configuration");
+  return parts.join(" · ");
+}
+
+function PlanRow({ row, ordinal, onRemoveOrphan }) {
+  const cascaded = !!row.cascadedFrom;
+
+  return (
+    <li
+      className={`grid grid-cols-[1.75rem_1fr_auto] items-center gap-3 border-b border-slate-200 px-5 py-3 last:border-b-0 dark:border-slate-800 ${
+        cascaded ? "bg-slate-50 dark:bg-slate-900/40" : ""
+      }`}
+    >
+      <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">{ordinal}</span>
+      <div className="min-w-0">
+        <p className={`truncate font-mono text-sm text-slate-900 dark:text-white ${cascaded ? "pl-4" : ""}`}>
+          {cascaded && <span className="mr-1 text-slate-300 dark:text-slate-600">└</span>}
+          {row.spec?.name || row.containerName || row.label}
+        </p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{row.reason}</p>
+        {(row.warnings || []).map((warning) => (
+          <p key={warning} className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+            {warning}
+          </p>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        {row.action === "orphaned" && (
+          <button
+            onClick={() => onRemoveOrphan(row)}
+            className="text-xs font-medium text-rose-600 hover:underline dark:text-rose-400"
+          >
+            Remove
+          </button>
+        )}
+        <ActionBadge action={row.action} />
+      </div>
+    </li>
+  );
+}
+
+function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTakeover }) {
+  const [fields, setFields] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || fields) return;
+    api.componentFields(component.kind).then((res) => setFields(res.fields));
+  }, [open, fields, component.kind]);
+
+  async function save(patch) {
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await api.saveComponent(component.kind, patch);
+      setFields(result.fields);
+      await onSaved();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
+          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+            {component.description}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {!component.active && <Badge tone="slate">Not in the stack</Badge>}
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="text-xs font-medium text-accent-600 hover:underline dark:text-accent-400"
+          >
+            {open ? "Hide" : "Configure"}
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          {fields === null ? (
+            <p className="text-sm text-slate-400">Loading…</p>
+          ) : (
+            <SchemaForm
+              fields={fields}
+              onSave={save}
+              saving={saving}
+              error={error}
+              submitLabel="Save configuration"
+            />
+          )}
+
+          {takeoverAvailable && (
+            <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
+              <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+                A container by this name is already running without the Suite's labels. It stays
+                untouched unless you replace it with a managed one.
+              </p>
+              <Button tone="rose" onClick={onApplyTakeover} loading={busy} disabled={busy}>
+                Take over anyway
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 
 function JobLog({ job }) {
   return (
-    <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
+    <Card className="p-5">
       <div className="mb-2 flex items-center gap-2">
         <Badge tone={job.status === "success" ? "green" : job.status === "failed" ? "rose" : "slate"}>
           {job.status}
         </Badge>
       </div>
-      <div className="max-h-48 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">
+      <div className="max-h-64 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">
         {(job.log || []).map((entry, i) => (
           <div key={i}>{entry.line}</div>
         ))}
         {job.error && <div className="text-rose-600 dark:text-rose-400">{job.error}</div>}
       </div>
-    </div>
+    </Card>
   );
 }

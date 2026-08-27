@@ -114,18 +114,28 @@ const SPEC = {
   networks: ["ssbackend", "nordvpn"],
 };
 
+// The identity half of what planComponent needs; the catalog builds these for
+// real, but the decision under test here is about the container, not the graph.
+const NODE = {
+  id: "gluetun",
+  kind: "gluetun",
+  key: "",
+  label: "Gluetun (VPN)",
+  namespaceHost: null,
+};
+
 function collectLog() {
   const lines = [];
   return { log: (line) => lines.push(line), lines };
 }
 
 test("plans 'create' when no container with the expected name exists", async () => {
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   assert.equal(plan.action, "create");
 });
 
 test("applying a 'create' plan creates, joins the second network, and starts", async () => {
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   const { log, lines } = collectLog();
 
   const id = await applyPlan(plan, { log });
@@ -153,7 +163,7 @@ test("plans 'noop' when a managed container already matches the desired spec has
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   assert.equal(plan.action, "noop");
 });
 
@@ -166,7 +176,7 @@ test("applying a 'noop' plan makes no Docker calls beyond the inspect already us
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   requests.length = 0; // only count calls made during apply, not during plan
   const { log } = collectLog();
   const id = await applyPlan(plan, { log });
@@ -183,7 +193,7 @@ test("plans 'recreate' when a managed container's spec hash has changed", async 
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   assert.equal(plan.action, "recreate");
   assert.equal(plan.previousHash, "stale-hash");
 });
@@ -196,7 +206,7 @@ test("applying a 'recreate' plan stops and removes the old container before crea
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   const { log } = collectLog();
   const newId = await applyPlan(plan, { log });
 
@@ -221,7 +231,7 @@ test("plans 'adopt' when a container exists under the name but carries none of o
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   assert.equal(plan.action, "adopt");
   assert.equal(plan.containerId, "foreign-id");
 });
@@ -234,7 +244,7 @@ test("applying an 'adopt' plan without takeover makes zero Docker calls and leav
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   requests.length = 0;
   const { log, lines } = collectLog();
   const id = await applyPlan(plan, { log, takeover: false });
@@ -254,7 +264,7 @@ test("adopting persists the adoption so a later plan can still see it", async ()
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   await applyPlan(plan, { log: () => {}, takeover: false });
 
   const row = getComponentRow("gluetun");
@@ -269,7 +279,7 @@ test("applying an 'adopt' plan WITH takeover stops and removes the foreign conta
     running: true,
   });
 
-  const plan = await planComponent("gluetun", SPEC);
+  const plan = await planComponent(NODE, SPEC);
   const { log, lines } = collectLog();
   const newId = await applyPlan(plan, { log, takeover: true });
 
