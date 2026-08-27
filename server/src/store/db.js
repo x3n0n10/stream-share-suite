@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Bumped whenever schema.sql gains a migration below.
-const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 let db = null;
 
@@ -84,11 +84,39 @@ function describePermissions(dataDir) {
 
 // Forward-only migrations. Each case falls through to the next so a store
 // several versions behind catches up in one pass.
+//
+// Note that schema.sql has already run by the time this is called, and every
+// statement in it is CREATE TABLE IF NOT EXISTS — so it creates what a fresh
+// store needs and leaves an existing table alone. Reshaping an existing table
+// is this function's job, never schema.sql's.
 function migrate(database, from) {
   /* eslint-disable no-fallthrough */
   switch (from) {
-    // case 1:
-    //   database.exec("ALTER TABLE instances ADD COLUMN channel TEXT NOT NULL DEFAULT 'stable'");
+    // v1 keyed components by kind alone, which allows exactly one row per
+    // kind. Instances need many, so the primary key becomes (kind, key) with
+    // the empty string standing for "the only one of its kind". SQLite cannot
+    // alter a primary key in place, hence the rebuild.
+    case 1:
+      database.exec(`
+        ALTER TABLE components RENAME TO components_v1;
+
+        CREATE TABLE components (
+          kind                 TEXT NOT NULL,
+          key                  TEXT NOT NULL DEFAULT '',
+          config_json          TEXT NOT NULL DEFAULT '{}',
+          adopted_container_id TEXT,
+          created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at           TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY (kind, key)
+        );
+
+        INSERT INTO components (kind, key, config_json, adopted_container_id, created_at, updated_at)
+          SELECT kind, '', config_json, adopted_container_id, created_at, updated_at
+            FROM components_v1;
+
+        DROP TABLE components_v1;
+      `);
+
     default:
       break;
   }

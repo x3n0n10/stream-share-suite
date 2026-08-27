@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { _setDatabaseForTests, closeDatabase } from "../src/store/db.js";
+import { _setDatabaseForTests, closeDatabase, SCHEMA_VERSION } from "../src/store/db.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,7 +12,9 @@ export function freshDatabase() {
   closeDatabase();
   const db = new DatabaseSync(":memory:");
   db.exec(readFileSync(path.join(__dirname, "..", "src", "store", "schema.sql"), "utf8"));
-  db.prepare("INSERT INTO schema_version (version) VALUES (1)").run();
+  // schema.sql is the current shape, so the marker has to say so — a stale
+  // literal here would let a migration test pass against an unmigrated store.
+  db.prepare("INSERT INTO schema_version (version) VALUES (?)").run(SCHEMA_VERSION);
   _setDatabaseForTests(db);
   return db;
 }

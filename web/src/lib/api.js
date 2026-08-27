@@ -128,6 +128,11 @@ export const api = {
 
   dockerStatus: () => get("/api/stack/docker/status"),
   stackComponents: () => get("/api/stack/components"),
+  stackSettings: () => get("/api/stack/settings"),
+  saveStackSettings: (payload) => put("/api/stack/settings", payload),
+  stackPlan: () => get("/api/stack/plan"),
+  applyStack: () => post("/api/stack/apply", {}),
+  removeOrphan: (containerId) => post("/api/stack/orphans/remove", { containerId }),
   componentFields: (kind) => get(`/api/stack/components/${kind}`),
   saveComponent: (kind, payload) => put(`/api/stack/components/${kind}`, payload),
   componentPlan: (kind) => get(`/api/stack/components/${kind}/plan`),

@@ -62,11 +62,17 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
 
--- One row per reconciler-managed component kind (see server/src/schema/ for
--- what each kind's fields mean). config_json holds a schema's field values as
--- a flat object — secrets included, in the clear, same as everywhere else in
+-- One row per reconciler-managed component (see server/src/schema/ for what
+-- each kind's fields mean). config_json holds a schema's field values as a
+-- flat object — secrets included, in the clear, same as everywhere else in
 -- this store; see the blueprint's write-only-in-the-UI note for why that is
 -- an accepted tradeoff rather than an oversight.
+--
+-- The key is the composite (kind, key) rather than kind alone: singleton
+-- components (gluetun, postgres, caddy) use the empty string, and kinds that
+-- exist several times over (instances) use a per-component key. An empty key
+-- is a real value here rather than NULL so the primary key stays usable —
+-- SQLite treats NULLs in a primary key as distinct from each other.
 --
 -- adopted_container_id is set when the reconciler finds a container already
 -- running under this component's expected name without our labels on it — a
@@ -74,9 +80,11 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
 -- reconciler leaves it alone rather than recreating it under management; see
 -- reconcile/reconciler.js for the exact rule.
 CREATE TABLE IF NOT EXISTS components (
-  kind                 TEXT PRIMARY KEY,
+  kind                 TEXT NOT NULL,
+  key                  TEXT NOT NULL DEFAULT '',
   config_json          TEXT NOT NULL DEFAULT '{}',
   adopted_container_id TEXT,
   created_at           TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at           TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (kind, key)
 );
