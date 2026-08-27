@@ -293,6 +293,15 @@ test("the VPN is on by default, which is what a phase 1 deployment already had",
   assert.equal((await c.get("/api/stack/settings")).body.vpnEnabled, true);
 });
 
+test("settings exposes the container prefix read-only, for the UI to preview a default name with", async () => {
+  const c = await signedInClient(base);
+  assert.equal((await c.get("/api/stack/settings")).body.containerPrefix, "streamshare-suite-");
+
+  // Not settable through the route — it only ever reads SUITE_CONTAINER_PREFIX.
+  const res = await c.put("/api/stack/settings", { containerPrefix: "ignored-" });
+  assert.equal(res.body.containerPrefix, "streamshare-suite-");
+});
+
 test("switching the VPN off takes gluetun out of the stack plan", async () => {
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);

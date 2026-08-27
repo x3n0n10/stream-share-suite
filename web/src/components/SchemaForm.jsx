@@ -10,7 +10,7 @@ const FIELD =
 // the point of the schema registry: a new field on the server is a new row
 // in the rendered form with no frontend change at all. Everything here is
 // generic over shape; a component's meaning lives entirely in its schema.
-export default function SchemaForm({ fields, onSave, saving, error, submitLabel = "Save" }) {
+export default function SchemaForm({ fields, onSave, saving, error, submitLabel = "Save", preview }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -81,6 +81,8 @@ export default function SchemaForm({ fields, onSave, saving, error, submitLabel 
           </div>
         );
       })}
+
+      {preview && preview(draft)}
 
       {error && <ErrorNote message={error} />}
 

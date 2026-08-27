@@ -3,6 +3,7 @@ import Layout from "../components/Layout.jsx";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../components/common.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
+import { previewContainerName } from "../lib/containerName.js";
 
 // How each plan action reads on screen. The wording matters more than usual
 // here: this is the last thing anyone sees before containers get replaced.
@@ -150,6 +151,7 @@ export default function Stack() {
         <InstancesCard
           instances={instances}
           portBand={portBand}
+          containerPrefix={settings?.containerPrefix || ""}
           busy={busy}
           onAdd={addInstance}
           onRemove={setInstanceToRemove}
@@ -323,7 +325,7 @@ function EmptyPlan({ components }) {
   );
 }
 
-function InstancesCard({ instances, portBand, busy, onAdd, onRemove }) {
+function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onRemove }) {
   const [adding, setAdding] = useState(false);
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -409,6 +411,12 @@ function InstancesCard({ instances, portBand, busy, onAdd, onRemove }) {
               saving={saving}
               error={error}
               submitLabel="Create instance"
+              preview={(draft) => (
+                <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
+                  Container name:{" "}
+                  {previewContainerName(draft, { prefix: containerPrefix, existingKeys: instances.map((i) => i.key) })}
+                </p>
+              )}
             />
           )}
         </div>

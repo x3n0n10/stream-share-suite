@@ -27,6 +27,7 @@ import { planComponent, planStack, applyPlan, applyStack, removeOrphan } from ".
 import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
 import { ping, DockerError } from "../docker/client.js";
 import { instanceUrl, instanceContainerName, PORT_BAND } from "../reconcile/instance.js";
+import { containerPrefix } from "../reconcile/prefix.js";
 import { provisionInstance, deprovisionInstance } from "../reconcile/provisioning.js";
 import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
@@ -95,16 +96,19 @@ export function createStackRouter() {
     res.json({ reachable });
   });
 
-  // Stack-wide settings. Only the VPN toggle — the data and cache paths are
-  // environment variables the operator sets once in compose (SUITE_DATA_DIR,
-  // SUITE_CACHE_DIR) and are never surfaced here for the same reason they are
-  // never asked for twice: a UI override would just be retyping the same
-  // string the compose file already carries. A path that is set but
+  // Stack-wide settings. Only the VPN toggle is actually settable here — the
+  // data and cache paths, and the container prefix, are environment variables
+  // the operator sets once in compose (SUITE_DATA_DIR, SUITE_CACHE_DIR,
+  // SUITE_CONTAINER_PREFIX) and are never editable here for the same reason
+  // they are never asked for twice: a UI override would just be retyping the
+  // same string the compose file already carries. A path that is set but
   // unreachable still surfaces — as an "incomplete" row on the component that
   // needs it, from catalog.js's readiness check, which is where a wrong value
-  // actually has a consequence worth explaining.
+  // actually has a consequence worth explaining. containerPrefix is included
+  // read-only so the UI can preview a container's default name without
+  // guessing at a value only the environment actually knows.
   function stackSettings() {
-    return { vpnEnabled: isVpnEnabled() };
+    return { vpnEnabled: isVpnEnabled(), containerPrefix: containerPrefix() };
   }
 
   router.get("/settings", (req, res) => {

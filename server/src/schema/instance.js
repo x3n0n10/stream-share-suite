@@ -199,7 +199,7 @@ export const INSTANCE_SCHEMA = {
       key: "containerName",
       envVar: null,
       label: "Container name",
-      help: "Defaults to stream-share-<name>. Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
+      help: "Defaults to the Suite's container prefix followed by this instance's slug — see the preview above the Create button. Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
       group: "Container",
       advanced: true,
     },
