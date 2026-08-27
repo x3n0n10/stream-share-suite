@@ -22,10 +22,15 @@ services:
       PGID: 1000
 
       # Where the SQLite store lives, and — from phase 2b — where every
-      # component's own configuration lives too, one subfolder each, unless you
-      # set a separate path under Stack settings. Back this path up and you
-      # have backed up everything except the cache below.
+      # component's own configuration lives too, one subfolder each. Back this
+      # path up and you have backed up everything except the cache below.
       SUITE_DATA_DIR: /mnt/user/appdata/stream-share-suite
+
+      # VOD and catchup caching, kept separate from the above because it
+      # reaches tens of gigabytes per instance and usually belongs on a
+      # different disk. Both variables are read once, at startup — set them
+      # here and there is nothing left to configure in the Suite's own UI.
+      SUITE_CACHE_DIR: /mnt/user/cache/stream-share-suite
 
       # --- First-run import (optional) -------------------------------------
       # If you are coming from stream-share-dashboard, paste its INSTANCE_N_*
@@ -56,10 +61,8 @@ services:
       # also where PUID/PGID earns its keep: the entrypoint chowns this to
       # them, and every component the Suite creates runs as them too.
       - /mnt/user/appdata/stream-share-suite:/mnt/user/appdata/stream-share-suite
-      # VOD and catchup caching reach tens of gigabytes per instance and
-      # usually belong on a different disk from the config above — a separate
-      # bind mount, set as its own path under Stack settings (never defaulted,
-      # unlike the one above).
+      # A second, separate bind mount for SUITE_CACHE_DIR above — the same
+      # path-on-both-sides requirement, for the same reason.
       - /mnt/user/cache/stream-share-suite:/mnt/user/cache/stream-share-suite
 
     depends_on:

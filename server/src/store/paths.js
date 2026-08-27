@@ -19,15 +19,31 @@
 // is nothing to translate. validatePath below is what turns getting this wrong
 // into a sentence rather than a container that fails to start.
 //
-// The data path defaults to SUITE_DATA_DIR — the same folder suite.db already
-// lives in — so a stack laid out that way needs no separate setting at all;
-// see the README's "Where component data lives" section. That default is only
-// correct if SUITE_DATA_DIR is itself a bind mount, though: the Suite cannot
-// tell a bind mount apart from a Docker-managed named volume by looking at it
-// from inside — both simply appear as a writable directory. Someone who keeps
-// the named-volume default from earlier phases and upgrades without changing
-// it will have this default silently resolve to the wrong kind of path, so
-// the shipped compose file switches to a bind mount for exactly this reason.
+// Both paths default from environment variables — SUITE_DATA_DIR (the same
+// folder suite.db already lives in) and SUITE_CACHE_DIR — so a stack laid out
+// that way needs no path ever typed into the UI at all; see the README's
+// "Where component data lives" section. Saving an explicit value through the
+// Settings page still overrides its default, for anyone who wants either path
+// somewhere the environment doesn't already say.
+//
+// Self-inspection (the same trick that computes gluetun's
+// FIREWALL_OUTBOUND_SUBNETS from the Suite's own networks) was considered and
+// rejected for this: `docker inspect` would hand back every one of the
+// Suite's bind mounts, but not which one is "the cache path" — that's a
+// question about intent, not topology, and there is no reliable way to tell a
+// config mount from a cache mount from an unrelated one an operator happens to
+// have without some deliberate signal. An env var already is that signal, and
+// declaring it once in compose is exactly as much typing as a label would
+// have been — so self-inspection would have added ambiguity without actually
+// removing the one declaration this still requires.
+//
+// The default is only correct if the backing variable is itself a bind mount
+// rather than a Docker-managed named volume, though: the Suite cannot tell
+// the two apart by looking at it from inside — both simply appear as a
+// writable directory. Someone who keeps a named volume from an earlier phase
+// and upgrades without changing it will have the default silently resolve to
+// the wrong kind of path, so the shipped compose file uses bind mounts for
+// both variables for exactly this reason.
 
 import { mkdirSync, statSync, accessSync, constants } from "node:fs";
 import path from "node:path";
@@ -41,7 +57,7 @@ export function getDataPath() {
 }
 
 export function getCachePath() {
-  return getSetting(CACHE_PATH_SETTING) || "";
+  return getSetting(CACHE_PATH_SETTING) || String(process.env.SUITE_CACHE_DIR || "").trim();
 }
 
 export function setPaths({ dataPath, cachePath }) {

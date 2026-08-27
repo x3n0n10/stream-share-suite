@@ -321,7 +321,9 @@ function StackSettings({ settings, onSave, busy }) {
       <div className="border-t border-slate-200 pt-5 dark:border-slate-800">
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Where data lives</h2>
         <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-          Host paths. Each must be mounted into the Suite at the same path — add{" "}
+          Set once via <code>SUITE_DATA_DIR</code> / <code>SUITE_CACHE_DIR</code> in compose,
+          normally — the fields below just show what's already configured. Each host path must
+          be mounted into the Suite at the same path — add{" "}
           <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">- /your/path:/your/path</code> to
           its volumes — so the path means the same thing on both sides.
           {settings.runsAs && ` Directories are created as ${settings.runsAs}, and containers run as those ids.`}
@@ -353,7 +355,8 @@ function StackSettings({ settings, onSave, busy }) {
               onChange={(e) => setCachePath(e.target.value)}
             />
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              VOD and catchup. Tens of GB per instance — point it somewhere with room.
+              Defaults to <code>SUITE_CACHE_DIR</code>. VOD and catchup — tens of GB per
+              instance — kept separate so it can point somewhere with room.
             </span>
           </label>
         </div>

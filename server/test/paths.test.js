@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, chmodSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { getDataPath, setPaths, validatePath } from "../src/store/paths.js";
+import { getDataPath, getCachePath, setPaths, validatePath } from "../src/store/paths.js";
 import { freshDatabase } from "./helpers.js";
 
 let originalEnv;
@@ -88,4 +88,46 @@ test("validatePath rejects a directory it cannot write to", { skip: process.getu
 test("validatePath requires a value", () => {
   assert.match(validatePath("", "The stack data path"), /is required/);
   assert.match(validatePath(undefined, "The stack data path"), /is required/);
+});
+
+// --- the cache path's default, mirroring the data path's ------------------
+
+let originalCacheEnv;
+
+test("with nothing stored, the cache path falls back to SUITE_CACHE_DIR", () => {
+  originalCacheEnv = process.env.SUITE_CACHE_DIR;
+  process.env.SUITE_CACHE_DIR = "/cache";
+  try {
+    assert.equal(getCachePath(), "/cache");
+  } finally {
+    if (originalCacheEnv === undefined) delete process.env.SUITE_CACHE_DIR;
+    else process.env.SUITE_CACHE_DIR = originalCacheEnv;
+  }
+});
+
+test("an explicitly saved cache path overrides SUITE_CACHE_DIR", () => {
+  process.env.SUITE_CACHE_DIR = "/cache";
+  try {
+    setPaths({ cachePath: "/mnt/user/cache/streamshare" });
+    assert.equal(getCachePath(), "/mnt/user/cache/streamshare");
+  } finally {
+    delete process.env.SUITE_CACHE_DIR;
+  }
+});
+
+test("with SUITE_CACHE_DIR unset and nothing saved, the cache path is empty", () => {
+  delete process.env.SUITE_CACHE_DIR;
+  assert.equal(getCachePath(), "");
+});
+
+test("the data and cache paths default independently of each other", () => {
+  process.env.SUITE_DATA_DIR = "/data";
+  process.env.SUITE_CACHE_DIR = "/cache";
+  try {
+    assert.equal(getDataPath(), "/data");
+    assert.equal(getCachePath(), "/cache");
+  } finally {
+    delete process.env.SUITE_DATA_DIR;
+    delete process.env.SUITE_CACHE_DIR;
+  }
 });
