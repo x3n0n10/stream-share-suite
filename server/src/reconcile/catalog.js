@@ -12,9 +12,19 @@
 // renders anything — including for components that do not exist yet.
 
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
+import { POSTGRES_SCHEMA } from "../schema/postgres.js";
+import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { renderGluetunSpec, GLUETUN_CONTAINER_NAME } from "./gluetun.js";
+import {
+  renderPostgresSpec,
+  POSTGRES_CONTAINER_NAME,
+  isManaged as isPostgresManaged,
+} from "./postgres.js";
+import { renderInstanceSpec, instanceContainerName } from "./instance.js";
+import { prepareInstance } from "./provisioning.js";
 import { getBoolean } from "../store/settings.js";
-import { componentId, listComponents } from "../store/components.js";
+import { getDataPath, getCachePath, validatePath } from "../store/paths.js";
+import { componentId, listComponents, getComponentValues } from "../store/components.js";
 
 // Whether the stack routes its traffic through a VPN at all. This is one
 // stack-wide setting rather than a per-instance choice: a StreamShare
@@ -37,16 +47,60 @@ const CATALOG = {
     kind: "gluetun",
     label: "Gluetun (VPN)",
     description:
-      "The VPN tunnel. Every StreamShare instance, Caddy and UHF share its network namespace, so replacing it briefly takes them with it.",
+      "The VPN tunnel. Every StreamShare instance shares its network namespace and is published through it, so replacing it briefly takes them with it.",
     schema: GLUETUN_SCHEMA,
     render: renderGluetunSpec,
     singleton: true,
     containerName: () => GLUETUN_CONTAINER_NAME,
     present: () => isVpnEnabled(),
     // Nothing has to exist before gluetun, and nothing hosts its namespace.
-    // Instances, Caddy and UHF fill both of these in from 2b.
     dependsOn: () => [],
     namespaceHost: () => null,
+  },
+
+  postgres: {
+    kind: "postgres",
+    label: "PostgreSQL",
+    description:
+      "Where every instance keeps its history, VOD index and aliases. Each instance gets a database of its own rather than sharing one.",
+    schema: POSTGRES_SCHEMA,
+    render: renderPostgresSpec,
+    singleton: true,
+    containerName: () => POSTGRES_CONTAINER_NAME,
+    // An external server is configured here but not run by us, so there is no
+    // container to reconcile and it contributes no node.
+    present: () => isPostgresManaged(getComponentValues("postgres")),
+    ready: () => validatePath(getDataPath(), "The stack data path"),
+    dependsOn: () => [],
+    // Deliberately not inside the VPN: the database has no reason to egress
+    // through the tunnel, and putting it there would make every VPN change
+    // restart it.
+    namespaceHost: () => null,
+  },
+
+  instance: {
+    kind: "instance",
+    label: "StreamShare instance",
+    description: "One IPTV provider, shared with your users.",
+    schema: INSTANCE_SCHEMA,
+    render: renderInstanceSpec,
+    singleton: false,
+    containerName: (key) => instanceContainerName(key, getComponentValues("instance", key)),
+    present: () => true,
+    ready: () =>
+      validatePath(getDataPath(), "The stack data path") ||
+      validatePath(getCachePath(), "The cache path"),
+    // The database must exist before an instance that stores its state there.
+    // An external postgres is not a node, so this edge simply finds nothing to
+    // order against — which orderComponents already tolerates.
+    dependsOn: () => ["postgres"],
+    // Runs before the container is created or recreated, never before a noop:
+    // an instance needs its database to exist before it first connects.
+    prepare: (key, values, opts) => prepareInstance(key, values, opts),
+    // With the VPN on, an instance runs inside gluetun's network namespace and
+    // does not survive it being replaced. This is the edge the cascade exists
+    // for, and 2b is where it starts firing.
+    namespaceHost: () => (isVpnEnabled() ? "gluetun" : null),
   },
 };
 
@@ -74,17 +128,20 @@ export function componentNodes() {
     const keys = entry.singleton ? [""] : listComponents(entry.kind).map((row) => row.key);
 
     for (const key of keys) {
+      const stored = entry.singleton ? null : getComponentValues(entry.kind, key);
       nodes.push({
         id: componentId(entry.kind, key),
         kind: entry.kind,
         key,
-        label: entry.label,
+        label: stored?.displayName || entry.label,
         description: entry.description,
         schema: entry.schema,
         render: entry.render,
         containerName: entry.containerName(key),
         dependsOn: entry.dependsOn(key),
         namespaceHost: entry.namespaceHost(key),
+        prepare: entry.prepare || null,
+        ready: entry.ready || null,
         present,
       });
     }

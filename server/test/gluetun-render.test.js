@@ -10,6 +10,7 @@ import { createServer } from "node:http";
 import { renderGluetunSpec, GLUETUN_CONTAINER_NAME } from "../src/reconcile/gluetun.js";
 import { GLUETUN_SCHEMA } from "../src/schema/gluetun.js";
 import { validate } from "../src/schema/registry.js";
+import { freshDatabase } from "./helpers.js";
 
 let server;
 let nextInspectResponse;
@@ -26,6 +27,9 @@ before(async () => {
 after(() => server.close());
 
 beforeEach(() => {
+  // renderGluetunSpec now reads the instance list, to publish their ports on
+  // their behalf, so it needs a store even when no instances exist.
+  freshDatabase();
   nextInspectResponse = {
     Id: "selfid",
     NetworkSettings: { Networks: { ssbackend: { IPAddress: "172.18.0.20", IPPrefixLen: 24 } } },

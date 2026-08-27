@@ -32,6 +32,16 @@ after(() => server.close());
 beforeEach(() => {
   freshDatabase();
   containers = new Map();
+  // These cases are about gluetun. Postgres is managed by default, which would
+  // add a second row to every plan below; pointing it at an external server
+  // takes it out of the stack without disabling anything under test.
+  saveComponentValues("postgres", {
+    mode: "external",
+    host: "db.example",
+    port: "5432",
+    adminUser: "postgres",
+    adminPassword: "x",
+  });
 });
 
 function json(res, status, body) {

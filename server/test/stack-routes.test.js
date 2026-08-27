@@ -9,6 +9,7 @@ import { freshDatabase, apiClient, signedInClient } from "./helpers.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
 import { _clearJobsForTests } from "../src/reconcile/jobs.js";
+import { saveComponentValues } from "../src/store/components.js";
 
 let appServer;
 let base;
@@ -42,6 +43,16 @@ beforeEach(() => {
   _clearJobsForTests();
   containers = new Map();
   nextId = 1;
+  // Postgres is managed by default and would add a row to every plan these
+  // cases assert on; they are about gluetun and the routes themselves, so it
+  // is pointed at an external server and drops out of the stack.
+  saveComponentValues("postgres", {
+    mode: "external",
+    host: "db.example",
+    port: "5432",
+    adminUser: "postgres",
+    adminPassword: "x",
+  });
 });
 
 function json(res, status, body) {

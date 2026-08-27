@@ -7,6 +7,8 @@
 // means an edit in the UI takes effect on the next poll.
 
 import { listInstances } from "./store/instances.js";
+import { listComponents } from "./store/components.js";
+import { instanceUrl, instanceContainerName } from "./reconcile/instance.js";
 import { getNumber, getSetting } from "./store/settings.js";
 
 export const DEFAULTS = {
@@ -37,6 +39,29 @@ function readGluetun() {
   };
 }
 
+// Instances the Suite created, projected into the same shape the ops layer
+// already reads for the ones you typed in by hand.
+//
+// Derived on every read rather than copied into the instances table, so there
+// is no second source of truth to keep in sync — and no way for the two to
+// disagree after a port changes or the VPN is switched off. Both are what an
+// instance's URL is computed from, which is why nobody types one.
+function managedInstances() {
+  return listComponents("instance").map((row, index) => {
+    const values = JSON.parse(row.config_json);
+    return {
+      id: row.key,
+      name: values.displayName || row.key,
+      url: instanceUrl(row.key, values),
+      apiKey: values._apiKey || "",
+      position: 1000 + index,
+      enabled: true,
+      managed: true,
+      containerName: instanceContainerName(row.key, values),
+    };
+  });
+}
+
 export function loadConfig() {
   return {
     title: getSetting("general.title") || DEFAULTS.title,
@@ -53,7 +78,8 @@ export function loadConfig() {
       getNumber("general.vod_search_timeout_ms", DEFAULTS.vodSearchTimeoutMs)
     ),
     vodActorUsername: getSetting("general.vod_actor_username") || DEFAULTS.vodActorUsername,
-    instances: listInstances(),
+    // Externally-configured instances first, then the ones the Suite runs.
+    instances: [...listInstances(), ...managedInstances()],
     gluetun: readGluetun(),
   };
 }

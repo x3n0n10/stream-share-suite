@@ -9,8 +9,20 @@
 
 import { Router } from "express";
 import { validate, toPublicFields, applyPatch } from "../schema/registry.js";
-import { getComponentValues, saveComponentValues, componentId } from "../store/components.js";
+import {
+  getComponentValues,
+  saveComponentValues,
+  componentId,
+  listComponents,
+} from "../store/components.js";
 import { setSetting } from "../store/settings.js";
+import {
+  getDataPath,
+  getCachePath,
+  setPaths,
+  validatePath,
+  ownershipString,
+} from "../store/paths.js";
 import {
   getCatalogEntry,
   catalogKinds,
@@ -21,6 +33,10 @@ import {
 import { planComponent, planStack, applyPlan, applyStack, removeOrphan } from "../reconcile/reconciler.js";
 import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
 import { ping, DockerError } from "../docker/client.js";
+import { instanceUrl, instanceContainerName, PORT_BAND } from "../reconcile/instance.js";
+import { provisionInstance, deprovisionInstance } from "../reconcile/provisioning.js";
+import { connectionTarget } from "../reconcile/postgres.js";
+import { testConnection } from "../reconcile/database.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -88,15 +104,49 @@ export function createStackRouter() {
 
   // Stack-wide settings. Only one for now, but it is the one that changes the
   // shape of every other component's spec.
+  function stackSettings() {
+    const dataPath = getDataPath();
+    const cachePath = getCachePath();
+    return {
+      vpnEnabled: isVpnEnabled(),
+      dataPath,
+      cachePath,
+      // Reported rather than enforced on read, so the page can explain a path
+      // that is set but unreachable instead of only refusing to save it.
+      dataPathError: dataPath ? validatePath(dataPath, "The stack data path") : null,
+      cachePathError: cachePath ? validatePath(cachePath, "The cache path") : null,
+      runsAs: ownershipString(),
+    };
+  }
+
   router.get("/settings", (req, res) => {
-    res.json({ vpnEnabled: isVpnEnabled() });
+    res.json(stackSettings());
   });
 
   router.put("/settings", (req, res) => {
+    const errors = [];
+
+    // Paths are validated before being stored: a path the Suite cannot see is
+    // a message on this form, rather than a container that fails to start with
+    // an error naming none of this.
+    for (const [key, label] of [
+      ["dataPath", "The stack data path"],
+      ["cachePath", "The cache path"],
+    ]) {
+      const value = req.body?.[key];
+      if (value === undefined) continue;
+      const problem = validatePath(value, label);
+      if (problem) errors.push({ key, message: problem });
+    }
+
+    if (errors.length > 0) return res.status(400).json({ errors });
+
     if (typeof req.body?.vpnEnabled === "boolean") {
       setSetting(VPN_ENABLED_SETTING, req.body.vpnEnabled ? "true" : "false");
     }
-    res.json({ vpnEnabled: isVpnEnabled() });
+    setPaths({ dataPath: req.body?.dataPath, cachePath: req.body?.cachePath });
+
+    res.json(stackSettings());
   });
 
   // Every kind the Suite knows about, and whether it is currently part of the
@@ -175,7 +225,7 @@ export function createStackRouter() {
     if (errors.length > 0) return res.status(400).json({ errors, incomplete: true });
 
     try {
-      const plan = await planComponent(node, await node.render(values));
+      const plan = await planComponent(node, await node.render(values, node.key));
       res.json(redactPlan(plan));
     } catch (err) {
       dockerFailure(res, err);
@@ -195,10 +245,72 @@ export function createStackRouter() {
     const takeover = !!req.body?.takeover;
 
     startJob(res, req.params.kind, async (log) => {
-      const plan = await planComponent(node, await node.render(values));
+      const plan = await planComponent(node, await node.render(values, node.key));
       log(`Plan: ${plan.action}.`);
       await applyPlan(plan, { log, takeover });
     });
+  });
+
+  // --- instances ------------------------------------------------------------
+  //
+  // Instances are the first kind of which there can be several, so unlike the
+  // singletons they need creating and removing rather than only configuring.
+
+  router.get("/instances", (req, res) => {
+    res.json({
+      instances: listComponents("instance").map((row) => {
+        const values = JSON.parse(row.config_json);
+        return {
+          key: row.key,
+          displayName: values.displayName || row.key,
+          containerName: instanceContainerName(row.key, values),
+          port: Number(values.port) || null,
+          // Computed, never typed — see reconcile/instance.js.
+          url: instanceUrl(row.key, values),
+          databaseName: values._dbName || null,
+        };
+      }),
+      portBand: PORT_BAND,
+    });
+  });
+
+  router.post("/instances", (req, res) => {
+    const { schema } = getCatalogEntry("instance");
+    const values = applyPatch(schema, {}, req.body || {});
+
+    const errors = validate(schema, values);
+    if (errors.length > 0) return res.status(400).json({ errors });
+
+    try {
+      const { key, port } = provisionInstance(values);
+      res.status(201).json({ key, port });
+    } catch (err) {
+      res.status(409).json({ error: err.message });
+    }
+  });
+
+  // Removing an instance takes it out of the stack, which turns its running
+  // container into an orphan the plan then offers to remove. The database is a
+  // separate decision and is kept unless dropDatabase is asked for outright.
+  router.post("/instances/:key/remove", (req, res) => {
+    const key = req.params.key;
+    if (listComponents("instance").every((row) => row.key !== key)) {
+      return res.status(404).json({ error: `Unknown instance: ${key}` });
+    }
+
+    const dropData = req.body?.dropDatabase === true;
+    startJob(res, `remove ${key}`, (log) => deprovisionInstance(key, { dropData, log }));
+  });
+
+  // Proves the administrator credentials work before an instance depends on
+  // them, the same way the instance form's connection test does.
+  router.post("/database/test", async (req, res) => {
+    const values = getComponentValues("postgres");
+    const target = connectionTarget(values);
+    if (!target.host) {
+      return res.status(400).json({ ok: false, error: "No database host is configured yet." });
+    }
+    res.json(await testConnection(target));
   });
 
   // Removing an orphan is its own action, never part of an apply — the
