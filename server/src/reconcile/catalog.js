@@ -14,10 +14,10 @@
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
-import { renderGluetunSpec, GLUETUN_CONTAINER_NAME } from "./gluetun.js";
+import { renderGluetunSpec, gluetunContainerName } from "./gluetun.js";
 import {
   renderPostgresSpec,
-  POSTGRES_CONTAINER_NAME,
+  postgresContainerName,
   isManaged as isPostgresManaged,
   connectionTarget as postgresTarget,
 } from "./postgres.js";
@@ -52,7 +52,7 @@ const CATALOG = {
     schema: GLUETUN_SCHEMA,
     render: renderGluetunSpec,
     singleton: true,
-    containerName: () => GLUETUN_CONTAINER_NAME,
+    containerName: () => gluetunContainerName(getComponentValues("gluetun")),
     present: () => isVpnEnabled(),
     // Nothing has to exist before gluetun, and nothing hosts its namespace.
     dependsOn: () => [],
@@ -67,7 +67,7 @@ const CATALOG = {
     schema: POSTGRES_SCHEMA,
     render: renderPostgresSpec,
     singleton: true,
-    containerName: () => POSTGRES_CONTAINER_NAME,
+    containerName: () => postgresContainerName(getComponentValues("postgres")),
     // An external server is configured here but not run by us, so there is no
     // container to reconcile and it contributes no node.
     present: () => isPostgresManaged(getComponentValues("postgres")),

@@ -11,9 +11,10 @@ import { renderEnv } from "../schema/registry.js";
 import { getComponentValues, listComponents } from "../store/components.js";
 import { componentDataDir, componentCacheDir, ensureDirectory, ownershipString } from "../store/paths.js";
 import { isVpnEnabled } from "./catalog.js";
-import { GLUETUN_CONTAINER_NAME } from "./gluetun.js";
+import { gluetunContainerName } from "./gluetun.js";
 import { connectionTarget } from "./postgres.js";
 import { parseExtraEnv } from "./env.js";
+import { containerPrefix } from "./prefix.js";
 
 // Where stream-share keeps things inside its own container. Fixed rather than
 // configurable: they are the image's own paths, not a preference.
@@ -25,7 +26,7 @@ const CACHE_MOUNT = "/cache";
 export const PORT_BAND = { first: 8080, last: 8099 };
 
 export function instanceContainerName(key, values = {}) {
-  return String(values.containerName || "").trim() || `stream-share-${key}`;
+  return String(values.containerName || "").trim() || `${containerPrefix()}${key}`;
 }
 
 // Every port already spoken for, across every stored instance. Used both to
@@ -58,7 +59,7 @@ export function allocatePort() {
 export function instanceUrl(key, values) {
   const port = Number(values.port);
   if (!Number.isFinite(port)) return "";
-  const host = isVpnEnabled() ? GLUETUN_CONTAINER_NAME : instanceContainerName(key, values);
+  const host = isVpnEnabled() ? gluetunContainerName(getComponentValues("gluetun")) : instanceContainerName(key, values);
   return `http://${host}:${port}`;
 }
 
@@ -105,7 +106,7 @@ export async function renderInstanceSpec(values, key) {
   if (isVpnEnabled()) {
     // Inside gluetun's namespace: no networks of its own, and no ports — the
     // daemon rejects both. gluetun carries the published port instead.
-    spec.networkMode = `container:${GLUETUN_CONTAINER_NAME}`;
+    spec.networkMode = `container:${gluetunContainerName(getComponentValues("gluetun"))}`;
   } else {
     spec.networks = String(getComponentValues("postgres").networks || "")
       .split(",")

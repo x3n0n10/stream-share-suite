@@ -188,7 +188,7 @@ test("apply returns a job id immediately and the job reaches success", async () 
   const job = await waitForJob(c, applyRes.body.jobId);
   assert.equal(job.status, "success");
   assert.ok(job.log.some((l) => l.line.includes("Creating")));
-  assert.ok(containers.has("stream-share-gluetun"));
+  assert.ok(containers.has("streamshare-suite-gluetun"));
 });
 
 test("a second apply with an unchanged configuration reaches a noop success", async () => {
@@ -216,7 +216,7 @@ test("polling an unknown job id is a 404", async () => {
 });
 
 test("apply on an unmanaged existing container adopts it without a Docker mutation", async () => {
-  containers.set("stream-share-gluetun", { Id: "foreign-id", name: "stream-share-gluetun", Labels: {} });
+  containers.set("streamshare-suite-gluetun", { Id: "foreign-id", name: "streamshare-suite-gluetun", Labels: {} });
 
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
@@ -226,7 +226,7 @@ test("apply on an unmanaged existing container adopts it without a Docker mutati
 
   assert.equal(job.status, "success");
   assert.ok(job.log.some((l) => /adopting without recreating/i.test(l.line)));
-  assert.equal(containers.get("stream-share-gluetun").Id, "foreign-id"); // untouched
+  assert.equal(containers.get("streamshare-suite-gluetun").Id, "foreign-id"); // untouched
 });
 
 test("stack endpoints require authentication, same as everything else behind the gate", async () => {
@@ -272,7 +272,7 @@ test("applying the stack creates the container and reports through the job log",
 
   const job = await waitForJob(c, started.body.jobId);
   assert.equal(job.status, "success");
-  assert.ok(containers.get("stream-share-gluetun"), "expected the container to exist after applying");
+  assert.ok(containers.get("streamshare-suite-gluetun"), "expected the container to exist after applying");
   assert.ok(job.log.some((l) => /1\/1/.test(l.line)), "expected progress through the ordered plan");
 });
 
@@ -320,7 +320,7 @@ test("a container left behind by switching the VPN off is reported and then remo
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
   await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
-  assert.ok(containers.get("stream-share-gluetun"));
+  assert.ok(containers.get("streamshare-suite-gluetun"));
 
   await c.put("/api/stack/settings", { vpnEnabled: false });
 
@@ -330,13 +330,13 @@ test("a container left behind by switching the VPN off is reported and then remo
 
   // Applying must not remove it — that is deliberately a separate action.
   await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
-  assert.ok(containers.get("stream-share-gluetun"), "apply must never remove an orphan");
+  assert.ok(containers.get("streamshare-suite-gluetun"), "apply must never remove an orphan");
 
   const removal = await c.post("/api/stack/orphans/remove", { containerId: orphan.containerId });
   assert.equal(removal.status, 202);
   const job = await waitForJob(c, removal.body.jobId);
   assert.equal(job.status, "success");
-  assert.equal(containers.get("stream-share-gluetun"), undefined);
+  assert.equal(containers.get("streamshare-suite-gluetun"), undefined);
 });
 
 test("removing an orphan without a container id is a 400", async () => {
@@ -360,9 +360,9 @@ test("an adopted container stays visible in the plan when its component is switc
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
 
   // A container from someone's own compose file: no Suite labels.
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "hand-written",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Labels: {},
   });
   assert.equal((await c.get("/api/stack/plan")).body.plans[0].action, "adopt");
@@ -378,10 +378,10 @@ test("an adopted container stays visible in the plan when its component is switc
 test("applying never touches a container belonging to a switched-off component", async () => {
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
-  containers.set("stream-share-gluetun", { Id: "hand-written", name: "stream-share-gluetun", Labels: {} });
+  containers.set("streamshare-suite-gluetun", { Id: "hand-written", name: "streamshare-suite-gluetun", Labels: {} });
   await c.put("/api/stack/settings", { vpnEnabled: false });
 
   const job = await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
   assert.equal(job.status, "success");
-  assert.equal(containers.get("stream-share-gluetun").Id, "hand-written");
+  assert.equal(containers.get("streamshare-suite-gluetun").Id, "hand-written");
 });

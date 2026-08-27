@@ -164,7 +164,7 @@ test("with the VPN on, an instance joins gluetun's namespace and publishes nothi
 
   const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
 
-  assert.equal(spec.networkMode, "container:stream-share-gluetun");
+  assert.equal(spec.networkMode, "container:streamshare-suite-gluetun");
   assert.equal(spec.ports, undefined, "Docker rejects a published port inside another's namespace");
   assert.equal(spec.networks, undefined);
 });
@@ -200,10 +200,10 @@ test("the computed URL follows the VPN toggle without anyone editing it", () => 
   const values = getComponentValues("instance", key);
 
   vpn(true);
-  assert.equal(instanceUrl(key, values), "http://stream-share-gluetun:8080");
+  assert.equal(instanceUrl(key, values), "http://streamshare-suite-gluetun:8080");
 
   vpn(false);
-  assert.equal(instanceUrl(key, values), "http://stream-share-provider-1:8080");
+  assert.equal(instanceUrl(key, values), "http://streamshare-suite-provider-1:8080");
 });
 
 test("a managed instance reaches the ops layer already addressed and authenticated", () => {
@@ -214,7 +214,7 @@ test("a managed instance reaches the ops layer already addressed and authenticat
 
   assert.ok(instance, "a created instance appears on the dashboard without being added twice");
   assert.equal(instance.name, "Provider 1");
-  assert.equal(instance.url, "http://stream-share-gluetun:8080");
+  assert.equal(instance.url, "http://streamshare-suite-gluetun:8080");
   assert.equal(instance.apiKey, getComponentValues("instance", key)._apiKey);
 });
 
@@ -248,7 +248,7 @@ test("recreating gluetun cascades to every instance inside its namespace", async
       Labels: managedLabels(plan.kind, plan.desiredHash, plan.key),
     });
   }
-  containers.get("stream-share-gluetun").Labels = managedLabels("gluetun", "stale", "");
+  containers.get("streamshare-suite-gluetun").Labels = managedLabels("gluetun", "stale", "");
 
   const { plans, summary } = await planStack();
   const row = (id) => plans.find((p) => p.id === id);

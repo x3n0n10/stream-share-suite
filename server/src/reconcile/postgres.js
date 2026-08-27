@@ -2,8 +2,14 @@
 // connect to it whichever mode it is in.
 
 import { componentDataDir, ensureDirectory } from "../store/paths.js";
+import { containerPrefix } from "./prefix.js";
 
-export const POSTGRES_CONTAINER_NAME = "stream-share-postgres";
+// Overridable per the containerName field, the same way instances are —
+// critically, this is how a postgres container the operator already runs
+// under a different name stays adopted after this default changes.
+export function postgresContainerName(values = {}) {
+  return String(values.containerName || "").trim() || `${containerPrefix()}postgres`;
+}
 
 // The directory postgres is told to use, one level below the mount point. The
 // official image refuses to initialise into a directory that already contains
@@ -23,7 +29,7 @@ export function isManaged(values) {
 // it is whatever was typed.
 export function connectionTarget(values) {
   return {
-    host: isManaged(values) ? POSTGRES_CONTAINER_NAME : String(values.host || "").trim(),
+    host: isManaged(values) ? postgresContainerName(values) : String(values.host || "").trim(),
     port: Number(values.port || 5432),
     user: values.adminUser || "postgres",
     password: values.adminPassword || "",
@@ -39,7 +45,7 @@ export async function renderPostgresSpec(values) {
     .filter(Boolean);
 
   return {
-    name: POSTGRES_CONTAINER_NAME,
+    name: postgresContainerName(values),
     image: values.image || "postgres:14-alpine",
     env: {
       POSTGRES_USER: values.adminUser || "postgres",

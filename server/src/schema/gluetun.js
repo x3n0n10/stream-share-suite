@@ -33,6 +33,14 @@ export const GLUETUN_SCHEMA = {
       advanced: true,
     },
     {
+      key: "containerName",
+      envVar: null,
+      label: "Container name",
+      help: "Defaults to the Suite's container prefix followed by gluetun (streamshare-suite-gluetun unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
+      group: "Image",
+      advanced: true,
+    },
+    {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",

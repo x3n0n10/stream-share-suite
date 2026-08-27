@@ -7,8 +7,14 @@ import { renderEnv } from "../schema/registry.js";
 import { getSelfNetworks } from "../docker/self.js";
 import { listComponents } from "../store/components.js";
 import { parseExtraEnv } from "./env.js";
+import { containerPrefix } from "./prefix.js";
 
-export const GLUETUN_CONTAINER_NAME = "stream-share-gluetun";
+// Overridable per the containerName field, the same way instances are —
+// critically, this is how a gluetun container the operator already runs
+// under a different name stays adopted after this default changes.
+export function gluetunContainerName(values = {}) {
+  return String(values.containerName || "").trim() || `${containerPrefix()}gluetun`;
+}
 
 const IMAGE_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "image");
 
@@ -52,7 +58,7 @@ export async function renderGluetunSpec(values) {
     .filter(Boolean);
 
   const spec = {
-    name: GLUETUN_CONTAINER_NAME,
+    name: gluetunContainerName(values),
     image: values.image || IMAGE_FIELD.default,
     env,
     capAdd: ["NET_ADMIN"],

@@ -48,6 +48,7 @@ every component the reconciler manages — is configured in the UI.
 | `PORT` | `3000` | Port to listen on |
 | `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives. From phase 2b, also the default location for every component's own configuration — see **Where component data lives** below. |
 | `SUITE_CACHE_DIR` | — | Default VOD/catchup cache root for every instance. See **Where component data lives** below. |
+| `SUITE_CONTAINER_PREFIX` | `streamshare-suite-` | Prefix for the default name of every container the Suite creates (gluetun, PostgreSQL, each instance). Change it only to run more than one Suite on the same Docker host — each needs a different prefix so their default names don't collide. Any component's `containerName` field, if set, always wins over the prefixed default. |
 | `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory, and who every component the Suite creates runs as. **Unraid: set `99` / `100`.** |
 | `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Where the Docker socket proxy is reachable. See **Stack management** below. |
 | `NODE_ENV` | — | Set to `production` in the image |
@@ -150,6 +151,16 @@ so there is no way to bring an existing container under management without
 either leaving it alone or replacing it. The Suite defaults to leaving it
 alone. "Take over anyway" on the Stack page does the replacement explicitly,
 never automatically.
+
+Adoption is an exact name match, so it depends on the Suite expecting the
+right name. gluetun, PostgreSQL and every instance each have their own
+**Container name** field (under Advanced) for exactly this: set it to the
+name of a container you already run, and the Suite adopts that one instead of
+planning a `Create` under its own default name. Left blank, gluetun and
+PostgreSQL default to `SUITE_CONTAINER_PREFIX` followed by `gluetun` or
+`postgres` (`streamshare-suite-gluetun`, `streamshare-suite-postgres` unless
+you've changed the prefix); an instance defaults to the prefix followed by its
+key.
 
 ### Instances
 

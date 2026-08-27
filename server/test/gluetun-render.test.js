@@ -7,7 +7,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { renderGluetunSpec, GLUETUN_CONTAINER_NAME } from "../src/reconcile/gluetun.js";
+import { renderGluetunSpec, gluetunContainerName } from "../src/reconcile/gluetun.js";
 import { GLUETUN_SCHEMA } from "../src/schema/gluetun.js";
 import { validate } from "../src/schema/registry.js";
 import { freshDatabase } from "./helpers.js";
@@ -98,9 +98,14 @@ test("OpenVPN fields are rendered and WireGuard fields are omitted when vpnType 
   assert.equal("WIREGUARD_PRIVATE_KEY" in spec.env, false);
 });
 
-test("the container name is fixed and matches the user's own compose convention", async () => {
+test("the container name defaults to the Suite's container prefix plus gluetun", async () => {
   const spec = await renderGluetunSpec(WIREGUARD_VALUES);
-  assert.equal(spec.name, GLUETUN_CONTAINER_NAME);
+  assert.equal(spec.name, gluetunContainerName(WIREGUARD_VALUES));
+  assert.equal(spec.name, "streamshare-suite-gluetun");
+});
+
+test("an explicit containerName overrides the prefixed default, for adopting an existing container", async () => {
+  const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, containerName: "stream-share-gluetun" });
   assert.equal(spec.name, "stream-share-gluetun");
 });
 

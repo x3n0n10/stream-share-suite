@@ -28,6 +28,15 @@ export const POSTGRES_SCHEMA = {
 
     // --- managed ------------------------------------------------------------
     {
+      key: "containerName",
+      envVar: null,
+      label: "Container name",
+      help: "Defaults to the Suite's container prefix followed by postgres (streamshare-suite-postgres unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
+      group: "Database",
+      advanced: true,
+      dependsOn: { key: "mode", equals: "managed" },
+    },
+    {
       key: "image",
       envVar: null,
       label: "Image",

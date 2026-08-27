@@ -117,9 +117,9 @@ test("a deployed component matching its configuration plans a no-op", async () =
   configureGluetun();
   const { plans: first } = await planStack();
 
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "gluetun-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: managedLabels("gluetun", first[0].desiredHash, "") },
   });
 
@@ -138,9 +138,9 @@ test("switching the VPN off removes gluetun from the plan entirely", async () =>
 
 test("a managed container whose component left the stack is reported as orphaned", async () => {
   configureGluetun();
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "gluetun-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: managedLabels("gluetun", "some-hash", "") },
   });
 
@@ -151,14 +151,14 @@ test("a managed container whose component left the stack is reported as orphaned
 
   assert.ok(orphan, "expected the running gluetun to be reported once it left the stack");
   assert.equal(orphan.containerId, "gluetun-id");
-  assert.equal(orphan.containerName, "stream-share-gluetun");
+  assert.equal(orphan.containerName, "streamshare-suite-gluetun");
 });
 
 test("an orphan is never counted as a change — removing it is its own action", async () => {
   configureGluetun();
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "gluetun-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: managedLabels("gluetun", "some-hash", "") },
   });
   vpn(false);
@@ -183,9 +183,9 @@ test("a container the Suite did not create is never reported as an orphan", asyn
 test("a managed container still belonging to the stack is not an orphan", async () => {
   configureGluetun();
   const { plans: first } = await planStack();
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "gluetun-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: managedLabels("gluetun", first[0].desiredHash, "") },
   });
 
@@ -196,9 +196,9 @@ test("a managed container still belonging to the stack is not an orphan", async 
 
 test("changing configuration after deployment plans a recreate", async () => {
   configureGluetun();
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "gluetun-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: managedLabels("gluetun", "a-stale-hash", "") },
   });
 
@@ -233,9 +233,9 @@ test("a container created before component keys existed still plans as a no-op",
   configureGluetun();
   const { plans: first } = await planStack();
 
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "phase-1-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: phase1Labels(first[0].desiredHash) },
   });
 
@@ -247,9 +247,9 @@ test("a container created before component keys existed is never mistaken for an
   configureGluetun();
   const { plans: first } = await planStack();
 
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "phase-1-id",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: phase1Labels(first[0].desiredHash) },
   });
 
@@ -265,9 +265,9 @@ test("a container created before component keys existed is never mistaken for an
 // say "your VPN container is still up and we are not touching it".
 
 function adoptedContainer() {
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "someone-elses-gluetun",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: {} },
   });
 }
@@ -282,7 +282,7 @@ test("an adopted container is reported as switched off, not silently dropped", a
 
   assert.ok(row, "a running adopted container must still appear once its component is off");
   assert.equal(row.containerId, "someone-elses-gluetun");
-  assert.equal(row.containerName, "stream-share-gluetun");
+  assert.equal(row.containerName, "streamshare-suite-gluetun");
   assert.match(row.reason, /still running/i);
 });
 
@@ -306,9 +306,9 @@ test("a switched-off row is never counted as a change", async () => {
 
 test("a managed container of a switched-off component is reported once, as an orphan", async () => {
   configureGluetun();
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "ours",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Config: { Labels: managedLabels("gluetun", "some-hash", "") },
   });
   vpn(false);

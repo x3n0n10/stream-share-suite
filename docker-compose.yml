@@ -32,6 +32,12 @@ services:
       # here and there is nothing left to configure in the Suite's own UI.
       SUITE_CACHE_DIR: /mnt/user/cache/stream-share-suite
 
+      # Prefix for every container the Suite creates (gluetun, PostgreSQL,
+      # each instance), so a fresh install never collides with anything else
+      # already on the host. Only worth changing if you run more than one
+      # Suite on the same Docker host — each needs a different prefix.
+      # SUITE_CONTAINER_PREFIX: streamshare-suite-
+
       # --- First-run import (optional) -------------------------------------
       # If you are coming from stream-share-dashboard, paste its INSTANCE_N_*
       # and GLUETUN_* variables here for the first boot. They are copied into
