@@ -304,3 +304,51 @@ test("instanceKeyFor does not collide with an externally configured instance", a
 
   assert.notEqual(instanceKeyFor("Provider 1"), "provider-1");
 });
+
+test("an instance whose database component is incomplete is blocked, naming it", async () => {
+  // A managed postgres with nothing filled in. Without dependency propagation
+  // the instance plans a create and then fails mid-apply against a host that
+  // was never built — which is exactly what the smoke test hit.
+  saveComponentValues("gluetun", {
+    networks: "ssbackend",
+    vpnServiceProvider: "nordvpn",
+    vpnType: "wireguard",
+    wireguardPrivateKey: "k",
+  });
+  saveComponentValues("postgres", { mode: "managed" });
+  provisionInstance(PROVIDER);
+
+  const { plans, summary } = await planStack();
+  const instance = plans.find((p) => p.kind === "instance");
+
+  assert.equal(instance.action, "incomplete");
+  assert.match(instance.reason, /PostgreSQL must be configured first/i);
+
+  // gluetun depends on nothing, so it is still creatable — blocking one
+  // component must not stall the independent parts of the stack. What matters
+  // is that the instance itself is not counted as applicable.
+  assert.equal(summary.incomplete, 2, "postgres and the instance that needs it");
+  assert.equal(
+    plans.filter((p) => p.kind === "instance" && p.action !== "incomplete").length,
+    0
+  );
+});
+
+test("an instance with no database configured at all is blocked before it can fail on connect", async () => {
+  saveComponentValues("gluetun", {
+    networks: "ssbackend",
+    vpnServiceProvider: "nordvpn",
+    vpnType: "wireguard",
+    wireguardPrivateKey: "k",
+  });
+  // External mode with no host: contributes no node, so the dependency check
+  // cannot see it — the readiness check is what catches this one.
+  saveComponentValues("postgres", { mode: "external", adminUser: "postgres", adminPassword: "x" });
+  provisionInstance(PROVIDER);
+
+  const { plans } = await planStack();
+  const instance = plans.find((p) => p.kind === "instance");
+
+  assert.equal(instance.action, "incomplete");
+  assert.match(instance.reason, /No PostgreSQL server is configured/i);
+});

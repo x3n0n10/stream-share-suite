@@ -115,9 +115,9 @@ is denied by default. A service that can create containers is root-equivalent
 on the host, so it never gets unmediated access to the thing that lets it do
 that.
 
-**Gluetun** is the only component this phase manages — deliberately: it's the
-one everything else shares a network namespace with, so it's where a mistake
-costs the most. Five outcomes:
+Three kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
+external server you point at), and **StreamShare instances**, of which there
+can be as many as you have providers. Six outcomes:
 
 | Outcome | When | What happens |
 | --- | --- | --- |
@@ -134,6 +134,56 @@ so there is no way to bring an existing container under management without
 either leaving it alone or replacing it. The Suite defaults to leaving it
 alone. "Take over anyway" on the Stack page does the replacement explicitly,
 never automatically.
+
+### Instances
+
+Adding an instance is a form, not a compose edit. Three things you would
+otherwise have to work out are worked out for you:
+
+- **Its port**, allocated from `8080`–`8099`. Allocation is *sticky*: adding a
+  fifth instance never renumbers the first four, because that would recreate
+  healthy containers to change nothing and break anything pointing at them.
+- **Its API key**, generated and injected, so a new instance appears on the
+  Overview page already authenticated with nothing typed.
+- **Its address**, computed from the topology. With the VPN on that's gluetun's
+  address at the instance's port; with it off it's the container's own name.
+  Flip the toggle and every instance's address follows — it was never a value
+  anyone typed, so there is nothing to go stale.
+
+Each instance also gets its own database and role, created on first apply.
+**Create if absent, never alter**: a database already under that name is used
+as-is, never dropped or migrated. stream-share builds its own tables on
+startup, so there is nothing for the Suite to migrate anyway.
+
+Removing an instance takes it out of the stack — its container becomes an
+orphan the plan then offers to remove. Its database is **kept** unless you tick
+the box and type the instance's name back, because a container is trivially
+rebuilt and watch history is not.
+
+### Where component data lives
+
+Two host paths, set under **Stack**: a base path whose subfolders hold each
+component's configuration, and a separate cache root for VOD and catchup
+(which reaches tens of gigabytes per instance, and usually belongs on a
+different disk).
+
+Both must be mounted into the Suite **at the same path on both sides**:
+
+```yaml
+volumes:
+  - /mnt/user/appdata/streamshare:/mnt/user/appdata/streamshare
+  - /mnt/user/cache/streamshare:/mnt/user/cache/streamshare
+```
+
+That looks redundant and isn't: a bind mount is resolved by the Docker daemon
+on the host, so the Suite cannot create a directory at a path it can't itself
+see, and mapping each path to itself means there is nothing to translate. The
+paths are validated when you save them, so a path that isn't mounted is a
+message on the form rather than a container that fails to start.
+
+The Suite creates each directory as its own `PUID:PGID` and runs instances as
+those same ids — the stream-share image runs as a non-root user and never
+chowns what it's given, so the two have to agree.
 
 ### Other VPN providers
 
@@ -214,8 +264,8 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | --- | --- | --- |
 | 0 | Ops surface on a database, with real auth | shipped |
 | 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | shipped |
-| 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | **this branch** |
-| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | planned |
+| 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
+| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | **this branch** |
 | 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | planned |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
@@ -225,9 +275,11 @@ phase with any access to the Docker API at all, even mediated by the socket
 proxy. See **Stack management** above for what that access is scoped to, and
 the architecture notes for the fuller reasoning.
 
-Phase 2a adds no new Docker permissions — it only widens what the Suite does
-with the access it already had, and adds one read (listing containers by
-label) that the socket proxy's existing `CONTAINERS` grant already allowed.
+Phase 2a added no new Docker permissions, and 2b adds none either — the
+socket proxy's allowlist is unchanged. Creating each instance's database uses
+a PostgreSQL client rather than exec'ing `psql` inside the container, which
+would have meant granting the proxy `EXEC`; exec into any container is root on
+the host, and none of this needs that.
 
 ## Licence
 

@@ -19,6 +19,7 @@ import {
   renderPostgresSpec,
   POSTGRES_CONTAINER_NAME,
   isManaged as isPostgresManaged,
+  connectionTarget as postgresTarget,
 } from "./postgres.js";
 import { renderInstanceSpec, instanceContainerName } from "./instance.js";
 import { prepareInstance } from "./provisioning.js";
@@ -89,7 +90,13 @@ const CATALOG = {
     present: () => true,
     ready: () =>
       validatePath(getDataPath(), "The stack data path") ||
-      validatePath(getCachePath(), "The cache path"),
+      validatePath(getCachePath(), "The cache path") ||
+      // An external server contributes no node, so the dependency check cannot
+      // catch one that was never filled in. Without this an instance plans a
+      // create and then fails mid-apply against a host that does not exist.
+      (postgresTarget(getComponentValues("postgres")).host
+        ? null
+        : "No PostgreSQL server is configured yet."),
     // The database must exist before an instance that stores its state there.
     // An external postgres is not a node, so this edge simply finds nothing to
     // order against — which orderComponents already tolerates.

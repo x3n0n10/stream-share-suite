@@ -81,9 +81,11 @@ export const POSTGRES_SCHEMA = {
       key: "adminPassword",
       envVar: null,
       label: "Administrator password",
+      help: "Required for a server the Suite runs — the postgres image refuses to start without one. Optional for an external server using trust or peer authentication.",
       group: "Credentials",
       secret: true,
       required: true,
+      requiredWhen: { key: "mode", equals: "managed" },
     },
   ],
 };
