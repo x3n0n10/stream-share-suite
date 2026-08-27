@@ -19,6 +19,11 @@
 //     default: "wireguard",
 //     dependsOn: { key: "vpnType", equals: "wireguard" }, // optional
 //   }
+//
+// dependsOn also accepts { key, oneOf: [...] } for "any of these values", and
+// an array of conditions ANDed together — e.g. a field only relevant for one
+// provider's WireGuard setup: [{ key: "vpnType", equals: "wireguard" },
+// { key: "vpnServiceProvider", oneOf: ["mullvad"] }].
 
 function resolvedValue(field, values) {
   const raw = values[field.key];
@@ -32,11 +37,19 @@ function resolvedValue(field, values) {
 // not the raw stored one — otherwise a field whose visibility depends on
 // another field's default would incorrectly read as hidden until that other
 // field had actually been saved once.
+function conditionMet(condition, depValue) {
+  if ("oneOf" in condition) return condition.oneOf.includes(depValue);
+  return depValue === condition.equals;
+}
+
 function isVisible(field, values, schema) {
   if (!field.dependsOn) return true;
-  const depField = schema.fields.find((f) => f.key === field.dependsOn.key);
-  const depValue = depField ? resolvedValue(depField, values) : values[field.dependsOn.key];
-  return depValue === field.dependsOn.equals;
+  const conditions = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
+  return conditions.every((condition) => {
+    const depField = schema.fields.find((f) => f.key === condition.key);
+    const depValue = depField ? resolvedValue(depField, values) : values[condition.key];
+    return conditionMet(condition, depValue);
+  });
 }
 
 // Required fields are only enforced when visible (dependsOn satisfied) — a

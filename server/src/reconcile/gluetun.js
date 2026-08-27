@@ -10,8 +10,26 @@ export const GLUETUN_CONTAINER_NAME = "stream-share-gluetun";
 
 const IMAGE_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "image");
 
+// The extraEnv escape hatch (see schema/gluetun.js) fills gaps for providers
+// with no modeled fields — it never overrides one that exists, so a typo in
+// a named field is still a save-time validation error rather than being
+// silently shadowed by a stray line here. Malformed lines (no "=", blank,
+// "#" comments) are dropped rather than rejected: the whole point is to
+// never block an apply on this field.
+function parseExtraEnv(raw) {
+  const env = {};
+  for (const line of String(raw || "").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const idx = trimmed.indexOf("=");
+    if (idx <= 0) continue;
+    env[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
+  }
+  return env;
+}
+
 export async function renderGluetunSpec(values) {
-  const env = renderEnv(GLUETUN_SCHEMA, values);
+  const env = { ...parseExtraEnv(values.extraEnv), ...renderEnv(GLUETUN_SCHEMA, values) };
 
   // Fixed, not a schema field: this is where the rest of the Suite (and, in a
   // later phase, the VPN healer) expects to find the control server, and

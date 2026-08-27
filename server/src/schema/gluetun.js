@@ -9,6 +9,15 @@
 // asked of the operator — see reconcile/gluetun.js — because both encode
 // something the Suite already knows (its own network's subnet; the fixed
 // control port it talks to) rather than a real choice.
+//
+// gluetun supports around 40 providers, and a handful need fields beyond the
+// common wireguard/openvpn pair below (Mullvad requires an explicit interface
+// address; PIA identifies servers by region rather than country). Those are
+// modeled as ordinary fields gated by dependsOn on vpnServiceProvider — see
+// wireguardAddresses and serverRegions — rather than one schema per provider.
+// Anything not modeled yet has an escape hatch: extraEnv passes raw
+// KEY=VALUE lines straight to the container, unvalidated, so an unlisted
+// provider is never blocked on us adding it as data.
 
 export const GLUETUN_SCHEMA = {
   kind: "gluetun",
@@ -77,6 +86,18 @@ export const GLUETUN_SCHEMA = {
       dependsOn: { key: "vpnType", equals: "openvpn" },
     },
     {
+      key: "wireguardAddresses",
+      envVar: "WIREGUARD_ADDRESSES",
+      label: "WireGuard interface address",
+      help: "Required for Mullvad: the CIDR address from Mullvad's own config generator — the same for every Mullvad server and tied to your private key. Most other WireGuard providers derive this on their own and don't need it set.",
+      group: "VPN",
+      required: true,
+      dependsOn: [
+        { key: "vpnType", equals: "wireguard" },
+        { key: "vpnServiceProvider", oneOf: ["mullvad"] },
+      ],
+    },
+    {
       key: "serverCountries",
       envVar: "SERVER_COUNTRIES",
       label: "Server countries",
@@ -101,6 +122,15 @@ export const GLUETUN_SCHEMA = {
       advanced: true,
     },
     {
+      key: "serverRegions",
+      envVar: "SERVER_REGIONS",
+      label: "Server regions",
+      help: "Private Internet Access identifies servers by region rather than country, e.g. us_east. Leave blank to let PIA pick.",
+      group: "Server selection",
+      advanced: true,
+      dependsOn: { key: "vpnServiceProvider", oneOf: ["private internet access"] },
+    },
+    {
       key: "blockMalicious",
       envVar: "BLOCK_MALICIOUS",
       label: "Block malicious domains",
@@ -108,6 +138,15 @@ export const GLUETUN_SCHEMA = {
       options: ["on", "off"],
       default: "on",
       group: "Server selection",
+      advanced: true,
+    },
+    {
+      key: "extraEnv",
+      envVar: null,
+      label: "Extra environment variables",
+      help: "One KEY=VALUE per line, passed straight to the container. For a provider whose fields aren't modeled above yet — not validated, and a named field above always wins if it sets the same key.",
+      type: "textarea",
+      group: "Advanced",
       advanced: true,
     },
   ],

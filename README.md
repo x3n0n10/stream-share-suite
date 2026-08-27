@@ -133,6 +133,28 @@ either leaving it alone or replacing it. The Suite defaults to leaving it
 alone. "Take over anyway" on the Stack page does the replacement explicitly,
 never automatically.
 
+### Other VPN providers
+
+The gluetun form's common fields (provider, WireGuard or OpenVPN, server
+selection) cover most of gluetun's ~40 supported providers. A few need more:
+Mullvad requires an explicit `WIREGUARD_ADDRESSES`, Private Internet Access
+identifies servers by region rather than country — both appear in the form
+automatically once you pick that provider. Anything not modeled yet has an
+escape hatch: **Extra environment variables**, under Advanced, passes raw
+`KEY=VALUE` lines straight to the container. It isn't validated the way the
+named fields are, and a named field always wins if it sets the same key — so
+it fills gaps without being able to silently override something the form
+already validated.
+
+### Adding (or removing) VPN later
+
+Whether traffic routes through gluetun is a single stack-wide setting, not a
+one-time setup choice — change it later and the reconciler picks it up the
+same way it picks up any other configuration change. The catch is blast
+radius: everything sharing gluetun's network namespace gets recreated, so
+expect the plan to show `recreate` for every such component at once instead
+of one at a time, with the accompanying downtime while they restart.
+
 ## Data and backups
 
 Everything is one SQLite file at `$SUITE_DATA_DIR/suite.db`, created `0600`.

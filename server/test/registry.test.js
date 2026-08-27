@@ -13,16 +13,44 @@ const SCHEMA = {
     { key: "aOnly", envVar: "A_ONLY", label: "A only", required: true, dependsOn: { key: "mode", equals: "a" } },
     { key: "computed", envVar: null, label: "Not an env var" },
     { key: "flag", envVar: "FLAG", label: "Flag", type: "checkbox", default: false },
+    {
+      key: "abOnly",
+      envVar: "AB_ONLY",
+      label: "A or B only",
+      required: true,
+      dependsOn: { key: "mode", oneOf: ["a", "b"] },
+    },
+    {
+      key: "aAndFlagOnly",
+      envVar: "A_AND_FLAG_ONLY",
+      label: "A and flag only",
+      required: true,
+      dependsOn: [{ key: "mode", equals: "a" }, { key: "flag", equals: true }],
+    },
   ],
 };
 
 test("validate reports every required field that is missing", () => {
   // "mode" is required but defaults to "a", so a default satisfies required —
   // it is never reported missing. "aOnly" depends on mode==="a", which the
-  // default satisfies, so it IS required here.
+  // default satisfies, so it IS required here. "abOnly" depends on mode being
+  // one of "a"/"b", also satisfied by the default. "aAndFlagOnly" additionally
+  // depends on flag===true, which defaults to false, so it is NOT required.
   const errors = validate(SCHEMA, {});
   const keys = errors.map((e) => e.key).sort();
-  assert.deepEqual(keys, ["aOnly", "name", "secretKey"].sort());
+  assert.deepEqual(keys, ["aOnly", "abOnly", "name", "secretKey"].sort());
+});
+
+test("validate treats a oneOf dependsOn as satisfied by any listed value", () => {
+  const base = { name: "x", secretKey: "k", aOnly: "1" };
+  assert.equal(validate(SCHEMA, { ...base, mode: "a" }).some((e) => e.key === "abOnly"), true);
+  assert.equal(validate(SCHEMA, { ...base, mode: "b", aOnly: undefined }).some((e) => e.key === "abOnly"), true);
+});
+
+test("validate only requires a field when every condition in an array dependsOn is met", () => {
+  const base = { name: "x", secretKey: "k", aOnly: "1", mode: "a" };
+  assert.equal(validate(SCHEMA, base).some((e) => e.key === "aAndFlagOnly"), false);
+  assert.equal(validate(SCHEMA, { ...base, flag: true }).some((e) => e.key === "aAndFlagOnly"), true);
 });
 
 test("validate does not require a field hidden by dependsOn", () => {

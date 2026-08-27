@@ -8,6 +8,8 @@ import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { renderGluetunSpec, GLUETUN_CONTAINER_NAME } from "../src/reconcile/gluetun.js";
+import { GLUETUN_SCHEMA } from "../src/schema/gluetun.js";
+import { validate } from "../src/schema/registry.js";
 
 let server;
 let nextInspectResponse;
@@ -102,4 +104,46 @@ test("always carries NET_ADMIN and the tun device, unconditionally", async () =>
   const spec = await renderGluetunSpec(WIREGUARD_VALUES);
   assert.deepEqual(spec.capAdd, ["NET_ADMIN"]);
   assert.deepEqual(spec.devices, ["/dev/net/tun:/dev/net/tun"]);
+});
+
+test("WIREGUARD_ADDRESSES is required for Mullvad's WireGuard setup but not NordVPN's", () => {
+  const mullvad = { networks: "x", vpnType: "wireguard", vpnServiceProvider: "mullvad", wireguardPrivateKey: "k" };
+  assert.equal(validate(GLUETUN_SCHEMA, mullvad).some((e) => e.key === "wireguardAddresses"), true);
+
+  const nordvpn = { ...mullvad, vpnServiceProvider: "nordvpn" };
+  assert.equal(validate(GLUETUN_SCHEMA, nordvpn).some((e) => e.key === "wireguardAddresses"), false);
+});
+
+test("WIREGUARD_ADDRESSES is rendered for Mullvad and absent for NordVPN", async () => {
+  const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, vpnServiceProvider: "mullvad", wireguardAddresses: "10.64.0.2/32" });
+  assert.equal(spec.env.WIREGUARD_ADDRESSES, "10.64.0.2/32");
+
+  const nordvpnSpec = await renderGluetunSpec(WIREGUARD_VALUES);
+  assert.equal("WIREGUARD_ADDRESSES" in nordvpnSpec.env, false);
+});
+
+test("SERVER_REGIONS only renders for Private Internet Access", async () => {
+  const pia = await renderGluetunSpec({ ...WIREGUARD_VALUES, vpnServiceProvider: "private internet access", serverRegions: "us_east" });
+  assert.equal(pia.env.SERVER_REGIONS, "us_east");
+
+  const nordvpnSpec = await renderGluetunSpec({ ...WIREGUARD_VALUES, serverRegions: "us_east" });
+  assert.equal("SERVER_REGIONS" in nordvpnSpec.env, false);
+});
+
+test("extraEnv fills in unmodeled variables without needing a schema field", async () => {
+  const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, extraEnv: "FREE_ONLY=on\nUNBOUND=off" });
+  assert.equal(spec.env.FREE_ONLY, "on");
+  assert.equal(spec.env.UNBOUND, "off");
+});
+
+test("extraEnv never overrides a value a named field already set", async () => {
+  const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, extraEnv: "VPN_SERVICE_PROVIDER=mullvad\nHTTP_CONTROL_SERVER_ADDRESS=:9999" });
+  assert.equal(spec.env.VPN_SERVICE_PROVIDER, "nordvpn");
+  assert.equal(spec.env.HTTP_CONTROL_SERVER_ADDRESS, ":8000");
+});
+
+test("extraEnv ignores blank lines, comments, and malformed lines instead of failing", async () => {
+  const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, extraEnv: "\n# a comment\nnotAKeyValueLine\nOK=yes\n" });
+  assert.equal(spec.env.OK, "yes");
+  assert.equal("notAKeyValueLine" in spec.env, false);
 });
