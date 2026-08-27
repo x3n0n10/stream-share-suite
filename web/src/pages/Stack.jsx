@@ -12,6 +12,7 @@ const ACTION = {
   adopt: { label: "Adopted", tone: "amber" },
   noop: { label: "No change", tone: "slate" },
   orphaned: { label: "Orphaned", tone: "amber" },
+  disabled: { label: "Switched off", tone: "slate" },
   incomplete: { label: "Not configured", tone: "slate" },
 };
 
@@ -115,6 +116,7 @@ export default function Stack() {
         {plan && (
           <PlanCard
             plan={plan}
+            components={components}
             busy={busy}
             onApply={() => runJob(() => api.applyStack())}
             onRemoveOrphan={setOrphanToRemove}
@@ -184,7 +186,25 @@ function VpnToggle({ enabled, onChange, disabled }) {
   );
 }
 
-function PlanCard({ plan, busy, onApply, onRemoveOrphan }) {
+// An empty plan means one of two quite different things, and saying the wrong
+// one is worse than saying nothing: a fresh install has nothing configured,
+// while a stack whose only component is switched off has everything configured
+// and simply isn't running any of it.
+function EmptyPlan({ components }) {
+  const switchedOff = components.filter((component) => !component.active);
+
+  return (
+    <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
+      {switchedOff.length > 0
+        ? `Nothing in the stack right now — ${switchedOff
+            .map((component) => component.label)
+            .join(" and ")} ${switchedOff.length === 1 ? "is" : "are"} switched off. Turn the VPN back on above to manage it again.`
+        : "Nothing in the stack yet. Configure a component below to get started."}
+    </p>
+  );
+}
+
+function PlanCard({ plan, components, busy, onApply, onRemoveOrphan }) {
   const { plans, summary } = plan;
 
   return (
@@ -197,9 +217,7 @@ function PlanCard({ plan, busy, onApply, onRemoveOrphan }) {
       </div>
 
       {plans.length === 0 ? (
-        <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
-          Nothing in the stack yet. Configure a component below to get started.
-        </p>
+        <EmptyPlan components={components} />
       ) : (
         <ul>
           {plans.map((row, index) => (
@@ -225,7 +243,13 @@ function PlanSummary({ summary }) {
   if (summary.restarts > 0)
     parts.push(`${summary.restarts} container${summary.restarts === 1 ? "" : "s"} restart`);
   if (summary.orphans > 0) parts.push(`${summary.orphans} orphaned`);
-  if (parts.length === 0) parts.push("Everything matches its configuration");
+  if (summary.disabled > 0) parts.push(`${summary.disabled} switched off`);
+  if (summary.incomplete > 0) parts.push(`${summary.incomplete} not configured`);
+
+  // "Everything matches" is only true when there is something to match.
+  if (parts.length === 0) {
+    parts.push(summary.total === 0 ? "Nothing to manage" : "Everything matches its configuration");
+  }
   return parts.join(" · ");
 }
 

@@ -33,7 +33,7 @@ import { computeSpecHash, toCreatePayload } from "../docker/spec.js";
 import { LABEL_MANAGED, LABEL_SPEC_HASH, managedLabels, isManaged, componentOf } from "../docker/labels.js";
 import { setAdoptedContainer, clearAdoption, getComponentValues, componentId } from "../store/components.js";
 import { validate } from "../schema/registry.js";
-import { activeComponents } from "./catalog.js";
+import { activeComponents, inactiveComponents } from "./catalog.js";
 import { orderComponents, applyCascade, summarize } from "./graph.js";
 
 // Plans one component against what is actually deployed. `node` carries the
@@ -124,6 +124,46 @@ async function findOrphans(activeIds) {
     .filter(Boolean);
 }
 
+// Containers belonging to switched-off components that are still running.
+//
+// The orphan pass above only finds containers the Suite created, which is
+// right: an orphan is something we made and no longer want. But a container
+// the Suite merely adopted — someone's own from a compose file — carries none
+// of our labels, so switching its component off would otherwise make it vanish
+// from the plan entirely while it carries on running. An empty screen is the
+// wrong way to say "your VPN container is still up and we are not touching
+// it", so it gets a row of its own.
+async function findDisabled(nodes) {
+  const rows = [];
+
+  for (const node of nodes) {
+    if (!node.containerName) continue;
+
+    const existing = await inspectContainer(node.containerName);
+    if (!existing) continue;
+
+    // A managed one is already reported as an orphan by the pass above;
+    // reporting it twice would be worse than not reporting it at all.
+    if (isManaged(existing.Config?.Labels || {})) continue;
+
+    rows.push({
+      id: node.id,
+      kind: node.kind,
+      key: node.key || "",
+      label: node.label,
+      action: "disabled",
+      reason: "Switched off, but this container is still running. The Suite did not create it and has left it alone.",
+      containerId: existing.Id,
+      containerName: node.containerName,
+      namespaceHost: null,
+      cascadedFrom: null,
+      warnings: [],
+    });
+  }
+
+  return rows;
+}
+
 // The whole stack, in dependency order, with the cascade applied.
 //
 // A component that is present but not yet fully configured gets an
@@ -158,7 +198,8 @@ export async function planStack() {
 
   const cascaded = applyCascade(plans);
   const orphans = await findOrphans(new Set(nodes.map((node) => node.id)));
-  const all = [...cascaded, ...orphans];
+  const disabled = await findDisabled(inactiveComponents());
+  const all = [...cascaded, ...orphans, ...disabled];
 
   return { plans: all, summary: summarize(all) };
 }
@@ -175,6 +216,11 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
 
   if (action === "orphaned") {
     log(`${plan.containerName} is orphaned. Removing it is a separate action — leaving it alone.`);
+    return plan.containerId;
+  }
+
+  if (action === "disabled") {
+    log(`${plan.containerName} belongs to a switched-off component and is not managed by the Suite — leaving it alone.`);
     return plan.containerId;
   }
 

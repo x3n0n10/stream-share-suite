@@ -246,3 +246,75 @@ test("a container created before component keys existed is never mistaken for an
   const { plans } = await planStack();
   assert.equal(plans.filter((p) => p.action === "orphaned").length, 0);
 });
+
+// --- switched off, but still running ----------------------------------------
+//
+// A container the Suite adopted carries none of its labels, so the orphan pass
+// cannot see it. Switching its component off must not make it disappear from
+// the plan while it carries on running: an empty screen is the wrong way to
+// say "your VPN container is still up and we are not touching it".
+
+function adoptedContainer() {
+  containers.set("stream-share-gluetun", {
+    Id: "someone-elses-gluetun",
+    name: "stream-share-gluetun",
+    Config: { Labels: {} },
+  });
+}
+
+test("an adopted container is reported as switched off, not silently dropped", async () => {
+  configureGluetun();
+  adoptedContainer();
+  vpn(false);
+
+  const { plans } = await planStack();
+  const row = plans.find((p) => p.action === "disabled");
+
+  assert.ok(row, "a running adopted container must still appear once its component is off");
+  assert.equal(row.containerId, "someone-elses-gluetun");
+  assert.equal(row.containerName, "stream-share-gluetun");
+  assert.match(row.reason, /still running/i);
+});
+
+test("a switched-off component with nothing running produces no row at all", async () => {
+  configureGluetun();
+  vpn(false);
+
+  const { plans } = await planStack();
+  assert.equal(plans.length, 0, "nothing on the host means nothing to say");
+});
+
+test("a switched-off row is never counted as a change", async () => {
+  configureGluetun();
+  adoptedContainer();
+  vpn(false);
+
+  const { summary } = await planStack();
+  assert.equal(summary.changes, 0);
+  assert.equal(summary.disabled, 1);
+});
+
+test("a managed container of a switched-off component is reported once, as an orphan", async () => {
+  configureGluetun();
+  containers.set("stream-share-gluetun", {
+    Id: "ours",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "some-hash", "") },
+  });
+  vpn(false);
+
+  const { plans } = await planStack();
+  assert.equal(plans.length, 1, "an orphan must not also be reported as switched off");
+  assert.equal(plans[0].action, "orphaned");
+});
+
+test("switching the VPN back on returns the adopted container to an adopt", async () => {
+  configureGluetun();
+  adoptedContainer();
+
+  vpn(false);
+  assert.equal((await planStack()).plans[0].action, "disabled");
+
+  vpn(true);
+  assert.equal((await planStack()).plans[0].action, "adopt");
+});

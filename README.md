@@ -126,6 +126,7 @@ costs the most. Five outcomes:
 | Recreate | A managed container's config has changed | Stop, remove, create, start — everything sharing its namespace briefly loses its connection |
 | Adopt | A container exists but carries none of the Suite's labels | Left running, untouched — almost certainly one you set up by hand |
 | Orphaned | The Suite created it, but its component has left the stack | Left running and reported. Removing it is its own confirmed action, never part of an Apply |
+| Switched off | Its component is disabled, but a container by that name is still running and isn't the Suite's | Left running and reported, so switching something off never makes a running container vanish from the page |
 
 Adopt is what you'll see the first time you point the Suite at a stack you
 already run: Docker labels can't be added to a container after it's created,
@@ -175,12 +176,17 @@ one-time setup choice, and rather than a per-instance one: a StreamShare
 deployment shares a single tunnel, and per-instance tunnels would mean a
 gluetun container each.
 
-Switch it off and gluetun leaves the stack entirely — its card stays
-configurable, but it no longer appears in any plan, and a running container
-becomes an orphan you can remove when you're ready. Switch it back on and it
-returns with its configuration intact. From 2b onwards this also changes how
-every other component is addressed, so expect the plan to show the whole stack
-recreating when it flips.
+Switch it off and gluetun leaves the stack — its card stays configurable, but
+it no longer appears in any plan as something to act on. What happens to a
+container that's still running depends on who made it: one the Suite created
+becomes an orphan you can remove when you're ready, while one you created
+yourself is reported as switched off and left completely alone. Either way it
+keeps running and stays on the page; switching a component off never silently
+empties the plan while something is still up.
+
+Switch it back on and gluetun returns with its configuration intact. From 2b
+onwards the toggle also changes how every other component is addressed, so
+expect the plan to show the whole stack recreating when it flips.
 
 ## Data and backups
 

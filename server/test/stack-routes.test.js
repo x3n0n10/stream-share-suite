@@ -343,3 +343,34 @@ test("the stack-level routes are behind the auth gate like everything else", asy
   assert.equal((await anon.post("/api/stack/apply", {})).status, 401);
   assert.equal((await anon.post("/api/stack/orphans/remove", { containerId: "x" })).status, 401);
 });
+
+test("an adopted container stays visible in the plan when its component is switched off", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+
+  // A container from someone's own compose file: no Suite labels.
+  containers.set("stream-share-gluetun", {
+    Id: "hand-written",
+    name: "stream-share-gluetun",
+    Labels: {},
+  });
+  assert.equal((await c.get("/api/stack/plan")).body.plans[0].action, "adopt");
+
+  await c.put("/api/stack/settings", { vpnEnabled: false });
+
+  const res = await c.get("/api/stack/plan");
+  assert.equal(res.body.plans.length, 1, "the plan must not go empty while the container runs");
+  assert.equal(res.body.plans[0].action, "disabled");
+  assert.equal(res.body.summary.changes, 0);
+});
+
+test("applying never touches a container belonging to a switched-off component", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+  containers.set("stream-share-gluetun", { Id: "hand-written", name: "stream-share-gluetun", Labels: {} });
+  await c.put("/api/stack/settings", { vpnEnabled: false });
+
+  const job = await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
+  assert.equal(job.status, "success");
+  assert.equal(containers.get("stream-share-gluetun").Id, "hand-written");
+});

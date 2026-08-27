@@ -58,19 +58,19 @@ export function catalogKinds() {
   return Object.keys(CATALOG);
 }
 
-// The stack as it stands right now: one node per component that is part of it,
-// each carrying the edges the graph needs. A singleton contributes exactly one
-// node; a multi-instance kind contributes one per stored row.
+// Every component the Suite knows of, whether or not it is currently part of
+// the stack. A singleton contributes exactly one node; a multi-instance kind
+// contributes one per stored row.
 //
-// A kind whose `present` is false contributes nothing at all — which is how
-// turning the VPN off removes gluetun from every plan rather than leaving it
-// sitting there configured-but-ignored.
-export function activeComponents() {
+// `present` is what a switched-off kind sets to false. Switched-off components
+// are still enumerated rather than dropped here, because "gluetun is off and
+// a container by that name is still running" is something the plan has to be
+// able to say — dropping them at the source is what made it silent.
+export function componentNodes() {
   const nodes = [];
 
   for (const entry of Object.values(CATALOG)) {
-    if (!entry.present()) continue;
-
+    const present = entry.present();
     const keys = entry.singleton ? [""] : listComponents(entry.kind).map((row) => row.key);
 
     for (const key of keys) {
@@ -85,9 +85,21 @@ export function activeComponents() {
         containerName: entry.containerName(key),
         dependsOn: entry.dependsOn(key),
         namespaceHost: entry.namespaceHost(key),
+        present,
       });
     }
   }
 
   return nodes;
+}
+
+// The stack as it stands right now — the components a plan actually acts on.
+export function activeComponents() {
+  return componentNodes().filter((node) => node.present);
+}
+
+// Configured components that are currently switched off. A plan reports these
+// only when something of theirs is still running on the host.
+export function inactiveComponents() {
+  return componentNodes().filter((node) => !node.present);
 }

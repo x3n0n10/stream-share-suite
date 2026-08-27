@@ -130,6 +130,7 @@ export function summarize(plans) {
     restarts: plans.filter((plan) => plan.action === "recreate").length,
     cascaded: plans.filter((plan) => plan.cascadedFrom).length,
     orphans: plans.filter((plan) => plan.action === "orphaned").length,
+    disabled: plans.filter((plan) => plan.action === "disabled").length,
     incomplete: plans.filter((plan) => plan.action === "incomplete").length,
     warnings: plans.flatMap((plan) => plan.warnings || []).length,
   };
