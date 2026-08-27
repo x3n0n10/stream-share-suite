@@ -1,0 +1,124 @@
+services:
+  suite:
+    build: .
+    # Or use a published image once one exists:
+    #   image: ghcr.io/x3n0n10/stream-share-suite:latest
+    container_name: stream-share-suite
+    restart: unless-stopped
+
+    ports:
+      # The UI. Change the left-hand side if 3000 is taken on your host.
+      - "3000:3000"
+
+    environment:
+      PORT: 3000
+
+      # Ownership of the data directory. The entrypoint starts as root, chowns
+      # the volume to these ids, then runs the app as them — which is what makes
+      # a bind-mounted directory work regardless of who owns it on the host.
+      #   Unraid:            PUID=99  PGID=100   (nobody:users)
+      #   Most other hosts:  PUID=1000 PGID=1000 (the default)
+      PUID: 1000
+      PGID: 1000
+
+      # Where the SQLite store lives. Back this path up and you have backed up
+      # the Suite's entire configuration.
+      SUITE_DATA_DIR: /data
+
+      # --- First-run import (optional) -------------------------------------
+      # If you are coming from stream-share-dashboard, paste its INSTANCE_N_*
+      # and GLUETUN_* variables here for the first boot. They are copied into
+      # the database once and then ignored forever: after the import the store
+      # is the source of truth, so an env var left behind here can never
+      # silently override an edit made in the UI. Once it has run, delete them.
+      #
+      # INSTANCE_1_NAME: "Provider 1"
+      # INSTANCE_1_URL: "http://172.18.0.11:8080"
+      # INSTANCE_1_API_KEY: ""
+      # GLUETUN_URL: "http://172.18.0.11:8000"
+      # GLUETUN_USER: "admin"
+      # GLUETUN_PASSWORD: ""
+
+      # Where to reach the Docker API. Never point this at the real socket —
+      # see the docker-socket-proxy service below and the Networking note.
+      DOCKER_PROXY_URL: http://docker-socket-proxy:2375
+
+    volumes:
+      - suite_data:/data
+      # Or a bind mount, which is where PUID/PGID earns its keep:
+      # - /mnt/user/appdata/stream-share-suite:/data
+
+    depends_on:
+      - docker-socket-proxy
+
+    networks:
+      - default
+      - docker-proxy-net
+      # - ssbackend   # see the Networking note below
+
+  # Stands between the Suite and the real Docker socket. The Suite process
+  # never touches /var/run/docker.sock — only this proxy does, and only the
+  # calls the allowlist below actually permits reach it. A service that can
+  # create arbitrary containers is root-equivalent on the host, so it never
+  # gets unmediated access to the thing that lets it do that; see the
+  # blueprint's threat-model section for the reasoning.
+  #
+  # Everything not explicitly granted below defaults to denied. The three
+  # flags here are exactly what the reconciler calls today — CONTAINERS for
+  # create/inspect/start/stop/remove, NETWORKS for joining a second network
+  # after creation, POST because the proxy denies every method but GET/HEAD
+  # unless it's turned on. Widen this only alongside new reconciler code that
+  # actually needs it, never ahead of it.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: stream-share-suite-docker-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      POST: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-proxy-net
+    # Deliberately no `ports:` — nothing outside docker-proxy-net can reach
+    # this, including the Suite's own other networks.
+
+volumes:
+  suite_data:
+
+networks:
+  docker-proxy-net:
+    internal: true
+
+# ---------------------------------------------------------------------------
+# Networking
+#
+# As written above, the Suite is on two networks: the project's own `default`
+# (published port, outbound) and `docker-proxy-net` (reaching the socket
+# proxy, and nothing else — it's `internal: true`). That's enough to run the
+# wizard and manage gluetun once it's reconciled, but not enough to see
+# instances that predate the Suite or reach PostgreSQL: those live on your
+# main stack's own network, not this compose project's.
+#
+# Add that network as a THIRD one, external so compose doesn't try to create
+# it, and address things there — `http://172.18.0.11:8080`, not `localhost`,
+# once gluetun is what the Suite created:
+#
+#   services:
+#     suite:
+#       networks:
+#         - default
+#         - docker-proxy-net
+#         - ssbackend   # reaching gluetun and, later, PostgreSQL
+#
+#   networks:
+#     docker-proxy-net:
+#       internal: true
+#     ssbackend:
+#       external: true  # already created by your main stack
+#
+# The Suite deliberately does NOT use `network_mode: "service:gluetun"` the
+# way the dashboard did. It manages gluetun, and a container inside that
+# namespace would sever its own connection the moment it recreated it.
+# ---------------------------------------------------------------------------
