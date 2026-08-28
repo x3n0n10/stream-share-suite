@@ -145,6 +145,8 @@ export const api = {
   componentPlan: (kind) => get(`/api/stack/components/${kind}/plan`),
   applyComponent: (kind, payload) => post(`/api/stack/components/${kind}/apply`, payload),
   job: (jobId) => get(`/api/stack/jobs/${jobId}`),
+  importCandidates: () => get("/api/stack/import/candidates"),
+  importCandidate: (containerId, kind) => post("/api/stack/import", { containerId, kind }),
 };
 
 export { ApiError };

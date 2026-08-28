@@ -78,7 +78,7 @@ function routeDocker(method, url, res, body) {
     return json(
       res,
       200,
-      matches.map((c) => ({ Id: c.Id, Names: [`/${c.name}`], Labels: c.Labels }))
+      matches.map((c) => ({ Id: c.Id, Names: [`/${c.name}`], Image: c.Image || "", Labels: c.Labels }))
     );
   }
 
@@ -90,7 +90,12 @@ function routeDocker(method, url, res, body) {
 
     if (method === "GET" && action === "json") {
       if (!container) return json(res, 404, { message: "No such container" });
-      return json(res, 200, { Id: container.Id, Config: { Labels: container.Labels } });
+      return json(res, 200, {
+        Id: container.Id,
+        Name: `/${container.name}`,
+        Config: { Labels: container.Labels, Image: container.Image || "", Env: container.Env || [] },
+        NetworkSettings: { Networks: container.Networks || {} },
+      });
     }
     if (method === "POST" && (action === "start" || action === "stop")) {
       if (!container) return json(res, 404, { message: "No such container" });
@@ -387,6 +392,54 @@ test("editing an unknown instance is a 404", async () => {
   const c = await signedInClient(base);
   const res = await c.put("/api/stack/instances/does-not-exist", PROVIDER);
   assert.equal(res.status, 404);
+});
+
+// --- import from running containers -----------------------------------------
+
+test("import candidates lists a real container by kind, and excludes an already-managed one", async () => {
+  containers.set("real-gluetun", { Id: "g1", name: "real-gluetun", Image: "qmcgaw/gluetun:latest", Labels: {} });
+  containers.set("real-db", { Id: "p1", name: "real-db", Image: "postgres:14-alpine", Labels: {} });
+  containers.set("nginx", { Id: "n1", name: "nginx", Image: "nginx:latest", Labels: {} });
+
+  const c = await signedInClient(base);
+  const res = await c.get("/api/stack/import/candidates");
+  assert.equal(res.status, 200);
+  const byName = Object.fromEntries(res.body.candidates.map((cand) => [cand.name, cand.kind]));
+  assert.equal(byName["real-gluetun"], "gluetun");
+  assert.equal(byName["real-db"], "postgres");
+  assert.equal("nginx" in byName, false);
+});
+
+test("importing a candidate saves its configuration and reports what it created", async () => {
+  containers.set("real-gluetun", {
+    Id: "g1",
+    name: "real-gluetun",
+    Image: "qmcgaw/gluetun:latest",
+    Env: ["VPN_SERVICE_PROVIDER=nordvpn"],
+    Labels: {},
+  });
+
+  const c = await signedInClient(base);
+  const res = await c.post("/api/stack/import", { containerId: "g1", kind: "gluetun" });
+  assert.equal(res.status, 201);
+  assert.deepEqual(res.body, { kind: "gluetun", key: "" });
+
+  const fields = (await c.get("/api/stack/components/gluetun")).body.fields;
+  assert.equal(fields.find((f) => f.key === "vpnServiceProvider").value, "nordvpn");
+  assert.equal(fields.find((f) => f.key === "containerName").value, "real-gluetun");
+});
+
+test("importing without containerId or kind is a 400", async () => {
+  const c = await signedInClient(base);
+  assert.equal((await c.post("/api/stack/import", { kind: "gluetun" })).status, 400);
+  assert.equal((await c.post("/api/stack/import", { containerId: "g1" })).status, 400);
+});
+
+test("importing an unknown container id surfaces the reconciler's own error", async () => {
+  const c = await signedInClient(base);
+  const res = await c.post("/api/stack/import", { containerId: "does-not-exist", kind: "gluetun" });
+  assert.equal(res.status, 409);
+  assert.match(res.body.error, /No container found/);
 });
 
 test("switching the VPN off takes gluetun out of the stack plan", async () => {

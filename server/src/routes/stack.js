@@ -38,6 +38,7 @@ import { containerPrefix } from "../reconcile/prefix.js";
 import { provisionInstance, deprovisionInstance } from "../reconcile/provisioning.js";
 import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
+import { listImportCandidates, importCandidate } from "../reconcile/import.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -342,6 +343,38 @@ export function createStackRouter() {
       return res.status(400).json({ ok: false, error: "No database host is configured yet." });
     }
     res.json(await testConnection(target));
+  });
+
+  // --- import from running containers ----------------------------------------
+  //
+  // Distinct from Adopt: adopting a container only ever means "leave it
+  // running, untouched" and never fills in the Suite's own configuration for
+  // it. Import actually reads a real container's env, image and networks and
+  // turns that into stored configuration — see reconcile/import.js. Neither
+  // one ever touches the container itself.
+
+  router.get("/import/candidates", async (req, res) => {
+    try {
+      res.json({ candidates: await listImportCandidates() });
+    } catch (err) {
+      dockerFailure(res, err);
+    }
+  });
+
+  router.post("/import", async (req, res) => {
+    const containerId = String(req.body?.containerId || "");
+    const kind = String(req.body?.kind || "");
+    if (!containerId || !kind) {
+      return res.status(400).json({ error: "containerId and kind are required" });
+    }
+
+    try {
+      const result = await importCandidate(containerId, kind, { overwrite: !!req.body?.overwrite });
+      res.status(201).json(result);
+    } catch (err) {
+      if (err instanceof DockerError) return dockerFailure(res, err);
+      res.status(409).json({ error: err.message });
+    }
   });
 
   // Removing an orphan is its own action, never part of an apply — the

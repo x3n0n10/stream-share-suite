@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { validate, renderEnv, toPublicFields, applyPatch } from "../src/schema/registry.js";
+import { validate, renderEnv, valuesFromEnv, toPublicFields, applyPatch } from "../src/schema/registry.js";
 
 const SCHEMA = {
   kind: "widget",
@@ -84,6 +84,44 @@ test("renderEnv omits a field hidden by dependsOn even if a stale value is store
 test("renderEnv stringifies checkbox booleans", () => {
   const env = renderEnv(SCHEMA, { name: "x", secretKey: "k", aOnly: "1", flag: true });
   assert.equal(env.FLAG, "true");
+});
+
+test("valuesFromEnv recovers a field's value from its matching env var", () => {
+  const { values } = valuesFromEnv(SCHEMA, { NAME: "x", NOTE: "hi" });
+  assert.equal(values.name, "x");
+  assert.equal(values.note, "hi");
+});
+
+test("valuesFromEnv ignores fields with no envVar and env vars with no field", () => {
+  const { values, consumed } = valuesFromEnv(SCHEMA, { NAME: "x", SOME_UNMODELED_VAR: "y" });
+  assert.equal("computed" in values, false);
+  assert.equal(consumed.has("SOME_UNMODELED_VAR"), false, "unmapped vars are reported, not consumed");
+});
+
+test("valuesFromEnv reports every env var it actually consumed", () => {
+  const { consumed } = valuesFromEnv(SCHEMA, { NAME: "x", NOTE: "hi", UNRELATED: "z" });
+  assert.deepEqual([...consumed].sort(), ["NAME", "NOTE"]);
+});
+
+test("valuesFromEnv is not fooled by dependsOn — it reports whatever the container actually has", () => {
+  // mode is absent here (so isVisible would call A_ONLY hidden), but a real
+  // container's AB_ONLY var is still genuine evidence of that field's value.
+  const { values } = valuesFromEnv(SCHEMA, { AB_ONLY: "recovered" });
+  assert.equal(values.abOnly, "recovered");
+});
+
+test("valuesFromEnv coerces a checkbox field's env string back to a boolean", () => {
+  const { values } = valuesFromEnv(SCHEMA, { FLAG: "true" });
+  assert.strictEqual(values.flag, true);
+  assert.strictEqual(valuesFromEnv(SCHEMA, { FLAG: "false" }).values.flag, false);
+});
+
+test("valuesFromEnv round-trips through renderEnv for a field with a value", () => {
+  const original = { name: "x", secretKey: "k", aOnly: "1", note: "hello" };
+  const env = renderEnv(SCHEMA, original);
+  const { values } = valuesFromEnv(SCHEMA, env);
+  assert.equal(values.name, original.name);
+  assert.equal(values.note, original.note);
 });
 
 test("toPublicFields reports only whether a secret is set, never its value", () => {
