@@ -207,7 +207,7 @@ export const INSTANCE_SCHEMA = {
       key: "port",
       envVar: null,
       label: "Port",
-      help: "Allocated automatically from 8080 upwards. Change it only if something else on this host already uses the allocated one.",
+      help: "Allocated automatically from the instance port range set under Stack. Change it only if something else on this host already uses the allocated one.",
       group: "Container",
       advanced: true,
     },
