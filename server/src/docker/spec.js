@@ -30,15 +30,27 @@ function sortKeysDeep(value) {
 // A spec is our own shape, not Docker's:
 //   { image, env: {KEY: value}, labels: {key: value} (component labels only —
 //   managed/spec-hash are added at apply time, never hashed), capAdd: [...],
-//   devices: ["/host:/container[:perms]"], networks: [...names],
-//   restartPolicy, name }
+//   devices: ["/host:/container[:perms]"], volumes: ["/host:/container[:ro]"],
+//   ports: [{host, container, protocol}], networks: [...names],
+//   networkMode, restartPolicy, name }
 //
 // env and labels are objects (unordered by nature) rather than the
 // "KEY=value" array Docker's API wants — that conversion happens in
 // toCreatePayload, once, at the boundary. Keeping them as objects here means a
 // caller can never introduce a hash difference by reordering entries.
+//
+// `networkMode` is for a container that joins another's network namespace
+// ("container:stream-share-gluetun"). It is mutually exclusive with
+// `networks`: Docker will not attach such a container to a network, and will
+// not let it publish ports either — which is why an instance behind the VPN
+// has its ports published by gluetun instead of by itself.
 export function computeSpecHash(spec) {
-  const canonical = sortKeysDeep({
+  // Fields are omitted when empty rather than canonicalised to [] or null, so
+  // that adding a field to this function does not change the hash of a spec
+  // that does not use it. Without that, every existing managed container would
+  // read as "configuration changed" the first time the Suite is upgraded —
+  // a stack-wide recreate to change precisely nothing.
+  const canonical = {
     image: spec.image,
     name: spec.name,
     env: spec.env || {},
@@ -47,8 +59,27 @@ export function computeSpecHash(spec) {
     devices: [...(spec.devices || [])].sort(),
     networks: [...(spec.networks || [])].sort(),
     restartPolicy: spec.restartPolicy || "unless-stopped",
-  });
-  return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+  };
+
+  if ((spec.volumes || []).length > 0) canonical.volumes = [...spec.volumes].sort();
+  if ((spec.ports || []).length > 0) canonical.ports = normalisePorts(spec.ports);
+  if (spec.networkMode) canonical.networkMode = spec.networkMode;
+  if (spec.user) canonical.user = spec.user;
+
+  return createHash("sha256").update(JSON.stringify(sortKeysDeep(canonical))).digest("hex");
+}
+
+// Ports are sorted into one canonical order and given their default protocol,
+// so that reordering the list — or writing "8080" where another caller wrote
+// 8080 — cannot make an unchanged container look changed.
+function normalisePorts(ports) {
+  return ports
+    .map((port) => ({
+      host: Number(port.host),
+      container: Number(port.container),
+      protocol: port.protocol || "tcp",
+    }))
+    .sort((a, b) => a.host - b.host || a.container - b.container || a.protocol.localeCompare(b.protocol));
 }
 
 // Converts our spec into a Docker Engine API /containers/create body. Labels
@@ -56,13 +87,23 @@ export function computeSpecHash(spec) {
 // decides whether to include the managed/spec-hash pair — a plan preview wants
 // the hash the spec *would* get, not one baked into the payload it renders.
 export function toCreatePayload(spec, { labels } = {}) {
-  const primaryNetwork = (spec.networks || [])[0];
-  return {
+  // A container sharing another's network namespace is not attached to any
+  // network of its own, so networkMode wins outright when set.
+  const primaryNetwork = spec.networkMode ? null : (spec.networks || [])[0];
+  const ports = normalisePorts(spec.ports || []);
+
+  const payload = {
     Image: spec.image,
     Env: Object.entries(spec.env || {}).map(([k, v]) => `${k}=${v}`),
     Labels: labels || spec.labels || {},
+    // "uid:gid". Set so a container writes its bind-mounted data as the same
+    // ids the Suite created those directories with — stream-share's image runs
+    // as a non-root user and never chowns, so the two have to agree or it
+    // cannot write its own config.
+    ...(spec.user ? { User: spec.user } : {}),
     HostConfig: {
       CapAdd: spec.capAdd || [],
+      Binds: spec.volumes || [],
       Devices: (spec.devices || []).map((entry) => {
         const [hostPath, containerPath, permissions] = entry.split(":");
         return {
@@ -75,10 +116,26 @@ export function toCreatePayload(spec, { labels } = {}) {
       // The Engine API only accepts one network at container-create time; the
       // rest are joined with separate /networks/{name}/connect calls after
       // creation, which the reconciler issues once the container exists.
-      NetworkMode: primaryNetwork || "bridge",
+      NetworkMode: spec.networkMode || primaryNetwork || "bridge",
     },
-    ...(primaryNetwork
-      ? { NetworkingConfig: { EndpointsConfig: { [primaryNetwork]: {} } } }
-      : {}),
   };
+
+  if (ports.length > 0) {
+    // ExposedPorts sits on the container config; PortBindings sits on
+    // HostConfig. Docker wants both, and publishing silently does nothing if
+    // only one is set.
+    payload.ExposedPorts = {};
+    payload.HostConfig.PortBindings = {};
+    for (const port of ports) {
+      const key = `${port.container}/${port.protocol}`;
+      payload.ExposedPorts[key] = {};
+      payload.HostConfig.PortBindings[key] = [{ HostIp: "0.0.0.0", HostPort: String(port.host) }];
+    }
+  }
+
+  if (primaryNetwork) {
+    payload.NetworkingConfig = { EndpointsConfig: { [primaryNetwork]: {} } };
+  }
+
+  return payload;
 }

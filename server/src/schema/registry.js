@@ -52,18 +52,46 @@ function isVisible(field, values, schema) {
   });
 }
 
+// Whether a field's `required` applies right now.
+//
+// Distinct from dependsOn, which decides whether a field is shown at all. A
+// field can be relevant in every mode and yet only mandatory in one: a
+// PostgreSQL administrator password is required for a server the Suite runs
+// (the image will not start without one) but genuinely optional for an
+// external server using trust or peer authentication.
+function isRequired(field, values, schema) {
+  if (!field.required) return false;
+  if (!field.requiredWhen) return true;
+
+  const conditions = Array.isArray(field.requiredWhen) ? field.requiredWhen : [field.requiredWhen];
+  return conditions.every((condition) => {
+    const depField = schema.fields.find((f) => f.key === condition.key);
+    const depValue = depField ? resolvedValue(depField, values) : values[condition.key];
+    return conditionMet(condition, depValue);
+  });
+}
+
 // Required fields are only enforced when visible (dependsOn satisfied) — a
 // WireGuard-only field is not "missing" on an OpenVPN configuration.
 export function validate(schema, values) {
   const errors = [];
   for (const field of schema.fields) {
     if (!isVisible(field, values, schema)) continue;
-    if (!field.required) continue;
+
     const value = resolvedValue(field, values);
-    if (value === undefined || value === null || value === "") {
-      errors.push({ key: field.key, message: `${field.label} is required.` });
+    const missing = value === undefined || value === null || value === "";
+
+    if (missing) {
+      if (isRequired(field, values, schema)) {
+        errors.push({ key: field.key, message: `${field.label} is required.` });
+      }
+      continue;
     }
-    if (field.type === "select" && value !== undefined && !field.options.includes(value)) {
+
+    // Checked for every visible select that has a value, not only required
+    // ones — an optional field holding a value outside its own options is
+    // wrong whether or not it had to be filled in.
+    if (field.type === "select" && !field.options.includes(value)) {
       errors.push({ key: field.key, message: `${field.label} must be one of: ${field.options.join(", ")}.` });
     }
   }

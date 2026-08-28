@@ -91,3 +91,98 @@ test("a device entry without an explicit container path mirrors the host path", 
   const payload = toCreatePayload({ image: "x", devices: ["/dev/net/tun"] });
   assert.equal(payload.HostConfig.Devices[0].PathOnContainer, "/dev/net/tun");
 });
+
+// --- volumes, ports and namespace sharing (2b) ------------------------------
+
+test("a spec that uses no volumes or ports hashes the same as before those fields existed", () => {
+  // The upgrade property: adding a field to computeSpecHash must not make
+  // every already-deployed container read as changed. Omitting empty fields
+  // rather than canonicalising them to [] is what buys this.
+  const base = {
+    name: "stream-share-gluetun",
+    image: "qmcgaw/gluetun:latest",
+    env: { VPN_SERVICE_PROVIDER: "nordvpn" },
+    capAdd: ["NET_ADMIN"],
+    networks: ["ssbackend"],
+  };
+
+  assert.equal(
+    computeSpecHash(base),
+    computeSpecHash({ ...base, volumes: [], ports: [], networkMode: null })
+  );
+});
+
+test("adding a volume changes the hash", () => {
+  const base = { name: "x", image: "i", networks: [] };
+  assert.notEqual(computeSpecHash(base), computeSpecHash({ ...base, volumes: ["/a:/b"] }));
+});
+
+test("reordering volumes or ports does not change the hash", () => {
+  const a = {
+    name: "x",
+    image: "i",
+    volumes: ["/one:/a", "/two:/b"],
+    ports: [{ host: 8081, container: 8081 }, { host: 8080, container: 8080 }],
+  };
+  const b = {
+    name: "x",
+    image: "i",
+    volumes: ["/two:/b", "/one:/a"],
+    ports: [{ host: 8080, container: 8080 }, { host: 8081, container: 8081 }],
+  };
+  assert.equal(computeSpecHash(a), computeSpecHash(b));
+});
+
+test("a port written as a string hashes the same as one written as a number", () => {
+  const a = { name: "x", image: "i", ports: [{ host: "8080", container: "8080" }] };
+  const b = { name: "x", image: "i", ports: [{ host: 8080, container: 8080, protocol: "tcp" }] };
+  assert.equal(computeSpecHash(a), computeSpecHash(b));
+});
+
+test("volumes become HostConfig.Binds verbatim", () => {
+  const payload = toCreatePayload({
+    name: "x",
+    image: "i",
+    volumes: ["/mnt/appdata/p1/config:/root", "/mnt/cache/p1:/cache"],
+  });
+  assert.deepEqual(payload.HostConfig.Binds, [
+    "/mnt/appdata/p1/config:/root",
+    "/mnt/cache/p1:/cache",
+  ]);
+});
+
+test("a published port sets both ExposedPorts and PortBindings", () => {
+  const payload = toCreatePayload({
+    name: "x",
+    image: "i",
+    ports: [{ host: 8080, container: 8080 }],
+  });
+
+  // Docker silently publishes nothing if only one of the two is set.
+  assert.deepEqual(payload.ExposedPorts, { "8080/tcp": {} });
+  assert.deepEqual(payload.HostConfig.PortBindings, {
+    "8080/tcp": [{ HostIp: "0.0.0.0", HostPort: "8080" }],
+  });
+});
+
+test("a container with no ports declares neither key at all", () => {
+  const payload = toCreatePayload({ name: "x", image: "i" });
+  assert.equal("ExposedPorts" in payload, false);
+  assert.equal("PortBindings" in payload.HostConfig, false);
+});
+
+test("networkMode wins over networks and suppresses the network attachment", () => {
+  const payload = toCreatePayload({
+    name: "x",
+    image: "i",
+    networkMode: "container:stream-share-gluetun",
+    networks: ["ssbackend"],
+  });
+
+  assert.equal(payload.HostConfig.NetworkMode, "container:stream-share-gluetun");
+  assert.equal(
+    "NetworkingConfig" in payload,
+    false,
+    "a container inside another's namespace must not also be attached to a network"
+  );
+});

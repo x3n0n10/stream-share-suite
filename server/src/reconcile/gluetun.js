@@ -5,27 +5,34 @@
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { renderEnv } from "../schema/registry.js";
 import { getSelfNetworks } from "../docker/self.js";
+import { listComponents } from "../store/components.js";
+import { parseExtraEnv } from "./env.js";
+import { containerPrefix } from "./prefix.js";
 
-export const GLUETUN_CONTAINER_NAME = "stream-share-gluetun";
+// Overridable per the containerName field, the same way instances are —
+// critically, this is how a gluetun container the operator already runs
+// under a different name stays adopted after this default changes.
+export function gluetunContainerName(values = {}) {
+  return String(values.containerName || "").trim() || `${containerPrefix()}gluetun`;
+}
 
 const IMAGE_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "image");
+const NETWORKS_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "networks");
 
-// The extraEnv escape hatch (see schema/gluetun.js) fills gaps for providers
-// with no modeled fields — it never overrides one that exists, so a typo in
-// a named field is still a save-time validation error rather than being
-// silently shadowed by a stray line here. Malformed lines (no "=", blank,
-// "#" comments) are dropped rather than rejected: the whole point is to
-// never block an apply on this field.
-function parseExtraEnv(raw) {
-  const env = {};
-  for (const line of String(raw || "").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const idx = trimmed.indexOf("=");
-    if (idx <= 0) continue;
-    env[trimmed.slice(0, idx).trim()] = trimmed.slice(idx + 1).trim();
-  }
-  return env;
+// Every instance port, published by gluetun rather than by the instances.
+//
+// This is the one place the dependency runs backwards: an instance inside
+// gluetun's network namespace cannot bind a host port itself, so gluetun has
+// to do it. The consequence is worth stating plainly — adding an instance
+// changes gluetun's spec, which recreates gluetun, which cascades to every
+// other instance sharing its namespace. That is the same thing `docker compose
+// up` does to this topology, and it is why the plan shows the cascade.
+function instancePorts() {
+  return listComponents("instance")
+    .map((row) => Number(JSON.parse(row.config_json).port))
+    .filter((port) => Number.isFinite(port) && port > 0)
+    .sort((a, b) => a - b)
+    .map((port) => ({ host: port, container: port, protocol: "tcp" }));
 }
 
 export async function renderGluetunSpec(values) {
@@ -46,13 +53,13 @@ export async function renderGluetunSpec(values) {
   const subnets = selfNetworks.map((n) => n.subnet).filter(Boolean);
   if (subnets.length > 0) env.FIREWALL_OUTBOUND_SUBNETS = subnets.join(",");
 
-  const networks = String(values.networks || "")
+  const networks = String(values.networks || NETWORKS_FIELD.default)
     .split(",")
     .map((n) => n.trim())
     .filter(Boolean);
 
-  return {
-    name: GLUETUN_CONTAINER_NAME,
+  const spec = {
+    name: gluetunContainerName(values),
     image: values.image || IMAGE_FIELD.default,
     env,
     capAdd: ["NET_ADMIN"],
@@ -60,4 +67,9 @@ export async function renderGluetunSpec(values) {
     networks,
     restartPolicy: "unless-stopped",
   };
+
+  const ports = instancePorts();
+  if (ports.length > 0) spec.ports = ports;
+
+  return spec;
 }

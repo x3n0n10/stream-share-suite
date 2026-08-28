@@ -49,6 +49,7 @@ export async function planComponent(node, spec) {
     key: node.key || "",
     label: node.label,
     namespaceHost: node.namespaceHost || null,
+    prepare: node.prepare || null,
     cascadedFrom: null,
     warnings: [],
     spec,
@@ -173,11 +174,30 @@ export async function planStack() {
   const nodes = orderComponents(activeComponents());
   const plans = [];
 
+  // Ids already known to be unusable, so a component that needs one is not
+  // planned as though it could work. Nodes arrive in dependency order, so a
+  // dependency's verdict is always decided before anything that needs it —
+  // which also makes this propagate down a chain in one pass.
+  const blocked = new Map();
+
   for (const node of nodes) {
     const values = getComponentValues(node.kind, node.key);
-    const errors = validate(node.schema, values);
+    const blocker = (node.dependsOn || []).find((id) => blocked.has(id));
+    const notReady = node.ready ? node.ready() : null;
+
+    let errors = [];
+    if (blocker) {
+      // Naming the dependency matters: without it the failure surfaces much
+      // later as a connection error against a host that was never created.
+      errors = [{ key: "_dependency", message: `${blocked.get(blocker)} must be configured first.` }];
+    } else if (notReady) {
+      errors = [{ key: "_stack", message: notReady }];
+    } else {
+      errors = validate(node.schema, values);
+    }
 
     if (errors.length > 0) {
+      blocked.set(node.id, node.label);
       plans.push({
         id: node.id,
         kind: node.kind,
@@ -193,7 +213,7 @@ export async function planStack() {
       continue;
     }
 
-    plans.push(await planComponent(node, await node.render(values)));
+    plans.push(await planComponent(node, await node.render(values, node.key)));
   }
 
   const cascaded = applyCascade(plans);
@@ -253,6 +273,10 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
     log("Removing it...");
     await removeContainer(plan.containerId, { force: true });
+  }
+
+  if (plan.prepare) {
+    await plan.prepare(key, getComponentValues(kind, key), { log });
   }
 
   log(`Creating "${spec.name}"...`);

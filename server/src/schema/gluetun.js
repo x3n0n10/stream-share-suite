@@ -33,13 +33,22 @@ export const GLUETUN_SCHEMA = {
       advanced: true,
     },
     {
+      key: "containerName",
+      envVar: null,
+      label: "Container name",
+      help: "Defaults to the Suite's container prefix followed by gluetun (streamshare-suite-gluetun unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
+      group: "Image",
+      advanced: true,
+    },
+    {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",
-      help: "Comma-separated names of existing Docker networks, e.g. nordvpn,ssbackend. The first one becomes the container's primary network.",
+      help: "Comma-separated names of existing Docker networks, e.g. nordvpn,ssbackend. The first one becomes the container's primary network. Defaults to the streamshare network the Suite's own compose file already declares — change this only to also join a stack of your own.",
       group: "Image",
       required: true,
       advanced: true,
+      default: "streamshare",
     },
     {
       key: "vpnServiceProvider",

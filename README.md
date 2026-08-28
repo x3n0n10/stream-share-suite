@@ -46,8 +46,10 @@ every component the reconciler manages — is configured in the UI.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on |
-| `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives |
-| `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory. **Unraid: set `99` / `100`.** |
+| `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives. From phase 2b, also the default location for every component's own configuration — see **Where component data lives** below. |
+| `SUITE_CACHE_DIR` | — | Default VOD/catchup cache root for every instance. See **Where component data lives** below. |
+| `SUITE_CONTAINER_PREFIX` | `streamshare-suite-` | Prefix for the default name of every container the Suite creates (gluetun, PostgreSQL, each instance). Change it only to run more than one Suite on the same Docker host — each needs a different prefix so their default names don't collide. Any component's `containerName` field, if set, always wins over the prefixed default. |
+| `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory, and who every component the Suite creates runs as. **Unraid: set `99` / `100`.** |
 | `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Where the Docker socket proxy is reachable. See **Stack management** below. |
 | `NODE_ENV` | — | Set to `production` in the image |
 
@@ -57,6 +59,21 @@ The entrypoint starts as root, takes ownership of `SUITE_DATA_DIR`, then runs th
 app as `PUID:PGID` — never as root. This is what makes a bind-mounted directory
 work: a named volume inherits the image's ownership, but a bind mount keeps
 whatever the host says, and that rarely matches a uid baked into an image.
+
+**Use bind mounts for `SUITE_DATA_DIR` and `SUITE_CACHE_DIR`, not named
+volumes** — this changed from earlier phases. From phase 2b the Suite
+bind-mounts a subfolder of each into every component it creates, and that only
+works if they're real host paths: see **Where component data lives** below for
+why. Every component the Suite creates also runs as this same `PUID:PGID`, for
+the same reason the Suite itself does — a bind-mounted directory it creates
+needs to be writable by whatever actually runs inside the container using it.
+
+The entrypoint only chowns `SUITE_DATA_DIR` — it starts as root for exactly
+long enough to fix that one directory, and nothing else. `SUITE_CACHE_DIR` gets
+no such treatment, so its host directory needs to already be owned by (or
+writable by) `PUID:PGID` before the Suite tries to use it. Get it wrong and the
+first instance that needs it comes back "incomplete" naming exactly that,
+rather than silently failing to write its cache.
 
 Get it wrong and SQLite fails with a bare `unable to open database file`
 (`SQLITE_CANTOPEN`). The Suite catches that and tells you which uid it is
@@ -74,17 +91,23 @@ proxy — see below) the Docker daemon. It deliberately does **not** join
 gluetun's network namespace: it manages gluetun, and a service inside that
 namespace would sever its own connection the moment it recreated it.
 
-In a typical stack that means attaching it to the internal network your
-database is on, and addressing the instances through gluetun's address on that
-network (`http://172.18.0.11:8080`, not `http://localhost:8080`). Gluetun's
-`FIREWALL_OUTBOUND_SUBNETS` must include that subnet — the reconciler sets this
-automatically for gluetun itself (see below), but it must already be true for
-your existing instances to reach the database.
+A from-scratch install needs none of this: the bundled `docker-compose.yml`
+also declares a plain bridge network named `streamshare`, puts the Suite on
+it alongside `default` (the published port) and `docker-proxy-net` (an
+`internal: true` network shared only with the socket proxy), and gluetun,
+PostgreSQL and every instance join it by default — see each component's
+"Docker networks to join" field, prefilled with `streamshare` and editable
+only if you need something else. Nothing has to be typed in for the Suite to
+create a fully self-contained stack.
 
-The bundled `docker-compose.yml` puts the Suite on two networks — `default`
-(the published port, and outbound from phase 4 on) and `docker-proxy-net` (an
-`internal: true` network shared only with the socket proxy). Add your stack's
-own network as a third, external one to reach gluetun and PostgreSQL:
+That default stops being enough the moment something predates the Suite: an
+existing instance or database lives on your own stack's network, not this
+one, and gluetun's `FIREWALL_OUTBOUND_SUBNETS` must include whatever subnet
+the Suite reaches it on (the reconciler sets this automatically for gluetun
+itself — see below — but it must already be true for an existing instance to
+reach the database). Add your own network as a fourth one, external so
+compose doesn't try to create it, and point the relevant component's "Docker
+networks to join" field at it instead of (or alongside) `streamshare`:
 
 ```yaml
 services:
@@ -92,9 +115,12 @@ services:
     networks:
       - default
       - docker-proxy-net
-      - ssbackend   # reaching gluetun and, later, PostgreSQL
+      - streamshare
+      - ssbackend   # reaching your existing gluetun and/or PostgreSQL
 
 networks:
+  streamshare:
+    name: streamshare
   ssbackend:
     external: true  # already created by your main stack
 ```
@@ -115,9 +141,9 @@ is denied by default. A service that can create containers is root-equivalent
 on the host, so it never gets unmediated access to the thing that lets it do
 that.
 
-**Gluetun** is the only component this phase manages — deliberately: it's the
-one everything else shares a network namespace with, so it's where a mistake
-costs the most. Five outcomes:
+Three kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
+external server you point at), and **StreamShare instances**, of which there
+can be as many as you have providers. Six outcomes:
 
 | Outcome | When | What happens |
 | --- | --- | --- |
@@ -134,6 +160,123 @@ so there is no way to bring an existing container under management without
 either leaving it alone or replacing it. The Suite defaults to leaving it
 alone. "Take over anyway" on the Stack page does the replacement explicitly,
 never automatically.
+
+Adoption is an exact name match, so it depends on the Suite expecting the
+right name. gluetun, PostgreSQL and every instance each have their own
+**Container name** field (under Advanced) for exactly this: set it to the
+name of a container you already run, and the Suite adopts that one instead of
+planning a `Create` under its own default name. Left blank, gluetun and
+PostgreSQL default to `SUITE_CONTAINER_PREFIX` followed by `gluetun` or
+`postgres` (`streamshare-suite-gluetun`, `streamshare-suite-postgres` unless
+you've changed the prefix); an instance defaults to the prefix followed by its
+key.
+
+### Instances
+
+Adding an instance is a form, not a compose edit. Three things you would
+otherwise have to work out are worked out for you:
+
+- **Its port**, allocated from a band of 20, `8080`–`8099` by default. Change
+  where that band starts under **Stack** if it's already taken by something
+  else on your host — an instance that already has a port keeps it regardless.
+  Allocation is otherwise *sticky*: adding a fifth instance never renumbers
+  the first four, because that would recreate healthy containers to change
+  nothing and break anything pointing at them.
+- **Its API key**, generated and injected, so a new instance appears on the
+  Overview page already authenticated with nothing typed.
+- **Its address**, computed from the topology. With the VPN on that's gluetun's
+  address at the instance's port; with it off it's the container's own name.
+  Flip the toggle and every instance's address follows — it was never a value
+  anyone typed, so there is nothing to go stale.
+
+Each instance also gets its own database and role, created on first apply.
+**Create if absent, never alter**: a database already under that name is used
+as-is, never dropped or migrated. stream-share builds its own tables on
+startup, so there is nothing for the Suite to migrate anyway.
+
+Every instance is also editable after creation — click **Edit** on its row for
+the same form, prefilled with what it's already configured with. Its key
+(and so its default container name, if you haven't overridden that) is fixed
+at creation and never changes even if you rename it later; a manually
+overridden port that clashes with another instance's is rejected rather than
+silently applied.
+
+Removing an instance takes it out of the stack — its container becomes an
+orphan the plan then offers to remove. Its database is **kept** unless you tick
+the box and type the instance's name back, because a container is trivially
+rebuilt and watch history is not.
+
+### Where component data lives
+
+Two host paths — configuration and cache — set only in compose, never in the
+UI. Both are environment variables, read once at startup, exactly like
+`SUITE_DATA_DIR` already was for `suite.db`:
+
+```yaml
+environment:
+  SUITE_DATA_DIR: /mnt/user/appdata/stream-share-suite
+  SUITE_CACHE_DIR: /mnt/user/cache/stream-share-suite
+
+volumes:
+  - /mnt/user/appdata/stream-share-suite:/mnt/user/appdata/stream-share-suite
+  - /mnt/user/cache/stream-share-suite:/mnt/user/cache/stream-share-suite
+```
+
+**Configuration** (`SUITE_DATA_DIR`) is the same folder `suite.db` already
+lives in — every component gets its own subfolder there (`gluetun/`,
+`provider-1/config/`, `postgres/data/`, ...). **Cache** (`SUITE_CACHE_DIR`)
+is kept separate on purpose: VOD and catchup reach tens of gigabytes per
+instance and usually belong on a different disk from a few kilobytes of
+config, so sharing one path for both would be the wrong guess more often than
+the right one.
+
+Self-inspection — the trick that computes gluetun's `FIREWALL_OUTBOUND_SUBNETS`
+from the Suite's own networks — can't replace this. `docker inspect` would
+hand back every bind mount the Suite has, but not which one means "cache" and
+which means "config", or whether a third one is for something else entirely.
+That's a question about intent, and an environment variable is the cheapest
+honest way to answer it — cheaper than a label, and no more typing than the
+bind-mount line already needs.
+
+There is no UI for either path — only these two environment variables. A
+wrong or unmounted value still surfaces, just not as a settings-form error: it
+shows up as an "incomplete" row on whichever component needs it (PostgreSQL,
+an instance), naming exactly what's missing, the same way any other
+unconfigured field does. Whichever paths you use, each must be mounted into
+the Suite **at the same path on both sides**, as above.
+
+That looks redundant and isn't. A bind mount is resolved by the Docker daemon
+on the *host*, not inside the Suite's own container — so when the Suite tells
+Docker to bind-mount a component's subfolder into a new container, the string
+it hands over has to already mean the right thing to the daemon. Mounting
+each path at the identical location on both sides is what makes that true
+without needing a second "and where is that inside you" setting for every
+path. Get this wrong — say, keep the old named-volume `suite_data:/data` from
+an earlier phase instead of a bind mount — and it fails silently in the worst
+way: the Suite can still read and write `/data` for its own database just
+fine, so nothing looks wrong until it tries to share a subfolder of it with a
+component's container and either can't find a real host path at all or,
+worse, creates one somewhere unexpected. **Use bind mounts for both
+`SUITE_DATA_DIR` and `SUITE_CACHE_DIR`**, never named volumes, for exactly
+this reason.
+
+Paths are validated when you save them, so a mistyped or unmounted one is a
+message on the form rather than a container that fails to start — but that
+check can only see "is this a writable directory from where I'm standing," so
+it can't catch the named-volume case above from the inside.
+
+The Suite creates each directory as its own `PUID:PGID`, mode `0777`, and runs
+every component it creates as those same ids where it can — the stream-share
+image runs as a non-root user and never chowns what it's given, so the two
+have to agree, and this is the mechanism that makes them. Mode `0777` (rather
+than owner/group-only) is what a container the Suite does not otherwise
+control needs: an official postgres image starts as root and only drops to
+its own uid after it can write into its data directory, and there is no way
+to know that uid ahead of time. On a plain local filesystem root would not
+even need the grant — but a FUSE-backed share (Unraid's `/mnt/user` among
+them) can enforce mode bits against literal root too, which is exactly what
+`mkdir: can't create directory ... Permission denied`, repeating on every
+restart, means if you see it.
 
 ### Other VPN providers
 
@@ -190,10 +333,15 @@ expect the plan to show the whole stack recreating when it flips.
 
 ## Data and backups
 
-Everything is one SQLite file at `$SUITE_DATA_DIR/suite.db`, created `0600`.
-Back up that file and you have backed up the entire configuration. It contains
-instance API keys and VPN credentials in the clear, so treat a copy of it the
-way you would treat the `.env` it replaces.
+The configuration that matters is one SQLite file at `$SUITE_DATA_DIR/suite.db`,
+created `0600`. Back up that file and you have backed up every credential,
+instance definition and component setting — it contains API keys and VPN
+credentials in the clear, so treat a copy of it the way you would treat the
+`.env` it replaces.
+
+Everything else under `SUITE_DATA_DIR` (each component's own subfolder) and
+under the cache path is runtime state stream-share itself manages — useful to
+keep, but reconstructible, not the source of truth the way `suite.db` is.
 
 ## Development
 
@@ -214,8 +362,8 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | --- | --- | --- |
 | 0 | Ops surface on a database, with real auth | shipped |
 | 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | shipped |
-| 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | **this branch** |
-| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | planned |
+| 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
+| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | **this branch** |
 | 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | planned |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
@@ -225,9 +373,11 @@ phase with any access to the Docker API at all, even mediated by the socket
 proxy. See **Stack management** above for what that access is scoped to, and
 the architecture notes for the fuller reasoning.
 
-Phase 2a adds no new Docker permissions — it only widens what the Suite does
-with the access it already had, and adds one read (listing containers by
-label) that the socket proxy's existing `CONTAINERS` grant already allowed.
+Phase 2a added no new Docker permissions, and 2b adds none either — the
+socket proxy's allowlist is unchanged. Creating each instance's database uses
+a PostgreSQL client rather than exec'ing `psql` inside the container, which
+would have meant granting the proxy `EXEC`; exec into any container is root on
+the host, and none of this needs that.
 
 ## Licence
 

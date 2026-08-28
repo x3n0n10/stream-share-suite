@@ -9,6 +9,8 @@ import { freshDatabase, apiClient, signedInClient } from "./helpers.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
 import { _clearJobsForTests } from "../src/reconcile/jobs.js";
+import { saveComponentValues, getComponentValues } from "../src/store/components.js";
+import { provisionInstance } from "../src/reconcile/provisioning.js";
 
 let appServer;
 let base;
@@ -42,6 +44,16 @@ beforeEach(() => {
   _clearJobsForTests();
   containers = new Map();
   nextId = 1;
+  // Postgres is managed by default and would add a row to every plan these
+  // cases assert on; they are about gluetun and the routes themselves, so it
+  // is pointed at an external server and drops out of the stack.
+  saveComponentValues("postgres", {
+    mode: "external",
+    host: "db.example",
+    port: "5432",
+    adminUser: "postgres",
+    adminPassword: "x",
+  });
 });
 
 function json(res, status, body) {
@@ -177,7 +189,7 @@ test("apply returns a job id immediately and the job reaches success", async () 
   const job = await waitForJob(c, applyRes.body.jobId);
   assert.equal(job.status, "success");
   assert.ok(job.log.some((l) => l.line.includes("Creating")));
-  assert.ok(containers.has("stream-share-gluetun"));
+  assert.ok(containers.has("streamshare-suite-gluetun"));
 });
 
 test("a second apply with an unchanged configuration reaches a noop success", async () => {
@@ -205,7 +217,7 @@ test("polling an unknown job id is a 404", async () => {
 });
 
 test("apply on an unmanaged existing container adopts it without a Docker mutation", async () => {
-  containers.set("stream-share-gluetun", { Id: "foreign-id", name: "stream-share-gluetun", Labels: {} });
+  containers.set("streamshare-suite-gluetun", { Id: "foreign-id", name: "streamshare-suite-gluetun", Labels: {} });
 
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
@@ -215,7 +227,7 @@ test("apply on an unmanaged existing container adopts it without a Docker mutati
 
   assert.equal(job.status, "success");
   assert.ok(job.log.some((l) => /adopting without recreating/i.test(l.line)));
-  assert.equal(containers.get("stream-share-gluetun").Id, "foreign-id"); // untouched
+  assert.equal(containers.get("streamshare-suite-gluetun").Id, "foreign-id"); // untouched
 });
 
 test("stack endpoints require authentication, same as everything else behind the gate", async () => {
@@ -261,7 +273,7 @@ test("applying the stack creates the container and reports through the job log",
 
   const job = await waitForJob(c, started.body.jobId);
   assert.equal(job.status, "success");
-  assert.ok(containers.get("stream-share-gluetun"), "expected the container to exist after applying");
+  assert.ok(containers.get("streamshare-suite-gluetun"), "expected the container to exist after applying");
   assert.ok(job.log.some((l) => /1\/1/.test(l.line)), "expected progress through the ordered plan");
 });
 
@@ -280,6 +292,101 @@ test("applying a stack with nothing to do says so instead of touching Docker", a
 test("the VPN is on by default, which is what a phase 1 deployment already had", async () => {
   const c = await signedInClient(base);
   assert.equal((await c.get("/api/stack/settings")).body.vpnEnabled, true);
+});
+
+test("settings exposes the container prefix read-only, for the UI to preview a default name with", async () => {
+  const c = await signedInClient(base);
+  assert.equal((await c.get("/api/stack/settings")).body.containerPrefix, "streamshare-suite-");
+
+  // Not settable through the route — it only ever reads SUITE_CONTAINER_PREFIX.
+  const res = await c.put("/api/stack/settings", { containerPrefix: "ignored-" });
+  assert.equal(res.body.containerPrefix, "streamshare-suite-");
+});
+
+test("the instance port range start defaults to 8080 and can be moved", async () => {
+  const c = await signedInClient(base);
+  assert.equal((await c.get("/api/stack/settings")).body.instancePortStart, 8080);
+
+  const res = await c.put("/api/stack/settings", { instancePortStart: 9000 });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.instancePortStart, 9000);
+  assert.equal((await c.get("/api/stack/instances")).body.portBand.first, 9000);
+});
+
+test("an out-of-range instance port range start is rejected", async () => {
+  const c = await signedInClient(base);
+  for (const bad of [0, -1, 1.5, 65530, "not-a-number"]) {
+    const res = await c.put("/api/stack/settings", { instancePortStart: bad });
+    assert.equal(res.status, 400, `expected ${JSON.stringify(bad)} to be rejected`);
+  }
+  // Rejected, so the setting is untouched.
+  assert.equal((await c.get("/api/stack/settings")).body.instancePortStart, 8080);
+});
+
+// --- editing an instance -----------------------------------------------------
+
+const PROVIDER = {
+  displayName: "Provider 1",
+  xtreamBaseUrl: "http://provider.example:8080",
+  xtreamUser: "u",
+  xtreamPassword: "p",
+  authMode: "basic",
+  authUser: "viewer",
+  authPassword: "secret",
+};
+
+test("editing an instance updates its stored fields", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance(PROVIDER);
+
+  const res = await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, displayName: "Renamed" });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.fields.find((f) => f.key === "displayName").value, "Renamed");
+  assert.equal(getComponentValues("instance", key).displayName, "Renamed");
+});
+
+test("editing an instance never changes its key, even when the name changes", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance(PROVIDER);
+
+  await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, displayName: "A whole new name" });
+  assert.equal((await c.get("/api/stack/instances")).body.instances.length, 1);
+  assert.equal((await c.get("/api/stack/instances")).body.instances[0].key, key);
+});
+
+test("leaving a secret field blank on edit keeps the stored value", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance(PROVIDER);
+
+  await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, xtreamPassword: undefined });
+  assert.equal(getComponentValues("instance", key).xtreamPassword, "p");
+});
+
+test("editing an instance's port to one already used by another is rejected", async () => {
+  const c = await signedInClient(base);
+  const first = provisionInstance(PROVIDER);
+  const second = provisionInstance({ ...PROVIDER, displayName: "Provider 2" });
+  assert.notEqual(first.port, second.port);
+
+  const res = await c.put(`/api/stack/instances/${second.key}`, { ...PROVIDER, port: String(first.port) });
+  assert.equal(res.status, 400);
+  assert.match(res.body.errors[0].message, new RegExp(`already used by ${first.key}`));
+  // Rejected, so the second instance's own port is untouched.
+  assert.equal(Number(getComponentValues("instance", second.key).port), second.port);
+});
+
+test("editing an instance's port to the one it already has is not a clash with itself", async () => {
+  const c = await signedInClient(base);
+  const { key, port } = provisionInstance(PROVIDER);
+
+  const res = await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, port: String(port) });
+  assert.equal(res.status, 200);
+});
+
+test("editing an unknown instance is a 404", async () => {
+  const c = await signedInClient(base);
+  const res = await c.put("/api/stack/instances/does-not-exist", PROVIDER);
+  assert.equal(res.status, 404);
 });
 
 test("switching the VPN off takes gluetun out of the stack plan", async () => {
@@ -309,7 +416,7 @@ test("a container left behind by switching the VPN off is reported and then remo
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
   await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
-  assert.ok(containers.get("stream-share-gluetun"));
+  assert.ok(containers.get("streamshare-suite-gluetun"));
 
   await c.put("/api/stack/settings", { vpnEnabled: false });
 
@@ -319,13 +426,13 @@ test("a container left behind by switching the VPN off is reported and then remo
 
   // Applying must not remove it — that is deliberately a separate action.
   await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
-  assert.ok(containers.get("stream-share-gluetun"), "apply must never remove an orphan");
+  assert.ok(containers.get("streamshare-suite-gluetun"), "apply must never remove an orphan");
 
   const removal = await c.post("/api/stack/orphans/remove", { containerId: orphan.containerId });
   assert.equal(removal.status, 202);
   const job = await waitForJob(c, removal.body.jobId);
   assert.equal(job.status, "success");
-  assert.equal(containers.get("stream-share-gluetun"), undefined);
+  assert.equal(containers.get("streamshare-suite-gluetun"), undefined);
 });
 
 test("removing an orphan without a container id is a 400", async () => {
@@ -349,9 +456,9 @@ test("an adopted container stays visible in the plan when its component is switc
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
 
   // A container from someone's own compose file: no Suite labels.
-  containers.set("stream-share-gluetun", {
+  containers.set("streamshare-suite-gluetun", {
     Id: "hand-written",
-    name: "stream-share-gluetun",
+    name: "streamshare-suite-gluetun",
     Labels: {},
   });
   assert.equal((await c.get("/api/stack/plan")).body.plans[0].action, "adopt");
@@ -367,10 +474,10 @@ test("an adopted container stays visible in the plan when its component is switc
 test("applying never touches a container belonging to a switched-off component", async () => {
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
-  containers.set("stream-share-gluetun", { Id: "hand-written", name: "stream-share-gluetun", Labels: {} });
+  containers.set("streamshare-suite-gluetun", { Id: "hand-written", name: "streamshare-suite-gluetun", Labels: {} });
   await c.put("/api/stack/settings", { vpnEnabled: false });
 
   const job = await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
   assert.equal(job.status, "success");
-  assert.equal(containers.get("stream-share-gluetun").Id, "hand-written");
+  assert.equal(containers.get("streamshare-suite-gluetun").Id, "hand-written");
 });

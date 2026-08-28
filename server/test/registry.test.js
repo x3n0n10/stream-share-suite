@@ -129,3 +129,38 @@ test("applyPatch coerces a checkbox field to a real boolean", () => {
   const next = applyPatch(SCHEMA, {}, { flag: "yes" });
   assert.strictEqual(next.flag, true);
 });
+
+test("requiredWhen gates the required check without hiding the field", () => {
+  const schema = {
+    kind: "db",
+    label: "DB",
+    fields: [
+      { key: "mode", envVar: null, label: "Mode", type: "select", options: ["managed", "external"], default: "managed" },
+      {
+        key: "password",
+        envVar: null,
+        label: "Password",
+        required: true,
+        requiredWhen: { key: "mode", equals: "managed" },
+      },
+    ],
+  };
+
+  // Managed: mandatory. External: shown, and legitimately blank — a server
+  // using trust or peer authentication has no password to give.
+  assert.equal(validate(schema, { mode: "managed" }).some((e) => e.key === "password"), true);
+  assert.equal(validate(schema, { mode: "external" }).some((e) => e.key === "password"), false);
+
+  // Still projected in both modes, unlike a dependsOn-hidden field.
+  assert.ok(toPublicFields(schema, { mode: "external" }).some((f) => f.key === "password"));
+});
+
+test("a select holding a value outside its options is rejected even when optional", () => {
+  const schema = {
+    kind: "x",
+    label: "X",
+    fields: [{ key: "mode", envVar: null, label: "Mode", type: "select", options: ["a", "b"] }],
+  };
+  assert.equal(validate(schema, { mode: "z" }).length, 1);
+  assert.equal(validate(schema, {}).length, 0, "unset and optional is fine");
+});
