@@ -133,11 +133,14 @@ export const api = {
   stackPlan: () => get("/api/stack/plan"),
   stackInstances: () => get("/api/stack/instances"),
   createStackInstance: (payload) => post("/api/stack/instances", payload),
+  updateStackInstance: (key, payload) => put(`/api/stack/instances/${key}`, payload),
   removeStackInstance: (key, payload) => post(`/api/stack/instances/${key}/remove`, payload),
   testDatabase: () => post("/api/stack/database/test", {}),
   applyStack: () => post("/api/stack/apply", {}),
   removeOrphan: (containerId) => post("/api/stack/orphans/remove", { containerId }),
-  componentFields: (kind) => get(`/api/stack/components/${kind}`),
+  // key is only meaningful for a non-singleton kind (currently just
+  // "instance"); get() drops it from the query string when it's undefined.
+  componentFields: (kind, key) => get(`/api/stack/components/${kind}`, { key }),
   saveComponent: (kind, payload) => put(`/api/stack/components/${kind}`, payload),
   componentPlan: (kind) => get(`/api/stack/components/${kind}/plan`),
   applyComponent: (kind, payload) => post(`/api/stack/components/${kind}/apply`, payload),

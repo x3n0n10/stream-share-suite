@@ -30,6 +30,7 @@ import {
   instanceUrl,
   instanceContainerName,
   portBand,
+  allocatedPorts,
   PORT_BAND_WIDTH,
   PORT_BAND_START_SETTING,
 } from "../reconcile/instance.js";
@@ -284,6 +285,39 @@ export function createStackRouter() {
     } catch (err) {
       res.status(409).json({ error: err.message });
     }
+  });
+
+  // Editing an existing instance. Its own dedicated route rather than the
+  // generic PUT /components/:kind?key= every other component uses, because a
+  // manually overridden port needs one check nothing else does: does it clash
+  // with a port some other instance already has. allocatedPorts(exceptKey)
+  // exists for exactly this — see reconcile/instance.js — the generic route
+  // has no way to know it should be called.
+  router.put("/instances/:key", (req, res) => {
+    const key = req.params.key;
+    if (listComponents("instance").every((row) => row.key !== key)) {
+      return res.status(404).json({ error: `Unknown instance: ${key}` });
+    }
+
+    const { schema } = getCatalogEntry("instance");
+    const existing = getComponentValues("instance", key);
+    const next = applyPatch(schema, existing, req.body || {});
+
+    const errors = validate(schema, next);
+    if (errors.length > 0) return res.status(400).json({ errors });
+
+    const port = Number(next.port);
+    if (Number.isFinite(port) && port > 0) {
+      const clashingKey = allocatedPorts({ exceptKey: key }).get(port);
+      if (clashingKey) {
+        return res.status(400).json({
+          errors: [{ key: "port", message: `Port ${port} is already used by ${clashingKey}.` }],
+        });
+      }
+    }
+
+    saveComponentValues("instance", next, key);
+    res.json({ fields: toPublicFields(schema, next) });
   });
 
   // Removing an instance takes it out of the stack, which turns its running

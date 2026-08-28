@@ -26,3 +26,11 @@ export function previewContainerName({ displayName, containerName }, { prefix, e
   if (override) return override;
   return `${prefix}${previewInstanceKey(displayName, existingKeys)}`;
 }
+
+// The same preview for an instance that already exists — its key was fixed
+// at creation and does not move if displayName changes now, so this must not
+// re-slug it the way previewContainerName does for a new one.
+export function previewContainerNameForKey({ containerName }, { prefix, key }) {
+  const override = String(containerName || "").trim();
+  return override || `${prefix}${key}`;
+}

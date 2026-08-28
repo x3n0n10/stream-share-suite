@@ -9,7 +9,8 @@ import { freshDatabase, apiClient, signedInClient } from "./helpers.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
 import { _clearJobsForTests } from "../src/reconcile/jobs.js";
-import { saveComponentValues } from "../src/store/components.js";
+import { saveComponentValues, getComponentValues } from "../src/store/components.js";
+import { provisionInstance } from "../src/reconcile/provisioning.js";
 
 let appServer;
 let base;
@@ -320,6 +321,72 @@ test("an out-of-range instance port range start is rejected", async () => {
   }
   // Rejected, so the setting is untouched.
   assert.equal((await c.get("/api/stack/settings")).body.instancePortStart, 8080);
+});
+
+// --- editing an instance -----------------------------------------------------
+
+const PROVIDER = {
+  displayName: "Provider 1",
+  xtreamBaseUrl: "http://provider.example:8080",
+  xtreamUser: "u",
+  xtreamPassword: "p",
+  authMode: "basic",
+  authUser: "viewer",
+  authPassword: "secret",
+};
+
+test("editing an instance updates its stored fields", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance(PROVIDER);
+
+  const res = await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, displayName: "Renamed" });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.fields.find((f) => f.key === "displayName").value, "Renamed");
+  assert.equal(getComponentValues("instance", key).displayName, "Renamed");
+});
+
+test("editing an instance never changes its key, even when the name changes", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance(PROVIDER);
+
+  await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, displayName: "A whole new name" });
+  assert.equal((await c.get("/api/stack/instances")).body.instances.length, 1);
+  assert.equal((await c.get("/api/stack/instances")).body.instances[0].key, key);
+});
+
+test("leaving a secret field blank on edit keeps the stored value", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance(PROVIDER);
+
+  await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, xtreamPassword: undefined });
+  assert.equal(getComponentValues("instance", key).xtreamPassword, "p");
+});
+
+test("editing an instance's port to one already used by another is rejected", async () => {
+  const c = await signedInClient(base);
+  const first = provisionInstance(PROVIDER);
+  const second = provisionInstance({ ...PROVIDER, displayName: "Provider 2" });
+  assert.notEqual(first.port, second.port);
+
+  const res = await c.put(`/api/stack/instances/${second.key}`, { ...PROVIDER, port: String(first.port) });
+  assert.equal(res.status, 400);
+  assert.match(res.body.errors[0].message, new RegExp(`already used by ${first.key}`));
+  // Rejected, so the second instance's own port is untouched.
+  assert.equal(Number(getComponentValues("instance", second.key).port), second.port);
+});
+
+test("editing an instance's port to the one it already has is not a clash with itself", async () => {
+  const c = await signedInClient(base);
+  const { key, port } = provisionInstance(PROVIDER);
+
+  const res = await c.put(`/api/stack/instances/${key}`, { ...PROVIDER, port: String(port) });
+  assert.equal(res.status, 200);
+});
+
+test("editing an unknown instance is a 404", async () => {
+  const c = await signedInClient(base);
+  const res = await c.put("/api/stack/instances/does-not-exist", PROVIDER);
+  assert.equal(res.status, 404);
 });
 
 test("switching the VPN off takes gluetun out of the stack plan", async () => {

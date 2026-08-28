@@ -3,7 +3,7 @@ import Layout from "../components/Layout.jsx";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../components/common.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
-import { previewContainerName } from "../lib/containerName.js";
+import { previewContainerName, previewContainerNameForKey } from "../lib/containerName.js";
 
 // How each plan action reads on screen. The wording matters more than usual
 // here: this is the last thing anyone sees before containers get replaced.
@@ -106,6 +106,11 @@ export default function Stack() {
     await reload();
   }
 
+  async function editInstance(key, patch) {
+    await api.updateStackInstance(key, patch);
+    await reload();
+  }
+
   async function confirmRemoveOrphan() {
     const target = orphanToRemove;
     setOrphanToRemove(null);
@@ -154,6 +159,7 @@ export default function Stack() {
           containerPrefix={settings?.containerPrefix || ""}
           busy={busy}
           onAdd={addInstance}
+          onEdit={editInstance}
           onRemove={setInstanceToRemove}
         />
 
@@ -377,18 +383,47 @@ function EmptyPlan({ components }) {
   );
 }
 
-function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onRemove }) {
+function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEdit, onRemove }) {
   const [adding, setAdding] = useState(false);
-  const [fields, setFields] = useState(null);
+  const [addFields, setAddFields] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Only one form open at a time — adding and editing are mutually exclusive,
+  // same as the rest of this page.
+  const [editingKey, setEditingKey] = useState(null);
+  const [editFields, setEditFields] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState(null);
+
   useEffect(() => {
-    if (!adding || fields) return;
+    if (!adding || addFields) return;
     // The blank instance form is the schema's own projection, so a new field
     // on the server appears here with no change in this file.
-    api.componentFields("instance").then((res) => setFields(res.fields));
-  }, [adding, fields]);
+    api.componentFields("instance").then((res) => setAddFields(res.fields));
+  }, [adding, addFields]);
+
+  useEffect(() => {
+    if (!editingKey || editFields) return;
+    api.componentFields("instance", editingKey).then((res) => setEditFields(res.fields));
+  }, [editingKey, editFields]);
+
+  function toggleAdding() {
+    setEditingKey(null);
+    setEditFields(null);
+    setAdding((v) => !v);
+    setAddFields(null);
+    setError(null);
+  }
+
+  function toggleEditing(key) {
+    setAdding(false);
+    setAddFields(null);
+    setError(null);
+    setEditingKey((current) => (current === key ? null : key));
+    setEditFields(null);
+    setEditError(null);
+  }
 
   async function create(patch) {
     setSaving(true);
@@ -396,11 +431,25 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onRe
     try {
       await onAdd(patch);
       setAdding(false);
-      setFields(null);
+      setAddFields(null);
     } catch (err) {
       setError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveEdit(patch) {
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      await onEdit(editingKey, patch);
+      setEditingKey(null);
+      setEditFields(null);
+    } catch (err) {
+      setEditError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -414,7 +463,7 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onRe
             address and API key are worked out for you.
           </p>
         </div>
-        <Button tone="accent" onClick={() => setAdding((v) => !v)} disabled={busy}>
+        <Button tone="accent" onClick={toggleAdding} disabled={busy}>
           {adding ? "Cancel" : "Add instance"}
         </Button>
       </div>
@@ -428,25 +477,55 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onRe
       {instances.length > 0 && (
         <ul>
           {instances.map((instance) => (
-            <li
-              key={instance.key}
-              className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-3 last:border-b-0 dark:border-slate-800"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
-                  {instance.displayName}
-                </p>
-                <p className="mt-0.5 truncate font-mono text-xs text-slate-500 dark:text-slate-400">
-                  {instance.containerName} · {instance.url}
-                </p>
+            <li key={instance.key} className="border-b border-slate-200 last:border-b-0 dark:border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    {instance.displayName}
+                  </p>
+                  <p className="mt-0.5 truncate font-mono text-xs text-slate-500 dark:text-slate-400">
+                    {instance.containerName} · {instance.url}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <button
+                    onClick={() => toggleEditing(instance.key)}
+                    disabled={busy}
+                    className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+                  >
+                    {editingKey === instance.key ? "Hide" : "Edit"}
+                  </button>
+                  <button
+                    onClick={() => onRemove(instance)}
+                    disabled={busy}
+                    className="text-xs font-medium text-rose-600 hover:underline disabled:opacity-50 dark:text-rose-400"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => onRemove(instance)}
-                disabled={busy}
-                className="text-xs font-medium text-rose-600 hover:underline disabled:opacity-50 dark:text-rose-400"
-              >
-                Remove
-              </button>
+
+              {editingKey === instance.key && (
+                <div className="border-t border-slate-200 px-5 py-5 dark:border-slate-800">
+                  {editFields === null ? (
+                    <p className="text-sm text-slate-400">Loading…</p>
+                  ) : (
+                    <SchemaForm
+                      fields={editFields}
+                      onSave={saveEdit}
+                      saving={editSaving}
+                      error={editError}
+                      submitLabel="Save changes"
+                      preview={(draft) => (
+                        <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
+                          Container name:{" "}
+                          {previewContainerNameForKey(draft, { prefix: containerPrefix, key: instance.key })}
+                        </p>
+                      )}
+                    />
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -454,11 +533,11 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onRe
 
       {adding && (
         <div className="border-t border-slate-200 px-5 py-5 dark:border-slate-800">
-          {fields === null ? (
+          {addFields === null ? (
             <p className="text-sm text-slate-400">Loading…</p>
           ) : (
             <SchemaForm
-              fields={fields}
+              fields={addFields}
               onSave={create}
               saving={saving}
               error={error}

@@ -194,6 +194,13 @@ Each instance also gets its own database and role, created on first apply.
 as-is, never dropped or migrated. stream-share builds its own tables on
 startup, so there is nothing for the Suite to migrate anyway.
 
+Every instance is also editable after creation — click **Edit** on its row for
+the same form, prefilled with what it's already configured with. Its key
+(and so its default container name, if you haven't overridden that) is fixed
+at creation and never changes even if you rename it later; a manually
+overridden port that clashes with another instance's is rejected rather than
+silently applied.
+
 Removing an instance takes it out of the stack — its container becomes an
 orphan the plan then offers to remove. Its database is **kept** unless you tick
 the box and type the instance's name back, because a container is trivially
