@@ -321,9 +321,10 @@ export function createStackRouter() {
     res.json({ fields: toPublicFields(schema, next) });
   });
 
-  // Removing an instance takes it out of the stack, which turns its running
-  // container into an orphan the plan then offers to remove. The database is a
-  // separate decision and is kept unless dropDatabase is asked for outright.
+  // Removing an instance stops and removes its own container as part of the
+  // same job — see deprovisionInstance for why that has to happen before the
+  // database is touched. The database is a separate decision and is kept
+  // unless dropDatabase is asked for outright.
   router.post("/instances/:key/remove", (req, res) => {
     const key = req.params.key;
     if (listComponents("instance").every((row) => row.key !== key)) {

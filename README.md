@@ -233,10 +233,19 @@ at creation and never changes even if you rename it later; a manually
 overridden port that clashes with another instance's is rejected rather than
 silently applied.
 
-Removing an instance takes it out of the stack — its container becomes an
-orphan the plan then offers to remove. Its database is **kept** unless you tick
-the box and type the instance's name back, because a container is trivially
-rebuilt and watch history is not.
+Removing an instance is a deliberate, name-confirmed action, so it takes the
+container down as part of removal — stopped and removed outright, not left
+running as an orphan for a separate step the way a container that becomes
+unclaimed by something else (the VPN switched off, a config edit) is. An
+adopted container is the one exception: never the Suite's to stop, so it's
+left running exactly like Adopt always leaves it.
+
+The container comes down before the database is touched, not after —
+dropping a database an instance still holds a connection against fails in
+PostgreSQL ("database is being accessed by other users") rather than
+succeeding against one that's already gone. The database itself is **kept**
+unless you tick the box and type the instance's name back, because a
+container is trivially rebuilt and watch history is not.
 
 ### Where component data lives
 
