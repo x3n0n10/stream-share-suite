@@ -44,10 +44,11 @@ export const GLUETUN_SCHEMA = {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",
-      help: "Comma-separated names of existing Docker networks, e.g. nordvpn,ssbackend. The first one becomes the container's primary network.",
+      help: "Comma-separated names of existing Docker networks, e.g. nordvpn,ssbackend. The first one becomes the container's primary network. Defaults to the streamshare network the Suite's own compose file already declares — change this only to also join a stack of your own.",
       group: "Image",
       required: true,
       advanced: true,
+      default: "streamshare",
     },
     {
       key: "vpnServiceProvider",

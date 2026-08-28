@@ -77,6 +77,7 @@ services:
     networks:
       - default
       - docker-proxy-net
+      - streamshare
       # - ssbackend   # see the Networking note below
 
   # Stands between the Suite and the real Docker socket. The Suite process
@@ -110,31 +111,45 @@ services:
 networks:
   docker-proxy-net:
     internal: true
+  # A real bridge network (a gateway, unlike docker-proxy-net) that gluetun,
+  # PostgreSQL and every instance join by default — see each component's
+  # "Docker networks to join" field. Declaring it here, once, is what lets a
+  # from-scratch install work with nothing typed into that field: every
+  # container the Suite creates already has somewhere to reach the others.
+  # Named explicitly so the reconciler can address it by this exact string
+  # regardless of the compose project's own name.
+  streamshare:
+    name: streamshare
 
 # ---------------------------------------------------------------------------
 # Networking
 #
-# As written above, the Suite is on two networks: the project's own `default`
-# (published port, outbound) and `docker-proxy-net` (reaching the socket
-# proxy, and nothing else — it's `internal: true`). That's enough to run the
-# wizard and manage gluetun once it's reconciled, but not enough to see
-# instances that predate the Suite or reach PostgreSQL: those live on your
-# main stack's own network, not this compose project's.
+# As written above, the Suite is on three networks: the project's own
+# `default` (published port, outbound), `docker-proxy-net` (reaching the
+# socket proxy, and nothing else — it's `internal: true`), and `streamshare`
+# (reaching whatever the Suite itself creates — gluetun, PostgreSQL,
+# instances — which all join it by default). That's everything a from-scratch
+# install needs.
 #
-# Add that network as a THIRD one, external so compose doesn't try to create
-# it, and address things there — `http://172.18.0.11:8080`, not `localhost`,
-# once gluetun is what the Suite created:
+# Bringing in instances or a database that predate the Suite is different:
+# those live on your existing stack's own network, not this one. Add that
+# network as a FOURTH one, external so compose doesn't try to create it, and
+# point the relevant component's "Docker networks to join" field at it
+# instead of (or alongside) streamshare:
 #
 #   services:
 #     suite:
 #       networks:
 #         - default
 #         - docker-proxy-net
-#         - ssbackend   # reaching gluetun and, later, PostgreSQL
+#         - streamshare
+#         - ssbackend   # reaching your existing gluetun and/or PostgreSQL
 #
 #   networks:
 #     docker-proxy-net:
 #       internal: true
+#     streamshare:
+#       name: streamshare
 #     ssbackend:
 #       external: true  # already created by your main stack
 #

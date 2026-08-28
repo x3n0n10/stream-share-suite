@@ -17,6 +17,7 @@ export function gluetunContainerName(values = {}) {
 }
 
 const IMAGE_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "image");
+const NETWORKS_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "networks");
 
 // Every instance port, published by gluetun rather than by the instances.
 //
@@ -52,7 +53,7 @@ export async function renderGluetunSpec(values) {
   const subnets = selfNetworks.map((n) => n.subnet).filter(Boolean);
   if (subnets.length > 0) env.FIREWALL_OUTBOUND_SUBNETS = subnets.join(",");
 
-  const networks = String(values.networks || "")
+  const networks = String(values.networks || NETWORKS_FIELD.default)
     .split(",")
     .map((n) => n.trim())
     .filter(Boolean);

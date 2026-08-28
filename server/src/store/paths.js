@@ -45,7 +45,7 @@
 // kind of path, so the shipped compose file uses bind mounts for both
 // variables for exactly this reason.
 
-import { mkdirSync, statSync, accessSync, constants } from "node:fs";
+import { mkdirSync, chmodSync, statSync, accessSync, constants } from "node:fs";
 import path from "node:path";
 
 export function getDataPath() {
@@ -108,9 +108,22 @@ export function validatePath(candidate, label) {
 // Creates a component's directory and hands back the host path to bind-mount.
 // Because the path is mounted identically on both sides, the string that
 // worked here is the string the daemon will resolve.
+//
+// Wide open (0o777) rather than owner/group-only, and re-applied on every
+// call rather than only at creation — deliberately. This directory is handed
+// straight to a container the Suite does not otherwise control: an official
+// postgres image starts as root and only drops to its own uid after it can
+// write here, and there is no way to know that uid in advance. On a plain
+// local filesystem root would not even need the grant, but a FUSE-backed
+// share (Unraid's /mnt/user among them) can enforce mode bits against literal
+// root too — "can't create directory ... Permission denied" on every restart,
+// not just the first, is exactly that. mkdirSync's own `mode` option is only
+// applied when it actually creates the directory, so a chmod every time is
+// what fixes a directory that already exists from before this changed.
 export function ensureDirectory(...segments) {
   const target = path.join(...segments);
-  mkdirSync(target, { recursive: true, mode: 0o770 });
+  mkdirSync(target, { recursive: true, mode: 0o777 });
+  chmodSync(target, 0o777);
   return target;
 }
 

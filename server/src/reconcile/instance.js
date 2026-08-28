@@ -7,6 +7,7 @@
 // With it off the instance sits on an ordinary network and publishes its own.
 
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
+import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { renderEnv } from "../schema/registry.js";
 import { getComponentValues, listComponents } from "../store/components.js";
 import { componentDataDir, componentCacheDir, ensureDirectory, ownershipString } from "../store/paths.js";
@@ -24,6 +25,8 @@ const CACHE_MOUNT = "/cache";
 // The band instance ports are allocated from. Wide enough for far more
 // providers than anyone runs, narrow enough to stay memorable.
 export const PORT_BAND = { first: 8080, last: 8099 };
+
+const POSTGRES_NETWORKS_FIELD = POSTGRES_SCHEMA.fields.find((f) => f.key === "networks");
 
 export function instanceContainerName(key, values = {}) {
   return String(values.containerName || "").trim() || `${containerPrefix()}${key}`;
@@ -108,7 +111,7 @@ export async function renderInstanceSpec(values, key) {
     // daemon rejects both. gluetun carries the published port instead.
     spec.networkMode = `container:${gluetunContainerName(getComponentValues("gluetun"))}`;
   } else {
-    spec.networks = String(getComponentValues("postgres").networks || "")
+    spec.networks = String(getComponentValues("postgres").networks || POSTGRES_NETWORKS_FIELD.default)
       .split(",")
       .map((n) => n.trim())
       .filter(Boolean);

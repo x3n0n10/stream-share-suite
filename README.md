@@ -91,17 +91,23 @@ proxy — see below) the Docker daemon. It deliberately does **not** join
 gluetun's network namespace: it manages gluetun, and a service inside that
 namespace would sever its own connection the moment it recreated it.
 
-In a typical stack that means attaching it to the internal network your
-database is on, and addressing the instances through gluetun's address on that
-network (`http://172.18.0.11:8080`, not `http://localhost:8080`). Gluetun's
-`FIREWALL_OUTBOUND_SUBNETS` must include that subnet — the reconciler sets this
-automatically for gluetun itself (see below), but it must already be true for
-your existing instances to reach the database.
+A from-scratch install needs none of this: the bundled `docker-compose.yml`
+also declares a plain bridge network named `streamshare`, puts the Suite on
+it alongside `default` (the published port) and `docker-proxy-net` (an
+`internal: true` network shared only with the socket proxy), and gluetun,
+PostgreSQL and every instance join it by default — see each component's
+"Docker networks to join" field, prefilled with `streamshare` and editable
+only if you need something else. Nothing has to be typed in for the Suite to
+create a fully self-contained stack.
 
-The bundled `docker-compose.yml` puts the Suite on two networks — `default`
-(the published port, and outbound from phase 4 on) and `docker-proxy-net` (an
-`internal: true` network shared only with the socket proxy). Add your stack's
-own network as a third, external one to reach gluetun and PostgreSQL:
+That default stops being enough the moment something predates the Suite: an
+existing instance or database lives on your own stack's network, not this
+one, and gluetun's `FIREWALL_OUTBOUND_SUBNETS` must include whatever subnet
+the Suite reaches it on (the reconciler sets this automatically for gluetun
+itself — see below — but it must already be true for an existing instance to
+reach the database). Add your own network as a fourth one, external so
+compose doesn't try to create it, and point the relevant component's "Docker
+networks to join" field at it instead of (or alongside) `streamshare`:
 
 ```yaml
 services:
@@ -109,9 +115,12 @@ services:
     networks:
       - default
       - docker-proxy-net
-      - ssbackend   # reaching gluetun and, later, PostgreSQL
+      - streamshare
+      - ssbackend   # reaching your existing gluetun and/or PostgreSQL
 
 networks:
+  streamshare:
+    name: streamshare
   ssbackend:
     external: true  # already created by your main stack
 ```
@@ -246,10 +255,18 @@ message on the form rather than a container that fails to start — but that
 check can only see "is this a writable directory from where I'm standing," so
 it can't catch the named-volume case above from the inside.
 
-The Suite creates each directory as its own `PUID:PGID` and runs every
-component it creates as those same ids — the stream-share image runs as a
-non-root user and never chowns what it's given, so the two have to agree, and
-this is the mechanism that makes them.
+The Suite creates each directory as its own `PUID:PGID`, mode `0777`, and runs
+every component it creates as those same ids where it can — the stream-share
+image runs as a non-root user and never chowns what it's given, so the two
+have to agree, and this is the mechanism that makes them. Mode `0777` (rather
+than owner/group-only) is what a container the Suite does not otherwise
+control needs: an official postgres image starts as root and only drops to
+its own uid after it can write into its data directory, and there is no way
+to know that uid ahead of time. On a plain local filesystem root would not
+even need the grant — but a FUSE-backed share (Unraid's `/mnt/user` among
+them) can enforce mode bits against literal root too, which is exactly what
+`mkdir: can't create directory ... Permission denied`, repeating on every
+restart, means if you see it.
 
 ### Other VPN providers
 

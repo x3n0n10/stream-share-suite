@@ -50,10 +50,11 @@ export const POSTGRES_SCHEMA = {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",
-      help: "Comma-separated. Must include the network your instances reach the database over.",
+      help: "Comma-separated. Must include the network your instances reach the database over. Defaults to the streamshare network the Suite's own compose file already declares — change this only if your instances need to reach it over a stack of your own instead.",
       group: "Database",
       required: true,
       advanced: true,
+      default: "streamshare",
       dependsOn: { key: "mode", equals: "managed" },
     },
 

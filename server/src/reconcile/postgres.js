@@ -3,6 +3,9 @@
 
 import { componentDataDir, ensureDirectory } from "../store/paths.js";
 import { containerPrefix } from "./prefix.js";
+import { POSTGRES_SCHEMA } from "../schema/postgres.js";
+
+const NETWORKS_FIELD = POSTGRES_SCHEMA.fields.find((f) => f.key === "networks");
 
 // Overridable per the containerName field, the same way instances are —
 // critically, this is how a postgres container the operator already runs
@@ -39,7 +42,7 @@ export function connectionTarget(values) {
 export async function renderPostgresSpec(values) {
   const dataDir = ensureDirectory(componentDataDir("postgres"), "data");
 
-  const networks = String(values.networks || "")
+  const networks = String(values.networks || NETWORKS_FIELD.default)
     .split(",")
     .map((n) => n.trim())
     .filter(Boolean);
