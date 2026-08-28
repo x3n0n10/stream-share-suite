@@ -302,6 +302,26 @@ test("settings exposes the container prefix read-only, for the UI to preview a d
   assert.equal(res.body.containerPrefix, "streamshare-suite-");
 });
 
+test("the instance port range start defaults to 8080 and can be moved", async () => {
+  const c = await signedInClient(base);
+  assert.equal((await c.get("/api/stack/settings")).body.instancePortStart, 8080);
+
+  const res = await c.put("/api/stack/settings", { instancePortStart: 9000 });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.instancePortStart, 9000);
+  assert.equal((await c.get("/api/stack/instances")).body.portBand.first, 9000);
+});
+
+test("an out-of-range instance port range start is rejected", async () => {
+  const c = await signedInClient(base);
+  for (const bad of [0, -1, 1.5, 65530, "not-a-number"]) {
+    const res = await c.put("/api/stack/settings", { instancePortStart: bad });
+    assert.equal(res.status, 400, `expected ${JSON.stringify(bad)} to be rejected`);
+  }
+  // Rejected, so the setting is untouched.
+  assert.equal((await c.get("/api/stack/settings")).body.instancePortStart, 8080);
+});
+
 test("switching the VPN off takes gluetun out of the stack plan", async () => {
   const c = await signedInClient(base);
   await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);

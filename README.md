@@ -176,9 +176,12 @@ key.
 Adding an instance is a form, not a compose edit. Three things you would
 otherwise have to work out are worked out for you:
 
-- **Its port**, allocated from `8080`–`8099`. Allocation is *sticky*: adding a
-  fifth instance never renumbers the first four, because that would recreate
-  healthy containers to change nothing and break anything pointing at them.
+- **Its port**, allocated from a band of 20, `8080`–`8099` by default. Change
+  where that band starts under **Stack** if it's already taken by something
+  else on your host — an instance that already has a port keeps it regardless.
+  Allocation is otherwise *sticky*: adding a fifth instance never renumbers
+  the first four, because that would recreate healthy containers to change
+  nothing and break anything pointing at them.
 - **Its API key**, generated and injected, so a new instance appears on the
   Overview page already authenticated with nothing typed.
 - **Its address**, computed from the topology. With the VPN on that's gluetun's

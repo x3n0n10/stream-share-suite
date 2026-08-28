@@ -15,7 +15,7 @@ import {
   componentId,
   listComponents,
 } from "../store/components.js";
-import { setSetting } from "../store/settings.js";
+import { setSetting, getNumber } from "../store/settings.js";
 import {
   getCatalogEntry,
   catalogKinds,
@@ -26,7 +26,13 @@ import {
 import { planComponent, planStack, applyPlan, applyStack, removeOrphan } from "../reconcile/reconciler.js";
 import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
 import { ping, DockerError } from "../docker/client.js";
-import { instanceUrl, instanceContainerName, PORT_BAND } from "../reconcile/instance.js";
+import {
+  instanceUrl,
+  instanceContainerName,
+  portBand,
+  PORT_BAND_WIDTH,
+  PORT_BAND_START_SETTING,
+} from "../reconcile/instance.js";
 import { containerPrefix } from "../reconcile/prefix.js";
 import { provisionInstance, deprovisionInstance } from "../reconcile/provisioning.js";
 import { connectionTarget } from "../reconcile/postgres.js";
@@ -96,20 +102,29 @@ export function createStackRouter() {
     res.json({ reachable });
   });
 
-  // Stack-wide settings. Only the VPN toggle is actually settable here — the
-  // data and cache paths, and the container prefix, are environment variables
-  // the operator sets once in compose (SUITE_DATA_DIR, SUITE_CACHE_DIR,
-  // SUITE_CONTAINER_PREFIX) and are never editable here for the same reason
-  // they are never asked for twice: a UI override would just be retyping the
-  // same string the compose file already carries. A path that is set but
-  // unreachable still surfaces — as an "incomplete" row on the component that
-  // needs it, from catalog.js's readiness check, which is where a wrong value
-  // actually has a consequence worth explaining. containerPrefix is included
-  // read-only so the UI can preview a container's default name without
-  // guessing at a value only the environment actually knows.
+  // Stack-wide settings. The VPN toggle and the instance port range start are
+  // the only two actually settable here — the data and cache paths, and the
+  // container prefix, are environment variables the operator sets once in
+  // compose (SUITE_DATA_DIR, SUITE_CACHE_DIR, SUITE_CONTAINER_PREFIX) and are
+  // never editable here for the same reason they are never asked for twice: a
+  // UI override would just be retyping the same string the compose file
+  // already carries. A path that is set but unreachable still surfaces — as
+  // an "incomplete" row on the component that needs it, from catalog.js's
+  // readiness check, which is where a wrong value actually has a consequence
+  // worth explaining. containerPrefix is included read-only so the UI can
+  // preview a container's default name without guessing at a value only the
+  // environment actually knows.
   function stackSettings() {
-    return { vpnEnabled: isVpnEnabled(), containerPrefix: containerPrefix() };
+    return {
+      vpnEnabled: isVpnEnabled(),
+      containerPrefix: containerPrefix(),
+      instancePortStart: portBand().first,
+    };
   }
+
+  // The last port the band can start at and still fit PORT_BAND_WIDTH slots
+  // below 65535.
+  const MAX_PORT_BAND_START = 65535 - (PORT_BAND_WIDTH - 1);
 
   router.get("/settings", (req, res) => {
     res.json(stackSettings());
@@ -118,6 +133,15 @@ export function createStackRouter() {
   router.put("/settings", (req, res) => {
     if (typeof req.body?.vpnEnabled === "boolean") {
       setSetting(VPN_ENABLED_SETTING, req.body.vpnEnabled ? "true" : "false");
+    }
+    if (req.body?.instancePortStart !== undefined) {
+      const start = Number(req.body.instancePortStart);
+      if (!Number.isInteger(start) || start < 1 || start > MAX_PORT_BAND_START) {
+        return res.status(400).json({
+          error: `Instance port range start must be a whole number between 1 and ${MAX_PORT_BAND_START}.`,
+        });
+      }
+      setSetting(PORT_BAND_START_SETTING, start);
     }
     res.json(stackSettings());
   });
@@ -243,7 +267,7 @@ export function createStackRouter() {
           databaseName: values._dbName || null,
         };
       }),
-      portBand: PORT_BAND,
+      portBand: portBand(),
     });
   });
 

@@ -10,6 +10,7 @@ import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { renderEnv } from "../schema/registry.js";
 import { getComponentValues, listComponents } from "../store/components.js";
+import { getNumber } from "../store/settings.js";
 import { componentDataDir, componentCacheDir, ensureDirectory, ownershipString } from "../store/paths.js";
 import { isVpnEnabled } from "./catalog.js";
 import { gluetunContainerName } from "./gluetun.js";
@@ -22,9 +23,21 @@ import { containerPrefix } from "./prefix.js";
 const CONFIG_MOUNT = "/root";
 const CACHE_MOUNT = "/cache";
 
-// The band instance ports are allocated from. Wide enough for far more
-// providers than anyone runs, narrow enough to stay memorable.
-export const PORT_BAND = { first: 8080, last: 8099 };
+// The band instance ports are allocated from. 20 slots is wide enough for far
+// more providers than anyone runs, narrow enough to stay memorable; only the
+// starting port is a setting, so the host can move the whole band somewhere
+// free without the Suite having to reason about a variable-width one.
+export const PORT_BAND_WIDTH = 20;
+export const PORT_BAND_START_SETTING = "stack.instance_port_start";
+const PORT_BAND_START_DEFAULT = 8080;
+
+// Read fresh each time rather than cached, same as every other setting —
+// changing it never renumbers an instance that already has a port (see
+// allocatePort below), only where the *next* one is searched for.
+export function portBand() {
+  const first = getNumber(PORT_BAND_START_SETTING, PORT_BAND_START_DEFAULT);
+  return { first, last: first + PORT_BAND_WIDTH - 1 };
+}
 
 const POSTGRES_NETWORKS_FIELD = POSTGRES_SCHEMA.fields.find((f) => f.key === "networks");
 
@@ -50,7 +63,8 @@ export function allocatedPorts({ exceptKey = null } = {}) {
 // anything already pointing at them.
 export function allocatePort() {
   const taken = allocatedPorts();
-  for (let port = PORT_BAND.first; port <= PORT_BAND.last; port++) {
+  const band = portBand();
+  for (let port = band.first; port <= band.last; port++) {
     if (!taken.has(port)) return port;
   }
   return null;

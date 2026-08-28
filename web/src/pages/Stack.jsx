@@ -132,7 +132,7 @@ export default function Stack() {
   return (
     <Layout title="Stack">
       <div className="flex flex-col gap-4">
-        {settings && <VpnToggle settings={settings} onSave={saveSettings} busy={busy} />}
+        {settings && <StackSettings settings={settings} onSave={saveSettings} busy={busy} />}
 
         {planError && <ErrorNote message={planError} />}
 
@@ -280,30 +280,82 @@ const FIELD =
 // retyping the same string the compose file already carries; a path that is
 // wrong still surfaces, as an "incomplete" row on whichever component needs
 // it, which is where a bad value actually has a consequence worth explaining.
-function VpnToggle({ settings, onSave, busy }) {
+function StackSettings({ settings, onSave, busy }) {
   return (
-    <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
-      <div>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-          Route traffic through a VPN
-        </h2>
-        <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-          {settings.vpnEnabled
-            ? "Instances share gluetun's network namespace and are published through it. Replacing gluetun briefly takes them with it."
-            : "Every container gets its own network and publishes its own port. Turning this back on rebuilds everything that would share the tunnel."}
-        </p>
+    <Card className="flex flex-col gap-5 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+            Route traffic through a VPN
+          </h2>
+          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+            {settings.vpnEnabled
+              ? "Instances share gluetun's network namespace and are published through it. Replacing gluetun briefly takes them with it."
+              : "Every container gets its own network and publishes its own port. Turning this back on rebuilds everything that would share the tunnel."}
+          </p>
+        </div>
+        <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <input
+            type="checkbox"
+            checked={settings.vpnEnabled}
+            disabled={busy}
+            onChange={(e) => onSave({ vpnEnabled: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+          />
+          {settings.vpnEnabled ? "On" : "Off"}
+        </label>
       </div>
-      <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-        <input
-          type="checkbox"
-          checked={settings.vpnEnabled}
-          disabled={busy}
-          onChange={(e) => onSave({ vpnEnabled: e.target.checked })}
-          className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
-        />
-        {settings.vpnEnabled ? "On" : "Off"}
-      </label>
+
+      <PortRangeSetting settings={settings} onSave={onSave} busy={busy} />
     </Card>
+  );
+}
+
+// The band an instance's port is allocated from — a fixed 20 slots starting
+// here. Only worth changing if that range is already taken by something else
+// on the host; an instance that already has a port keeps it regardless.
+function PortRangeSetting({ settings, onSave, busy }) {
+  const [draft, setDraft] = useState(String(settings.instancePortStart));
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setDraft(String(settings.instancePortStart));
+  }, [settings.instancePortStart]);
+
+  async function save() {
+    setError(null);
+    try {
+      await onSave({ instancePortStart: Number(draft) });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const dirty = Number(draft) !== settings.instancePortStart;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-5 dark:border-slate-800">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Instance port range</h2>
+        <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+          Instances are allocated 20 ports starting here (currently {settings.instancePortStart}–
+          {settings.instancePortStart + 19}). Existing instances keep the port they already have.
+        </p>
+        {error && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <input
+          type="number"
+          className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+          value={draft}
+          disabled={busy}
+          onChange={(e) => setDraft(e.target.value)}
+        />
+        <Button tone="ghost" onClick={save} disabled={busy || !dirty}>
+          Save
+        </Button>
+      </div>
+    </div>
   );
 }
 

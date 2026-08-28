@@ -13,7 +13,8 @@ import {
   instanceContainerName,
   instanceUrl,
   allocatePort,
-  PORT_BAND,
+  portBand,
+  PORT_BAND_START_SETTING,
 } from "../src/reconcile/instance.js";
 import { renderGluetunSpec } from "../src/reconcile/gluetun.js";
 import { provisionInstance, instanceKeyFor } from "../src/reconcile/provisioning.js";
@@ -110,7 +111,26 @@ const vpn = (on) => setSetting(VPN_ENABLED_SETTING, on ? "true" : "false");
 // --- allocation -------------------------------------------------------------
 
 test("the first instance gets the bottom of the band", () => {
-  assert.equal(allocatePort(), PORT_BAND.first);
+  assert.equal(allocatePort(), portBand().first);
+});
+
+test("the port band defaults to 8080-8099, 20 slots wide", () => {
+  assert.deepEqual(portBand(), { first: 8080, last: 8099 });
+});
+
+test("moving the band's start moves where the next port is allocated from", () => {
+  setSetting(PORT_BAND_START_SETTING, 9000);
+  assert.deepEqual(portBand(), { first: 9000, last: 9019 });
+  assert.equal(allocatePort(), 9000);
+});
+
+test("moving the band does not renumber an instance that already has a port", () => {
+  const { key, port } = provisionInstance(PROVIDER);
+  assert.equal(port, 8080);
+
+  setSetting(PORT_BAND_START_SETTING, 9000);
+  assert.equal(Number(getComponentValues("instance", key).port), 8080);
+  assert.equal(allocatePort(), 9000, "the next allocation still comes from the new band");
 });
 
 test("allocation skips ports already taken and is sticky across additions", () => {
