@@ -141,9 +141,10 @@ is denied by default. A service that can create containers is root-equivalent
 on the host, so it never gets unmediated access to the thing that lets it do
 that.
 
-Three kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
-external server you point at), and **StreamShare instances**, of which there
-can be as many as you have providers. Six outcomes:
+Five kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
+external server you point at), **StreamShare instances** (as many as you have
+providers), **UHF Server** and **Caddy** — the last two are optional and off
+by default; see their own sections below. Six outcomes:
 
 | Outcome | When | What happens |
 | --- | --- | --- |
@@ -246,6 +247,63 @@ PostgreSQL ("database is being accessed by other users") rather than
 succeeding against one that's already gone. The database itself is **kept**
 unless you tick the box and type the instance's name back, because a
 container is trivially rebuilt and watch history is not.
+
+### UHF Server (DVR)
+
+Scheduled recording for your instances' streams, driven by the [UHF
+companion app](https://github.com/swapplications/uhf-server-dist) — a
+third-party project, not something this Suite builds. The Suite only runs and
+configures the container; recording schedules live entirely in the companion
+app talking to it.
+
+Off by default, unlike gluetun and PostgreSQL — most deployments don't run
+this at all, so it stays out of the stack plan entirely until you switch it
+on under **Stack**. Once on, it follows the same VPN choice every instance
+does rather than a toggle of its own: recording through the same tunnel a
+stream would otherwise be served through is the only setup that behaves
+consistently for a provider that restricts access by IP. Its address is
+computed the same way an instance's is — gluetun's address with the VPN on,
+its own container name with it off — and recordings persist under the cache
+path, in their own subfolder.
+
+Point the **Image** field at any tag of `swapplications/uhf-server`, or a
+fork such as `solidpixel/uhf-server-docker`.
+
+### Caddy (reverse proxy)
+
+An optional reverse proxy that publishes an instance under a real hostname
+instead of a raw port, with HTTPS handled for you. Off by default, the same
+way UHF is.
+
+There's no separate field for what to route — Caddy's configuration is
+generated from whichever instances already have a **Public base URL** set
+(under an instance's Addressing group): that hostname becomes a site block,
+its path (if any) becomes a path-based route, and the target is the same
+address the dashboard itself already computes for that instance. An instance
+with no public base URL simply isn't published. Two instances can share one
+hostname on different paths — each becomes its own route inside the same
+site block.
+
+HTTPS is either **self-signed** (Caddy's own internal CA — browsers warn
+once, fine on a private network) or **automatic (ACME)**, which gets a real,
+trusted certificate per hostname but needs ports 80 and 443 reachable from
+the internet and each hostname's DNS already pointed here. Caddy joins the
+shared network rather than gluetun's namespace — it only needs to *reach*
+gluetun or an instance by name over Docker's own DNS, which needs the same
+network, not a shared one.
+
+### Setup wizard
+
+A guided path through gluetun, PostgreSQL and your first instance, in that
+order, for a fresh install — reachable from the sidebar or linked from an
+empty stack plan. It doesn't do anything those components' own cards on the
+Stack page couldn't already do; it only sequences the three forms that
+matter most before anything else works and explains each one as it comes.
+Leaving it partway through and finishing configuration from Stack instead
+works exactly the same way — nothing about it is one-way, and it saves
+through the same API the rest of the page uses. The last step hands off to
+the stack plan to actually create the containers; nothing is created while
+you're still in the wizard.
 
 ### Where component data lives
 
@@ -405,7 +463,7 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | shipped |
 | 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
 | 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | shipped |
-| 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | **this branch** |
+| 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | shipped |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
 
@@ -414,11 +472,14 @@ phase with any access to the Docker API at all, even mediated by the socket
 proxy. See **Stack management** above for what that access is scoped to, and
 the architecture notes for the fuller reasoning.
 
-Phase 2a added no new Docker permissions, and 2b adds none either — the
-socket proxy's allowlist is unchanged. Creating each instance's database uses
-a PostgreSQL client rather than exec'ing `psql` inside the container, which
-would have meant granting the proxy `EXEC`; exec into any container is root on
-the host, and none of this needs that.
+Phase 2a added no new Docker permissions, and neither 2b nor 2c adds any
+either — the socket proxy's allowlist is unchanged throughout. Creating each
+instance's database uses a PostgreSQL client rather than exec'ing `psql`
+inside the container, which would have meant granting the proxy `EXEC`; exec
+into any container is root on the host, and none of this needs that. Caddy is
+the same story again: it reads its configuration from a file the reconciler
+writes to a bind mount, not through anything the socket proxy would need to
+grant.
 
 ## Licence
 

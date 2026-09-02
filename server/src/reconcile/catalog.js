@@ -14,6 +14,8 @@
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
+import { UHF_SCHEMA } from "../schema/uhf.js";
+import { CADDY_SCHEMA } from "../schema/caddy.js";
 import { renderGluetunSpec, gluetunContainerName } from "./gluetun.js";
 import {
   renderPostgresSpec,
@@ -21,7 +23,9 @@ import {
   isManaged as isPostgresManaged,
   connectionTarget as postgresTarget,
 } from "./postgres.js";
-import { renderInstanceSpec, instanceContainerName } from "./instance.js";
+import { renderInstanceSpec, instanceContainerName, allocatedPorts } from "./instance.js";
+import { renderUhfSpec, uhfContainerName, uhfPort } from "./uhf.js";
+import { renderCaddySpec, caddyContainerName } from "./caddy.js";
 import { prepareInstance } from "./provisioning.js";
 import { getBoolean } from "../store/settings.js";
 import { getDataPath, getCachePath, validatePath } from "../store/paths.js";
@@ -38,6 +42,21 @@ export const VPN_ENABLED_SETTING = "stack.vpn_enabled";
 
 export function isVpnEnabled() {
   return getBoolean(VPN_ENABLED_SETTING, true);
+}
+
+// UHF and Caddy are both optional bolt-ons most deployments don't run at
+// all, unlike gluetun and postgres — so each gets its own off-by-default
+// stack-wide switch rather than showing up permanently as "not configured"
+// the moment the Suite starts.
+export const UHF_ENABLED_SETTING = "stack.uhf_enabled";
+export const CADDY_ENABLED_SETTING = "stack.caddy_enabled";
+
+export function isUhfEnabled() {
+  return getBoolean(UHF_ENABLED_SETTING, false);
+}
+
+export function isCaddyEnabled() {
+  return getBoolean(CADDY_ENABLED_SETTING, false);
 }
 
 // Every kind the reconciler can manage. `present` decides whether a kind is
@@ -108,6 +127,46 @@ const CATALOG = {
     // does not survive it being replaced. This is the edge the cascade exists
     // for, and 2b is where it starts firing.
     namespaceHost: () => (isVpnEnabled() ? "gluetun" : null),
+  },
+
+  uhf: {
+    kind: "uhf",
+    label: "UHF Server (DVR)",
+    description:
+      "Scheduled recording for your instances' streams, driven by the UHF companion app. A third-party " +
+      "project — the Suite only runs and configures the container.",
+    schema: UHF_SCHEMA,
+    render: renderUhfSpec,
+    singleton: true,
+    containerName: () => uhfContainerName(getComponentValues("uhf")),
+    present: () => isUhfEnabled(),
+    ready: () => {
+      const cacheError = validatePath(getCachePath(), "The cache path");
+      if (cacheError) return cacheError;
+      const port = uhfPort(getComponentValues("uhf"));
+      const clashingKey = allocatedPorts().get(port);
+      return clashingKey ? `Port ${port} is already used by the "${clashingKey}" instance.` : null;
+    },
+    dependsOn: () => [],
+    // Follows the stack's one VPN choice rather than a toggle of its own —
+    // see schema/uhf.js for why.
+    namespaceHost: () => (isVpnEnabled() ? "gluetun" : null),
+  },
+
+  caddy: {
+    kind: "caddy",
+    label: "Caddy (reverse proxy)",
+    description:
+      "Publishes any instance with a public base URL under a real hostname, with HTTPS handled for you.",
+    schema: CADDY_SCHEMA,
+    render: renderCaddySpec,
+    singleton: true,
+    containerName: () => caddyContainerName(getComponentValues("caddy")),
+    present: () => isCaddyEnabled(),
+    dependsOn: () => [],
+    // On the shared network rather than inside anyone's namespace — see
+    // schema/caddy.js for why that's a different, weaker relationship.
+    namespaceHost: () => null,
   },
 };
 

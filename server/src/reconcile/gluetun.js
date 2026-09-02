@@ -5,9 +5,15 @@
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { renderEnv } from "../schema/registry.js";
 import { getSelfNetworks } from "../docker/self.js";
-import { listComponents } from "../store/components.js";
+import { listComponents, getComponentValues } from "../store/components.js";
 import { parseExtraEnv } from "./env.js";
 import { containerPrefix } from "./prefix.js";
+import { isUhfEnabled } from "./catalog.js";
+
+// Kept as a literal rather than imported from reconcile/uhf.js's own default,
+// so that this file — like the rest of it — reads the store directly instead
+// of pulling in a sibling component's render module just for one number.
+const UHF_PORT_DEFAULT = 8000;
 
 // Overridable per the containerName field, the same way instances are —
 // critically, this is how a gluetun container the operator already runs
@@ -19,18 +25,27 @@ export function gluetunContainerName(values = {}) {
 const IMAGE_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "image");
 const NETWORKS_FIELD = GLUETUN_SCHEMA.fields.find((f) => f.key === "networks");
 
-// Every instance port, published by gluetun rather than by the instances.
+// Every port gluetun publishes on behalf of something sharing its network
+// namespace — every instance, plus UHF when it's switched on.
 //
-// This is the one place the dependency runs backwards: an instance inside
+// This is the one place the dependency runs backwards: a container inside
 // gluetun's network namespace cannot bind a host port itself, so gluetun has
-// to do it. The consequence is worth stating plainly — adding an instance
-// changes gluetun's spec, which recreates gluetun, which cascades to every
-// other instance sharing its namespace. That is the same thing `docker compose
-// up` does to this topology, and it is why the plan shows the cascade.
-function instancePorts() {
-  return listComponents("instance")
+// to do it. The consequence is worth stating plainly — adding an instance (or
+// switching UHF on) changes gluetun's spec, which recreates gluetun, which
+// cascades to everything else sharing its namespace. That is the same thing
+// `docker compose up` does to this topology, and it is why the plan shows the
+// cascade.
+function publishedPorts() {
+  const ports = listComponents("instance")
     .map((row) => Number(JSON.parse(row.config_json).port))
-    .filter((port) => Number.isFinite(port) && port > 0)
+    .filter((port) => Number.isFinite(port) && port > 0);
+
+  if (isUhfEnabled()) {
+    const uhfPort = Number(getComponentValues("uhf").port || UHF_PORT_DEFAULT);
+    if (Number.isFinite(uhfPort) && uhfPort > 0) ports.push(uhfPort);
+  }
+
+  return [...new Set(ports)]
     .sort((a, b) => a - b)
     .map((port) => ({ host: port, container: port, protocol: "tcp" }));
 }
@@ -68,7 +83,7 @@ export async function renderGluetunSpec(values) {
     restartPolicy: "unless-stopped",
   };
 
-  const ports = instancePorts();
+  const ports = publishedPorts();
   if (ports.length > 0) spec.ports = ports;
 
   return spec;

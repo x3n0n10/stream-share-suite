@@ -10,6 +10,7 @@ import Vod from "./pages/Vod.jsx";
 import Aliases from "./pages/Aliases.jsx";
 import Settings from "./pages/Settings.jsx";
 import Stack from "./pages/Stack.jsx";
+import Setup from "./pages/Setup.jsx";
 import SignIn from "./pages/SignIn.jsx";
 import { api, setCsrfToken, setUnauthorizedHandler } from "./lib/api.js";
 import { ConfigProvider } from "./lib/ConfigContext.jsx";
@@ -94,6 +95,7 @@ export default function App() {
         <Route path="/vod" element={<Vod />} />
         <Route path="/settings" element={<Settings onConfigChanged={loadConfig} />} />
         <Route path="/stack" element={<Stack />} />
+        <Route path="/setup" element={<Setup />} />
       </Routes>
     </ConfigProvider>
   );

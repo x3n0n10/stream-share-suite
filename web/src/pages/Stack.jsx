@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../components/common.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
@@ -315,7 +316,50 @@ function StackSettings({ settings, onSave, busy }) {
       </div>
 
       <PortRangeSetting settings={settings} onSave={onSave} busy={busy} />
+
+      <OptionalComponentToggle
+        title="UHF Server (DVR)"
+        description="Scheduled recording for your instances' streams, driven by the UHF companion app."
+        checked={settings.uhfEnabled}
+        settingKey="uhfEnabled"
+        onSave={onSave}
+        busy={busy}
+      />
+
+      <OptionalComponentToggle
+        title="Caddy (reverse proxy)"
+        description="Publishes any instance with a public base URL under a real hostname, with HTTPS handled for you."
+        checked={settings.caddyEnabled}
+        settingKey="caddyEnabled"
+        onSave={onSave}
+        busy={busy}
+      />
     </Card>
+  );
+}
+
+// UHF and Caddy are both optional bolt-ons most deployments don't run, so
+// each gets a switch of its own here rather than showing up permanently as
+// "not configured" — the same shape as the VPN toggle above, just without
+// the longer explanation that one needs.
+function OptionalComponentToggle({ title, description, checked, settingKey, onSave, busy }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-5 dark:border-slate-800">
+      <div>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h2>
+        <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">{description}</p>
+      </div>
+      <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+        <input
+          type="checkbox"
+          checked={!!checked}
+          disabled={busy}
+          onChange={(e) => onSave({ [settingKey]: e.target.checked })}
+          className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+        />
+        {checked ? "On" : "Off"}
+      </label>
+    </div>
   );
 }
 
@@ -376,11 +420,19 @@ function EmptyPlan({ components }) {
 
   return (
     <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
-      {switchedOff.length > 0
-        ? `Nothing in the stack right now — ${switchedOff
-            .map((component) => component.label)
-            .join(" and ")} ${switchedOff.length === 1 ? "is" : "are"} switched off. Turn the VPN back on above to manage it again.`
-        : "Nothing in the stack yet. Configure a component below to get started."}
+      {switchedOff.length > 0 ? (
+        `Nothing in the stack right now — ${switchedOff
+          .map((component) => component.label)
+          .join(" and ")} ${switchedOff.length === 1 ? "is" : "are"} switched off. Turn the VPN back on above to manage it again.`
+      ) : (
+        <>
+          Nothing in the stack yet. Configure a component below to get started, or run the{" "}
+          <Link to="/setup" className="font-medium text-accent-600 hover:underline dark:text-accent-400">
+            setup wizard
+          </Link>{" "}
+          for a guided walkthrough.
+        </>
+      )}
     </p>
   );
 }
@@ -389,6 +441,7 @@ const IMPORT_KIND_LABEL = {
   gluetun: "Gluetun (VPN)",
   postgres: "PostgreSQL",
   instance: "StreamShare instance",
+  uhf: "UHF Server (DVR)",
 };
 
 // Distinct from adoption, which the plan already shows on its own: adopting
