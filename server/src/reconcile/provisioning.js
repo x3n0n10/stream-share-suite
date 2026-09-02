@@ -22,6 +22,8 @@ import { listInstances } from "../store/instances.js";
 import { allocatePort, instanceContainerName } from "./instance.js";
 import { databaseNamesFor, generatePassword, ensureDatabase, dropDatabase } from "./database.js";
 import { connectionTarget } from "./postgres.js";
+import { inspectContainer, stopContainer, removeContainer } from "../docker/client.js";
+import { isManaged } from "../docker/labels.js";
 
 // The key doubles as the instance's id in the ops API, so it has to be unique
 // against the externally-configured instances in the other table too — not
@@ -71,13 +73,39 @@ export function provisionInstance(values) {
   return { key, port };
 }
 
-// Removing an instance takes its container out of the stack — which is what
-// turns the running one into an orphan the plan then offers to remove. The
-// database is a separate decision, and the default is to keep it: a container
-// is trivially rebuilt, watch history is not.
+// Removing an instance is a deliberate, name-confirmed action (see the
+// Stack page's own dialog), so it takes the container down as part of
+// removal rather than leaving it running as an orphan for a separate step —
+// unlike a container that becomes unclaimed as a side effect of something
+// else (the VPN switched off, a config edit), which is left alone exactly
+// because nobody explicitly asked for it to go.
+//
+// The container comes down BEFORE the database is touched, not after:
+// dropping a database an instance still holds connections against fails in
+// PostgreSQL ("database is being accessed by other users") instead of
+// succeeding against one that's already gone. The database is still
+// a separate decision from the container either way — kept unless dropData
+// is asked for outright, because a container is trivially rebuilt and watch
+// history is not.
 export async function deprovisionInstance(key, { dropData = false, log = () => {} } = {}) {
   const values = getComponentValues("instance", key);
   if (!values || Object.keys(values).length === 0) return false;
+
+  const name = instanceContainerName(key, values);
+  const existing = await inspectContainer(name);
+
+  if (existing && isManaged(existing.Config?.Labels || {})) {
+    log(`Stopping ${name}...`);
+    await stopContainer(existing.Id, { timeoutSeconds: 30 });
+    log(`Removing ${name}...`);
+    await removeContainer(existing.Id, { force: true });
+  } else if (existing) {
+    // Adopted, not ours to stop — the same invariant Adopt itself rests on.
+    // If dropData is also asked for, the drop below may fail while this is
+    // still connected to it; there is no way around that without touching a
+    // container the Suite was never allowed to touch.
+    log(`${name} was not created by the Suite — leaving it running.`);
+  }
 
   if (dropData && values._dbName) {
     const target = connectionTarget(getComponentValues("postgres"));
@@ -90,7 +118,7 @@ export async function deprovisionInstance(key, { dropData = false, log = () => {
   }
 
   deleteComponent("instance", key);
-  log(`Removed ${instanceContainerName(key, values)} from the stack.`);
+  log(`Removed ${name} from the stack.`);
   return true;
 }
 

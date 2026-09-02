@@ -171,6 +171,38 @@ PostgreSQL default to `SUITE_CONTAINER_PREFIX` followed by `gluetun` or
 you've changed the prefix); an instance defaults to the prefix followed by its
 key.
 
+### Importing from running containers
+
+Adopt only ever means "leave this container running, untouched" — it never
+fills in the Suite's own configuration for it, so an adopted component's form
+stays blank until someone types into it. **Import**, on the Stack page, is
+what actually reads a real container's own image, environment and networks
+and turns that into stored configuration, using the same field-to-env-var
+mapping each component's own schema already declares, in reverse. The
+container itself is never touched either way.
+
+"Scan for existing containers" looks at every container on the host by
+**image** rather than by name (`gluetun`, `postgres`, `stream-share`, but
+never this project's own `stream-share-suite` or `stream-share-dashboard`
+images) and lists whatever it finds that the Suite doesn't already manage.
+Importing one:
+
+- Recovers every field the schema can — VPN provider and keys for gluetun,
+  admin credentials for PostgreSQL, provider and access settings for an
+  instance — and sets a **Container name** override to the real name, so it
+  keeps being adopted rather than planning a `Create` under the default one.
+- For an instance, never regenerates its API key or database credentials —
+  they're read straight from its own `INTERNAL_API_KEY`/`DB_*` environment,
+  because the real database and role already exist under those exact values.
+  Recreating that instance later without importing it first would generate
+  new ones and leave it unable to reach its existing database.
+- Folds anything the schema doesn't model into the same `extraEnv` box a
+  hand-typed unmodelled setting already goes through, so nothing real gets
+  silently dropped.
+- Refuses a container already imported once (would otherwise create a
+  duplicate instance pointed at the same real container) and a singleton
+  that's already configured, unless asked to overwrite it.
+
 ### Instances
 
 Adding an instance is a form, not a compose edit. Three things you would
@@ -201,10 +233,19 @@ at creation and never changes even if you rename it later; a manually
 overridden port that clashes with another instance's is rejected rather than
 silently applied.
 
-Removing an instance takes it out of the stack — its container becomes an
-orphan the plan then offers to remove. Its database is **kept** unless you tick
-the box and type the instance's name back, because a container is trivially
-rebuilt and watch history is not.
+Removing an instance is a deliberate, name-confirmed action, so it takes the
+container down as part of removal — stopped and removed outright, not left
+running as an orphan for a separate step the way a container that becomes
+unclaimed by something else (the VPN switched off, a config edit) is. An
+adopted container is the one exception: never the Suite's to stop, so it's
+left running exactly like Adopt always leaves it.
+
+The container comes down before the database is touched, not after —
+dropping a database an instance still holds a connection against fails in
+PostgreSQL ("database is being accessed by other users") rather than
+succeeding against one that's already gone. The database itself is **kept**
+unless you tick the box and type the instance's name back, because a
+container is trivially rebuilt and watch history is not.
 
 ### Where component data lives
 
@@ -363,8 +404,8 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 0 | Ops surface on a database, with real auth | shipped |
 | 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | shipped |
 | 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
-| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | **this branch** |
-| 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | planned |
+| 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | shipped |
+| 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | **this branch** |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
 

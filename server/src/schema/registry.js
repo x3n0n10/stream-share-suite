@@ -114,6 +114,35 @@ export function renderEnv(schema, values) {
   return env;
 }
 
+// The reverse of renderEnv: given a real container's own environment (from
+// its Docker inspect output, say), recovers the field values that would have
+// rendered it — the mechanism import-from-running-containers is built on.
+//
+// dependsOn is deliberately not consulted here the way renderEnv consults
+// isVisible: renderEnv omits a hidden field because it must not reach the
+// container at all, but here every field with a matching var present is
+// genuine evidence of that field's actual value, whether or not some other
+// field's current guess would call it hidden. mode=external not yet being
+// set is exactly the case where postgres's managed-only fields still need
+// recovering from the container this import is trying to configure mode
+// from in the first place.
+//
+// Every env var this consumes is named in the returned set, so a caller with
+// an extraEnv escape hatch (gluetun, instances) can fold whatever is left
+// into it instead of silently dropping something the schema never modelled.
+export function valuesFromEnv(schema, env) {
+  const values = {};
+  const consumed = new Set();
+  for (const field of schema.fields) {
+    if (!field.envVar) continue;
+    if (!(field.envVar in env)) continue;
+    const raw = env[field.envVar];
+    values[field.key] = field.type === "checkbox" ? raw === "true" : raw;
+    consumed.add(field.envVar);
+  }
+  return { values, consumed };
+}
+
 // What the HTTP API and the generic frontend form see: every field's
 // metadata, plus its current value — except a secret field, which reports
 // only whether one is set. This is the same write-only convention already

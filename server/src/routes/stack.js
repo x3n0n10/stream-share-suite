@@ -38,6 +38,7 @@ import { containerPrefix } from "../reconcile/prefix.js";
 import { provisionInstance, deprovisionInstance } from "../reconcile/provisioning.js";
 import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
+import { listImportCandidates, importCandidate } from "../reconcile/import.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -320,9 +321,10 @@ export function createStackRouter() {
     res.json({ fields: toPublicFields(schema, next) });
   });
 
-  // Removing an instance takes it out of the stack, which turns its running
-  // container into an orphan the plan then offers to remove. The database is a
-  // separate decision and is kept unless dropDatabase is asked for outright.
+  // Removing an instance stops and removes its own container as part of the
+  // same job — see deprovisionInstance for why that has to happen before the
+  // database is touched. The database is a separate decision and is kept
+  // unless dropDatabase is asked for outright.
   router.post("/instances/:key/remove", (req, res) => {
     const key = req.params.key;
     if (listComponents("instance").every((row) => row.key !== key)) {
@@ -342,6 +344,38 @@ export function createStackRouter() {
       return res.status(400).json({ ok: false, error: "No database host is configured yet." });
     }
     res.json(await testConnection(target));
+  });
+
+  // --- import from running containers ----------------------------------------
+  //
+  // Distinct from Adopt: adopting a container only ever means "leave it
+  // running, untouched" and never fills in the Suite's own configuration for
+  // it. Import actually reads a real container's env, image and networks and
+  // turns that into stored configuration — see reconcile/import.js. Neither
+  // one ever touches the container itself.
+
+  router.get("/import/candidates", async (req, res) => {
+    try {
+      res.json({ candidates: await listImportCandidates() });
+    } catch (err) {
+      dockerFailure(res, err);
+    }
+  });
+
+  router.post("/import", async (req, res) => {
+    const containerId = String(req.body?.containerId || "");
+    const kind = String(req.body?.kind || "");
+    if (!containerId || !kind) {
+      return res.status(400).json({ error: "containerId and kind are required" });
+    }
+
+    try {
+      const result = await importCandidate(containerId, kind, { overwrite: !!req.body?.overwrite });
+      res.status(201).json(result);
+    } catch (err) {
+      if (err instanceof DockerError) return dockerFailure(res, err);
+      res.status(409).json({ error: err.message });
+    }
   });
 
   // Removing an orphan is its own action, never part of an apply — the
