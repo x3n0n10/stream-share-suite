@@ -14,6 +14,7 @@
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
+import { CADDY_SCHEMA } from "../schema/caddy.js";
 import { renderGluetunSpec, gluetunContainerName } from "./gluetun.js";
 import {
   renderPostgresSpec,
@@ -22,6 +23,7 @@ import {
   connectionTarget as postgresTarget,
 } from "./postgres.js";
 import { renderInstanceSpec, instanceContainerName } from "./instance.js";
+import { renderCaddySpec, caddyContainerName } from "./caddy.js";
 import { prepareInstance } from "./provisioning.js";
 import { getBoolean } from "../store/settings.js";
 import { getDataPath, getCachePath, validatePath } from "../store/paths.js";
@@ -38,6 +40,16 @@ export const VPN_ENABLED_SETTING = "stack.vpn_enabled";
 
 export function isVpnEnabled() {
   return getBoolean(VPN_ENABLED_SETTING, true);
+}
+
+// Caddy is an optional bolt-on most deployments don't run at all, unlike
+// gluetun and postgres — so it gets its own off-by-default stack-wide switch
+// rather than showing up permanently as "not configured" the moment the
+// Suite starts.
+export const CADDY_ENABLED_SETTING = "stack.caddy_enabled";
+
+export function isCaddyEnabled() {
+  return getBoolean(CADDY_ENABLED_SETTING, false);
 }
 
 // Every kind the reconciler can manage. `present` decides whether a kind is
@@ -108,6 +120,22 @@ const CATALOG = {
     // does not survive it being replaced. This is the edge the cascade exists
     // for, and 2b is where it starts firing.
     namespaceHost: () => (isVpnEnabled() ? "gluetun" : null),
+  },
+
+  caddy: {
+    kind: "caddy",
+    label: "Caddy (reverse proxy)",
+    description:
+      "Publishes any instance with a public base URL under a real hostname, with HTTPS handled for you.",
+    schema: CADDY_SCHEMA,
+    render: renderCaddySpec,
+    singleton: true,
+    containerName: () => caddyContainerName(getComponentValues("caddy")),
+    present: () => isCaddyEnabled(),
+    dependsOn: () => [],
+    // On the shared network rather than inside anyone's namespace — see
+    // schema/caddy.js for why that's a different, weaker relationship.
+    namespaceHost: () => null,
   },
 };
 

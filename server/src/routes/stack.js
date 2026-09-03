@@ -22,6 +22,8 @@ import {
   activeComponents,
   isVpnEnabled,
   VPN_ENABLED_SETTING,
+  isCaddyEnabled,
+  CADDY_ENABLED_SETTING,
 } from "../reconcile/catalog.js";
 import { planComponent, planStack, applyPlan, applyStack, removeOrphan } from "../reconcile/reconciler.js";
 import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
@@ -119,6 +121,7 @@ export function createStackRouter() {
   function stackSettings() {
     return {
       vpnEnabled: isVpnEnabled(),
+      caddyEnabled: isCaddyEnabled(),
       containerPrefix: containerPrefix(),
       instancePortStart: portBand().first,
     };
@@ -135,6 +138,9 @@ export function createStackRouter() {
   router.put("/settings", (req, res) => {
     if (typeof req.body?.vpnEnabled === "boolean") {
       setSetting(VPN_ENABLED_SETTING, req.body.vpnEnabled ? "true" : "false");
+    }
+    if (typeof req.body?.caddyEnabled === "boolean") {
+      setSetting(CADDY_ENABLED_SETTING, req.body.caddyEnabled ? "true" : "false");
     }
     if (req.body?.instancePortStart !== undefined) {
       const start = Number(req.body.instancePortStart);

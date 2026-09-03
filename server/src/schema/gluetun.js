@@ -1,6 +1,6 @@
-// The gluetun component: the VPN tunnel every StreamShare instance, Caddy and
-// UHF share the network namespace of. Fields mirror what a real deployment
-// actually sets — see the blueprint's evidence section for why that matters:
+// The gluetun component: the VPN tunnel every StreamShare instance shares
+// the network namespace of. Fields mirror what a real deployment actually
+// sets — see the blueprint's evidence section for why that matters:
 // a schema field for something upstream doesn't recognise is a validation
 // error at save time, not a silently-ignored env var.
 //

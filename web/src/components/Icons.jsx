@@ -223,6 +223,16 @@ export function IconSignOut({ className }) {
   );
 }
 
+export function IconWand({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 20 15 9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l2-2M4 20l2-2" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18 3v3M18 12v3M13.5 6h3M18 10.5h3M20.5 4.5l-2 2M20.5 15.5l-2-2" />
+    </svg>
+  );
+}
+
 export function IconStack({ className }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
