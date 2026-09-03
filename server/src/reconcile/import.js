@@ -17,13 +17,11 @@ import { isManaged } from "../docker/labels.js";
 import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
-import { UHF_SCHEMA } from "../schema/uhf.js";
 import { valuesFromEnv } from "../schema/registry.js";
 import { saveComponentValues, setAdoptedContainer, getComponentRow, listComponents } from "../store/components.js";
 import { gluetunContainerName } from "./gluetun.js";
 import { postgresContainerName } from "./postgres.js";
 import { instanceContainerName, allocatedPorts } from "./instance.js";
-import { uhfContainerName } from "./uhf.js";
 import { instanceKeyFor } from "./provisioning.js";
 
 // Env vars every renderer computes and sets itself rather than asking for —
@@ -70,10 +68,6 @@ function classify(image) {
   // Anchored so this project's own images — stream-share-suite,
   // stream-share-dashboard — never misclassify as an instance.
   if (/(^|\/)stream-share(:|@|$)/i.test(image)) return "instance";
-  // Matches both swapplications/uhf-server and forks like
-  // solidpixel/uhf-server-docker — the "-docker" suffix some forks add to the
-  // repo name doesn't change what's actually running inside it.
-  if (/uhf-server/i.test(image)) return "uhf";
   return null;
 }
 
@@ -165,26 +159,6 @@ async function importPostgres(inspect, { overwrite }) {
   return { kind: "postgres", key: "" };
 }
 
-async function importUhf(inspect, { overwrite }) {
-  if (isConfigured("uhf") && !overwrite) {
-    throw new Error("UHF Server is already configured. Import again with overwrite to replace it.");
-  }
-
-  const env = parseEnvArray(inspect.Config?.Env);
-  const { values, consumed } = valuesFromEnv(UHF_SCHEMA, env);
-
-  const name = nameOf(inspect);
-  if (name && name !== uhfContainerName({})) values.containerName = name;
-  values.image = inspect.Config?.Image || values.image;
-
-  const extraEnv = foldExtraEnv(env, consumed, new Set(["RECORDINGS_DIR"]));
-  if (extraEnv) values.extraEnv = extraEnv;
-
-  saveComponentValues("uhf", values);
-  setAdoptedContainer("uhf", inspect.Id);
-  return { kind: "uhf", key: "" };
-}
-
 async function importInstance(inspect) {
   // A container already imported keeps its adopted_container_id, so
   // re-running import against the same one would otherwise create a second
@@ -241,6 +215,5 @@ export async function importCandidate(containerId, kind, { overwrite = false } =
   if (kind === "gluetun") return importGluetun(inspect, { overwrite });
   if (kind === "postgres") return importPostgres(inspect, { overwrite });
   if (kind === "instance") return importInstance(inspect);
-  if (kind === "uhf") return importUhf(inspect, { overwrite });
   throw new Error(`Unknown import kind: ${kind}`);
 }

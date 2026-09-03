@@ -141,10 +141,10 @@ is denied by default. A service that can create containers is root-equivalent
 on the host, so it never gets unmediated access to the thing that lets it do
 that.
 
-Five kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
+Four kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
 external server you point at), **StreamShare instances** (as many as you have
-providers), **UHF Server** and **Caddy** — the last two are optional and off
-by default; see their own sections below. Six outcomes:
+providers) and **Caddy** — the last one is optional and off by default; see
+its own section below. Six outcomes:
 
 | Outcome | When | What happens |
 | --- | --- | --- |
@@ -248,32 +248,12 @@ succeeding against one that's already gone. The database itself is **kept**
 unless you tick the box and type the instance's name back, because a
 container is trivially rebuilt and watch history is not.
 
-### UHF Server (DVR)
-
-Scheduled recording for your instances' streams, driven by the [UHF
-companion app](https://github.com/swapplications/uhf-server-dist) — a
-third-party project, not something this Suite builds. The Suite only runs and
-configures the container; recording schedules live entirely in the companion
-app talking to it.
-
-Off by default, unlike gluetun and PostgreSQL — most deployments don't run
-this at all, so it stays out of the stack plan entirely until you switch it
-on under **Stack**. Once on, it follows the same VPN choice every instance
-does rather than a toggle of its own: recording through the same tunnel a
-stream would otherwise be served through is the only setup that behaves
-consistently for a provider that restricts access by IP. Its address is
-computed the same way an instance's is — gluetun's address with the VPN on,
-its own container name with it off — and recordings persist under the cache
-path, in their own subfolder.
-
-Point the **Image** field at any tag of `swapplications/uhf-server`, or a
-fork such as `solidpixel/uhf-server-docker`.
-
 ### Caddy (reverse proxy)
 
 An optional reverse proxy that publishes an instance under a real hostname
-instead of a raw port, with HTTPS handled for you. Off by default, the same
-way UHF is.
+instead of a raw port, with HTTPS handled for you. Off by default — most
+deployments don't publish anything externally, so it stays out of the stack
+plan entirely until you switch it on under **Stack**.
 
 There's no separate field for what to route — Caddy's configuration is
 generated from whichever instances already have a **Public base URL** set
@@ -463,7 +443,7 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 1 | Schema registry and the reconciler, proven on gluetun; adopt an existing stack by label | shipped |
 | 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
 | 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | shipped |
-| 2c | Import from running containers, Caddy routes, the UHF server, the setup wizard | shipped |
+| 2c | Import from running containers, Caddy routes, the setup wizard | shipped |
 | 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
 

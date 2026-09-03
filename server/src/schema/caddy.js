@@ -17,8 +17,8 @@
 // network — sharing a namespace is a different, stronger relationship this
 // doesn't need.
 //
-// Optional, like UHF: most deployments don't publish anything externally, so
-// it stays out of the plan entirely until switched on under Stack (see
+// Optional: most deployments don't publish anything externally, so it stays
+// out of the plan entirely until switched on under Stack (see
 // CADDY_ENABLED_SETTING in reconcile/catalog.js).
 
 export const CADDY_SCHEMA = {

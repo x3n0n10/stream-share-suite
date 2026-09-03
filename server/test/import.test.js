@@ -93,16 +93,6 @@ test("classifies candidates by image, not by name", async () => {
   assert.equal(byName["tv1"], "instance");
 });
 
-test("classifies both the upstream image and a fork's -docker suffix as uhf", async () => {
-  addContainer({ name: "uhf1", image: "swapplications/uhf-server:1.5.1" });
-  addContainer({ name: "uhf2", image: "solidpixel/uhf-server-docker:latest" });
-
-  const candidates = await listImportCandidates();
-  const byName = Object.fromEntries(candidates.map((c) => [c.name, c.kind]));
-  assert.equal(byName["uhf1"], "uhf");
-  assert.equal(byName["uhf2"], "uhf");
-});
-
 test("never classifies the Suite's own images as an instance candidate", async () => {
   addContainer({ name: "suite", image: "ghcr.io/x3n0n10/stream-share-suite:latest" });
   addContainer({ name: "dashboard", image: "ghcr.io/x3n0n10/stream-share-dashboard:latest" });
@@ -196,33 +186,6 @@ test("importing postgres recovers admin credentials and forces managed mode", as
   assert.equal(values.adminPassword, "iptvproxypass");
   assert.equal(values.containerName, "stream-share-db");
   assert.equal(values.networks, "ssbackend");
-});
-
-// --- uhf ---------------------------------------------------------------------
-
-test("importing uhf recovers its schema fields and records a containerName override", async () => {
-  const c = addContainer({
-    name: "my-uhf",
-    image: "solidpixel/uhf-server-docker:latest",
-    env: ["PORT=9000", "PASSWORD=secret", "RECORDINGS_DIR=/recordings", "SOME_UNMODELLED=1"],
-  });
-
-  const result = await importCandidate(c.Id, "uhf");
-  assert.deepEqual(result, { kind: "uhf", key: "" });
-
-  const values = getComponentValues("uhf");
-  assert.equal(values.port, "9000");
-  assert.equal(values.password, "secret");
-  assert.equal(values.containerName, "my-uhf");
-  assert.equal(values.image, "solidpixel/uhf-server-docker:latest");
-  assert.match(values.extraEnv, /SOME_UNMODELLED=1/);
-  assert.doesNotMatch(values.extraEnv, /RECORDINGS_DIR/, "the renderer computes this itself");
-});
-
-test("re-importing uhf without overwrite is refused once it is already configured", async () => {
-  const c = addContainer({ name: "u", image: "swapplications/uhf-server:latest", env: ["PORT=8000"] });
-  await importCandidate(c.Id, "uhf");
-  await assert.rejects(() => importCandidate(c.Id, "uhf"), /already configured/);
 });
 
 // --- instances ---------------------------------------------------------------

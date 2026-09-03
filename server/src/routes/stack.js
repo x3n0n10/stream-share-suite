@@ -22,8 +22,6 @@ import {
   activeComponents,
   isVpnEnabled,
   VPN_ENABLED_SETTING,
-  isUhfEnabled,
-  UHF_ENABLED_SETTING,
   isCaddyEnabled,
   CADDY_ENABLED_SETTING,
 } from "../reconcile/catalog.js";
@@ -123,7 +121,6 @@ export function createStackRouter() {
   function stackSettings() {
     return {
       vpnEnabled: isVpnEnabled(),
-      uhfEnabled: isUhfEnabled(),
       caddyEnabled: isCaddyEnabled(),
       containerPrefix: containerPrefix(),
       instancePortStart: portBand().first,
@@ -141,9 +138,6 @@ export function createStackRouter() {
   router.put("/settings", (req, res) => {
     if (typeof req.body?.vpnEnabled === "boolean") {
       setSetting(VPN_ENABLED_SETTING, req.body.vpnEnabled ? "true" : "false");
-    }
-    if (typeof req.body?.uhfEnabled === "boolean") {
-      setSetting(UHF_ENABLED_SETTING, req.body.uhfEnabled ? "true" : "false");
     }
     if (typeof req.body?.caddyEnabled === "boolean") {
       setSetting(CADDY_ENABLED_SETTING, req.body.caddyEnabled ? "true" : "false");

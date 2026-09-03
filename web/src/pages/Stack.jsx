@@ -318,15 +318,6 @@ function StackSettings({ settings, onSave, busy }) {
       <PortRangeSetting settings={settings} onSave={onSave} busy={busy} />
 
       <OptionalComponentToggle
-        title="UHF Server (DVR)"
-        description="Scheduled recording for your instances' streams, driven by the UHF companion app."
-        checked={settings.uhfEnabled}
-        settingKey="uhfEnabled"
-        onSave={onSave}
-        busy={busy}
-      />
-
-      <OptionalComponentToggle
         title="Caddy (reverse proxy)"
         description="Publishes any instance with a public base URL under a real hostname, with HTTPS handled for you."
         checked={settings.caddyEnabled}
@@ -338,10 +329,10 @@ function StackSettings({ settings, onSave, busy }) {
   );
 }
 
-// UHF and Caddy are both optional bolt-ons most deployments don't run, so
-// each gets a switch of its own here rather than showing up permanently as
-// "not configured" — the same shape as the VPN toggle above, just without
-// the longer explanation that one needs.
+// Caddy is an optional bolt-on most deployments don't run, so it gets a
+// switch of its own here rather than showing up permanently as "not
+// configured" — the same shape as the VPN toggle above, just without the
+// longer explanation that one needs.
 function OptionalComponentToggle({ title, description, checked, settingKey, onSave, busy }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-5 dark:border-slate-800">
@@ -441,7 +432,6 @@ const IMPORT_KIND_LABEL = {
   gluetun: "Gluetun (VPN)",
   postgres: "PostgreSQL",
   instance: "StreamShare instance",
-  uhf: "UHF Server (DVR)",
 };
 
 // Distinct from adoption, which the plan already shows on its own: adopting

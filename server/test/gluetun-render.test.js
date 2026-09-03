@@ -10,9 +10,6 @@ import { createServer } from "node:http";
 import { renderGluetunSpec, gluetunContainerName } from "../src/reconcile/gluetun.js";
 import { GLUETUN_SCHEMA } from "../src/schema/gluetun.js";
 import { validate } from "../src/schema/registry.js";
-import { UHF_ENABLED_SETTING } from "../src/reconcile/catalog.js";
-import { setSetting } from "../src/store/settings.js";
-import { saveComponentValues } from "../src/store/components.js";
 import { freshDatabase } from "./helpers.js";
 
 let server;
@@ -152,24 +149,6 @@ test("extraEnv never overrides a value a named field already set", async () => {
   const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, extraEnv: "VPN_SERVICE_PROVIDER=mullvad\nHTTP_CONTROL_SERVER_ADDRESS=:9999" });
   assert.equal(spec.env.VPN_SERVICE_PROVIDER, "nordvpn");
   assert.equal(spec.env.HTTP_CONTROL_SERVER_ADDRESS, ":8000");
-});
-
-test("publishes no ports when there are no instances and uhf is off", async () => {
-  const spec = await renderGluetunSpec(WIREGUARD_VALUES);
-  assert.equal(spec.ports, undefined);
-});
-
-test("publishes uhf's port when it's switched on", async () => {
-  setSetting(UHF_ENABLED_SETTING, "true");
-  saveComponentValues("uhf", { port: "9000" });
-  const spec = await renderGluetunSpec(WIREGUARD_VALUES);
-  assert.deepEqual(spec.ports, [{ host: 9000, container: 9000, protocol: "tcp" }]);
-});
-
-test("does not publish uhf's port while it's switched off, even if configured", async () => {
-  saveComponentValues("uhf", { port: "9000" });
-  const spec = await renderGluetunSpec(WIREGUARD_VALUES);
-  assert.equal(spec.ports, undefined);
 });
 
 test("extraEnv ignores blank lines, comments, and malformed lines instead of failing", async () => {
