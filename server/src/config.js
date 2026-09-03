@@ -7,8 +7,10 @@
 // means an edit in the UI takes effect on the next poll.
 
 import { listInstances } from "./store/instances.js";
-import { listComponents } from "./store/components.js";
+import { listComponents, getComponentValues } from "./store/components.js";
 import { instanceUrl, instanceContainerName } from "./reconcile/instance.js";
+import { isVpnEnabled } from "./reconcile/catalog.js";
+import { gluetunContainerName } from "./reconcile/gluetun.js";
 import { getNumber, getSetting } from "./store/settings.js";
 
 export const DEFAULTS = {
@@ -23,7 +25,23 @@ export const DEFAULTS = {
 // its roles config, so both are stored and basic auth wins when both are set —
 // a client maps to exactly one method.
 function readGluetun() {
-  const url = (getSetting("gluetun.url") || "").replace(/\/+$/, "");
+  // An operator who lets the reconciler create gluetun (the Stack page) never
+  // has to type its address in a second time here: with no explicit URL, fall
+  // back to the same container name and fixed port renderGluetunSpec creates
+  // it under (see reconcile/gluetun.js), unauthenticated exactly like that
+  // spec leaves it. An explicit gluetun.url below always wins — that is what
+  // an adopted/external gluetun with its own real auth still needs.
+  let url = (getSetting("gluetun.url") || "").replace(/\/+$/, "");
+  if (!url) {
+    // Only once the operator has actually filled in gluetun's own form on the
+    // Stack page — never on isVpnEnabled()'s bare default (true on a totally
+    // fresh install), which would otherwise report a VPN page "enabled"
+    // against a gluetun container that doesn't exist yet.
+    const gluetunValues = getComponentValues("gluetun");
+    if (isVpnEnabled() && Object.keys(gluetunValues).length > 0) {
+      url = `http://${gluetunContainerName(gluetunValues)}:8000`;
+    }
+  }
   if (!url) return null;
 
   const user = getSetting("gluetun.user") || "";
@@ -58,6 +76,11 @@ function managedInstances() {
       enabled: true,
       managed: true,
       containerName: instanceContainerName(row.key, values),
+      // Only a Suite-managed instance has these — an externally-added one
+      // (store/instances.js, predating the schema system) has no equivalent
+      // form and is simply never watched by the VPN watchdog.
+      healthCheckEnabled: !!values.healthCheckEnabled,
+      healthCheckStreamId: values.healthCheckStreamId || "",
     };
   });
 }

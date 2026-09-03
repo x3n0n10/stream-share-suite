@@ -100,6 +100,17 @@ export async function renderInstanceSpec(values, key) {
   env.LDAP_ENABLED = values.authMode === "ldap" ? "true" : "false";
   if (values._apiKey) env.INTERNAL_API_KEY = values._apiKey;
 
+  // Fixed rather than asked, once health checking is on: the VPN watchdog
+  // schedules probes itself (see watchdog/vpnWatchdog.js), so a second
+  // self-probe schedule here would just hit the provider twice for the same
+  // information. HEALTHCHECK_MIN_INTERVAL_SECONDS still needs to be short —
+  // not zero — so a forced probe during a heal actually gets a fresh read
+  // rather than a stale cached one from before the last reconnect.
+  if (values.healthCheckEnabled) {
+    env.HEALTHCHECK_TIMES = "";
+    env.HEALTHCHECK_MIN_INTERVAL_SECONDS = "10";
+  }
+
   const database = connectionTarget(getComponentValues("postgres"));
   if (database.host) {
     env.DB_HOST = database.host;
