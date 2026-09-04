@@ -106,7 +106,7 @@ services:
   # locally (with a tmpfs mount for that path if it's still needed) before
   # turning it on, rather than shipping it unverified.
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:0.5.0
+    image: tecnativa/docker-socket-proxy:v0.5.0
     container_name: stream-share-suite-docker-proxy
     restart: unless-stopped
     cap_drop:
