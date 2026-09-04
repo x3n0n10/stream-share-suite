@@ -11,6 +11,7 @@ import { pruneExpiredSessions } from "./auth/sessions.js";
 import { countUsers } from "./auth/users.js";
 import { countInstances } from "./store/instances.js";
 import { loadConfig } from "./config.js";
+import { startWatchdogScheduler } from "./watchdog/scheduler.js";
 import { createApp } from "./app.js";
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -30,6 +31,8 @@ pruneExpiredSessions();
 // Sessions expire on read, so this is only housekeeping for rows nobody comes
 // back for. Daily is plenty; unref so it never holds the process open.
 setInterval(pruneExpiredSessions, 24 * 60 * 60 * 1000).unref();
+
+startWatchdogScheduler();
 
 createApp().listen(PORT, () => {
   const config = loadConfig();

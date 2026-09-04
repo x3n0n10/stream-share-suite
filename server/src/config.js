@@ -7,8 +7,10 @@
 // means an edit in the UI takes effect on the next poll.
 
 import { listInstances } from "./store/instances.js";
-import { listComponents } from "./store/components.js";
+import { listComponents, getComponentValues } from "./store/components.js";
 import { instanceUrl, instanceContainerName } from "./reconcile/instance.js";
+import { isVpnEnabled } from "./reconcile/catalog.js";
+import { gluetunContainerName } from "./reconcile/gluetun.js";
 import { getNumber, getSetting } from "./store/settings.js";
 
 export const DEFAULTS = {
@@ -23,7 +25,28 @@ export const DEFAULTS = {
 // its roles config, so both are stored and basic auth wins when both are set —
 // a client maps to exactly one method.
 function readGluetun() {
-  const url = (getSetting("gluetun.url") || "").replace(/\/+$/, "");
+  // An operator who lets the reconciler create gluetun (the Stack page) never
+  // has to type its address in a second time here: with no explicit URL, fall
+  // back to the same container name and fixed port renderGluetunSpec creates
+  // it under (see reconcile/gluetun.js), authenticated with the same
+  // per-install API key the reconciler gave it — gluetun's control server
+  // rejects every route with no auth configured at all, so "unauthenticated"
+  // is not actually an option any more. An explicit gluetun.url/api_key below
+  // always wins — that is what an adopted/external gluetun with its own real
+  // auth still needs.
+  let url = (getSetting("gluetun.url") || "").replace(/\/+$/, "");
+  let managedApiKey = "";
+  if (!url) {
+    // Only once the operator has actually filled in gluetun's own form on the
+    // Stack page — never on isVpnEnabled()'s bare default (true on a totally
+    // fresh install), which would otherwise report a VPN page "enabled"
+    // against a gluetun container that doesn't exist yet.
+    const gluetunValues = getComponentValues("gluetun");
+    if (isVpnEnabled() && Object.keys(gluetunValues).length > 0) {
+      url = `http://${gluetunContainerName(gluetunValues)}:8000`;
+      managedApiKey = gluetunValues._controlServerApiKey || "";
+    }
+  }
   if (!url) return null;
 
   const user = getSetting("gluetun.user") || "";
@@ -31,7 +54,7 @@ function readGluetun() {
 
   return {
     url,
-    apiKey: getSetting("gluetun.api_key") || "",
+    apiKey: getSetting("gluetun.api_key") || managedApiKey,
     basicAuth: user && password ? { user, password } : null,
     statusPath: getSetting("gluetun.status_path") || "/v1/vpn/status",
     timeoutMs: Math.max(1000, getNumber("gluetun.timeout_ms", 5000)),
@@ -58,6 +81,11 @@ function managedInstances() {
       enabled: true,
       managed: true,
       containerName: instanceContainerName(row.key, values),
+      // Only a Suite-managed instance has these — an externally-added one
+      // (store/instances.js, predating the schema system) has no equivalent
+      // form and is simply never watched by the VPN watchdog.
+      healthCheckEnabled: !!values.healthCheckEnabled,
+      healthCheckStreamId: values.healthCheckStreamId || "",
     };
   });
 }

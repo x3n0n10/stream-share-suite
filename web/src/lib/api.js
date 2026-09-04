@@ -109,6 +109,11 @@ export const api = {
   gluetunStart: () => post("/api/gluetun/start"),
   gluetunStop: () => post("/api/gluetun/stop"),
   gluetunReconnect: () => post("/api/gluetun/reconnect"),
+  watchdogSettings: () => get("/api/watchdog/settings"),
+  saveWatchdogSettings: (payload) => put("/api/watchdog/settings", payload),
+  watchdogRun: () => post("/api/watchdog/run"),
+  watchdogLastJob: () => get("/api/watchdog/last-job"),
+  watchdogJob: (jobId) => get(`/api/watchdog/jobs/${jobId}`),
   vodSearch: (q) => get("/api/vod/search", { q }),
   vodDownload: (instanceId, streamId, title, type) =>
     post(`/api/instances/${instanceId}/vod/download`, { streamId, title, type }),

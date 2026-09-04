@@ -410,6 +410,53 @@ Switch it back on and gluetun returns with its configuration intact. From 2b
 onwards the toggle also changes how every other component is addressed, so
 expect the plan to show the whole stack recreating when it flips.
 
+### VPN watchdog
+
+Reconnecting the tunnel when a provider blocks the current exit IP used to be
+the job of an external script, run as its own container alongside gluetun
+(see `examples/vpn-watchdog` in the `stream-share` repo). From this phase the
+Suite absorbs that behaviour itself.
+
+Turn it on under the **VPN** page. It probes every instance with **Watch this
+instance's provider** enabled — a new field under an instance's own **Health
+check** group, alongside a **Probe channel id** (a live channel id from your
+provider) and, under Advanced, the **Blocked status codes** your provider
+returns when it's blocking an IP (defaults to 456, the common Xtream
+convention). An instance's own probe schedule is fixed off once this is on —
+the watchdog's own schedule decides when to probe, so nothing hits the
+provider twice for the same information.
+
+On the configured schedule (local `HH:MM` times, comma-separated), it probes
+every watched instance. If any report their provider is blocking the current
+exit IP, it reconnects gluetun — stop, confirm stopped, start, confirm
+running, wait for a usable exit IP, the same routine the VPN page's own
+**Reconnect** button uses — up to a configured number of attempts, re-probing
+after each one, until every previously-blocked instance is healthy or the
+budget runs out. A **Run now** button on the same card triggers this by hand.
+
+Deliberately keeps no history of which VPN servers have worked before —
+there's no "server reputation" tracked anywhere. A run's only trace is a job
+log, the same as a Stack apply's — useful to see what just happened, gone on
+its own after a while, never a record.
+
+Only Suite-managed instances have these fields — an instance added the old
+way (typed into Settings, from before phase 2b) has no schema-driven form at
+all and is simply never watched.
+
+One more thing this needed: the VPN page's own gluetun connection (Settings'
+URL/API key fields) and the Stack page's reconciler-managed gluetun container
+were, until now, two disconnected configurations — creating gluetun via the
+Stack page didn't make the VPN page (or a watchdog) able to reach it without
+also typing a matching URL into Settings by hand. Settings' URL/API key now
+only need to be set at all for an adopted/external gluetun with its own real
+authentication; left blank, it falls back to the Suite's own gluetun
+container, using the API key the reconciler generated for it — gluetun's
+control server rejects every route without one configured. That key is
+generated once, the first time gluetun's form is saved with real values, and
+kept stable afterwards, same as an instance's own generated API key; a
+gluetun configured before this shipped needs one resave (open the Stack
+page's gluetun card and hit Save) to pick it up.
+
 ## Data and backups
 
 The configuration that matters is one SQLite file at `$SUITE_DATA_DIR/suite.db`,
@@ -444,7 +491,7 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
 | 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | shipped |
 | 2c | Import from running containers, Caddy routes, the setup wizard | shipped |
-| 3 | Absorb the VPN watchdog: probe scheduling, server success memory, reputation groups | planned |
+| 3 | Absorb the VPN watchdog: probe scheduling and reconnect-on-blocked, no server reputation tracking | this branch |
 | 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
 
 Phase 1 is the one that changed the Suite's threat model: it was the first

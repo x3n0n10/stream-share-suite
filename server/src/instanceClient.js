@@ -169,6 +169,47 @@ export async function deleteIPAlias(instance, ipAddress, { timeoutMs }) {
   });
 }
 
+// Forces a fresh provider-health probe and reads the verdict, for the VPN
+// watchdog. This cannot go through the shared callInstance() above: stream-
+// share answers with HTTP 503 (not 200) exactly when the provider is blocked
+// or erroring, and the verdict is in the body either way — callInstance's
+// generic "any non-2xx is an error, discard the body" behaviour would throw
+// away the one response this call actually needs to read. 200 and 503 both
+// read normally; anything else really is a failure to reach the instance.
+export async function fetchHealth(instance, { timeoutMs }) {
+  const url = `${instance.url}/api/internal/health`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      headers: { "X-API-Key": instance.apiKey },
+      signal: controller.signal,
+    });
+
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      throw new InstanceError(`Non-JSON response (HTTP ${res.status})`, res.status);
+    }
+
+    if (res.status !== 200 && res.status !== 503) {
+      throw new InstanceError(body.error || `HTTP ${res.status}`, res.status);
+    }
+
+    return { status: body.status || "unknown", detail: body.detail || null };
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new InstanceError(`Timed out after ${timeoutMs}ms`, 504);
+    }
+    if (err instanceof InstanceError) throw err;
+    throw new InstanceError(err.message || "Request failed", 502);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export { InstanceError };
 
 // Verifies a URL + API key pair against a live instance, used by the "Test

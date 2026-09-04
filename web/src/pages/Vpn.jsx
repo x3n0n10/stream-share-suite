@@ -7,12 +7,18 @@ import {
   ErrorNote,
   Skeleton,
   Button,
+  Badge,
   ConfirmDialog,
 } from "../components/common.jsx";
 import { IconRefresh, IconShield, IconGlobe } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatRelativeTime } from "../lib/format.js";
+
+const FIELD =
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
+  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
+  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
 // gluetun's public IP response field names have varied across versions —
 // read defensively and fall back to showing the raw JSON so nothing is lost.
@@ -232,6 +238,8 @@ export default function Vpn({ pollIntervalMs }) {
               </Card>
             </div>
           </div>
+
+          <WatchdogCard />
         </div>
       )}
 
@@ -258,5 +266,174 @@ export default function Vpn({ pollIntervalMs }) {
         onCancel={() => setConfirmReconnect(false)}
       />
     </Layout>
+  );
+}
+
+// Probes every instance with health checking enabled (see the instance
+// form's "Health check" fields) on a schedule, and reconnects gluetun when
+// one reports its provider is blocking the current exit IP. Keeps no history
+// of its own — a run's only trace is the job log below, the same ephemeral
+// log every other background action in this app already produces.
+function WatchdogCard() {
+  const [settings, setSettings] = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [job, setJob] = useState(null);
+  const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState(null);
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    api.watchdogSettings().then((s) => {
+      setSettings(s);
+      setDraft(s);
+    });
+  }, []);
+
+  // Shows what the last run (scheduled or manual) did, even if nobody had
+  // this page open when it happened.
+  useEffect(() => {
+    api
+      .watchdogLastJob()
+      .then(({ jobId }) => (jobId ? api.watchdogJob(jobId) : null))
+      .then((current) => current && setJob(current))
+      .catch(() => {});
+    return () => clearTimeout(pollRef.current);
+  }, []);
+
+  function pollJob(jobId) {
+    clearTimeout(pollRef.current);
+    pollRef.current = setTimeout(async () => {
+      const current = await api.watchdogJob(jobId).catch(() => null);
+      if (!current) return;
+      setJob(current);
+      if (current.status === "running") pollJob(jobId);
+      else setRunning(false);
+    }, 1000);
+  }
+
+  async function runNow() {
+    setRunning(true);
+    setRunError(null);
+    try {
+      const { jobId } = await api.watchdogRun();
+      pollJob(jobId);
+    } catch (err) {
+      setRunning(false);
+      setRunError(err.message);
+    }
+  }
+
+  async function save() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await api.saveWatchdogSettings({
+        enabled: draft.enabled,
+        checkTimes: draft.checkTimes,
+        maxReconnects: Number(draft.maxReconnects),
+      });
+      setSettings(updated);
+      setDraft(updated);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!draft) return null;
+
+  const dirty =
+    draft.enabled !== settings.enabled ||
+    draft.checkTimes !== settings.checkTimes ||
+    Number(draft.maxReconnects) !== settings.maxReconnects;
+
+  return (
+    <Card className="p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">VPN watchdog</h2>
+          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+            Probes every instance with health checking enabled, on a schedule, and reconnects the
+            tunnel when one reports its provider is blocking the current exit IP.
+          </p>
+        </div>
+        <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <input
+            type="checkbox"
+            checked={draft.enabled}
+            onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
+            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+          />
+          {draft.enabled ? "On" : "Off"}
+        </label>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+            Check times (local, HH:MM)
+          </span>
+          <input
+            className={FIELD}
+            value={draft.checkTimes}
+            onChange={(e) => setDraft({ ...draft, checkTimes: e.target.value })}
+            placeholder="04:00,16:00"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+            Max reconnect attempts
+          </span>
+          <input
+            type="number"
+            min="1"
+            max="20"
+            className={FIELD}
+            value={draft.maxReconnects}
+            onChange={(e) => setDraft({ ...draft, maxReconnects: e.target.value })}
+          />
+        </label>
+      </div>
+
+      {saveError && (
+        <div className="mt-3">
+          <ErrorNote message={saveError} />
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button tone="accent" onClick={save} loading={saving} disabled={saving || !dirty}>
+          Save
+        </Button>
+        <Button tone="ghost" onClick={runNow} loading={running} disabled={running}>
+          Run now
+        </Button>
+      </div>
+
+      {runError && (
+        <div className="mt-3">
+          <ErrorNote message={runError} />
+        </div>
+      )}
+
+      {job && (
+        <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="mb-2 flex items-center gap-2">
+            <Badge tone={job.status === "success" ? "green" : job.status === "failed" ? "rose" : "slate"}>
+              {job.status}
+            </Badge>
+          </div>
+          <div className="max-h-48 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">
+            {(job.log || []).map((entry, i) => (
+              <div key={i}>{entry.line}</div>
+            ))}
+            {job.error && <div className="text-rose-600 dark:text-rose-400">{job.error}</div>}
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }

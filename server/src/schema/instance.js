@@ -7,8 +7,8 @@
 // runs at all, so the rest go through extraEnv — the same escape hatch the
 // gluetun schema uses for its long tail of providers.
 //
-// Five values are conspicuously absent because the Suite computes them rather
-// than asking (see reconcile/instance.js):
+// Several values are conspicuously absent because the Suite computes them
+// rather than asking (see reconcile/instance.js):
 //
 //   PORT                  allocated from a band, so two instances cannot clash
 //   INTERNAL_API_KEY      generated, so an instance is reachable by the
@@ -17,6 +17,10 @@
 //                         instance's own generated database and role
 //   INSTANCE_NAME         the display name below
 //   CACHE_FOLDER          fixed at the mount point of the cache volume
+//   HEALTHCHECK_TIMES,
+//   HEALTHCHECK_MIN_INTERVAL_SECONDS  fixed to "off" / a short throttle when
+//                         health checking is on — the VPN watchdog's own
+//                         schedule decides when to probe, not the instance's
 
 export const INSTANCE_SCHEMA = {
   kind: "instance",
@@ -183,6 +187,43 @@ export const INSTANCE_SCHEMA = {
       default: "4",
       advanced: true,
       dependsOn: { key: "catchupEnabled", equals: "true" },
+    },
+
+    // --- health check ---------------------------------------------------------
+    //
+    // Whether the VPN watchdog watches this instance at all. HEALTHCHECK_TIMES
+    // and HEALTHCHECK_MIN_INTERVAL_SECONDS are conspicuously absent: with the
+    // watchdog enabled, the Suite's own scheduler decides when to probe, so
+    // the instance's own probe schedule is fixed to "off" and its throttle to a
+    // short, fixed value — see reconcile/instance.js. A second schedule
+    // configured here would just hit the provider twice for the same
+    // information.
+    {
+      key: "healthCheckEnabled",
+      envVar: "HEALTHCHECK_ENABLED",
+      label: "Watch this instance's provider",
+      help: "Lets the VPN watchdog (see the VPN page) reconnect the tunnel when this instance's provider blocks the current exit IP.",
+      type: "checkbox",
+      default: false,
+      group: "Health check",
+    },
+    {
+      key: "healthCheckStreamId",
+      envVar: "HEALTHCHECK_STREAM_ID",
+      label: "Probe channel id",
+      help: "A live channel id from your provider (as it appears in a stream URL) that the instance requests periodically to tell whether the provider is blocking this exit IP.",
+      group: "Health check",
+      required: true,
+      dependsOn: { key: "healthCheckEnabled", equals: true },
+    },
+    {
+      key: "healthCheckBlockedCodes",
+      envVar: "HEALTHCHECK_BLOCKED_CODES",
+      label: "Blocked status codes",
+      help: "Comma-separated HTTP status codes your provider returns when it's blocking this exit IP. Defaults to 456 (the common Xtream convention) when left blank.",
+      group: "Health check",
+      advanced: true,
+      dependsOn: { key: "healthCheckEnabled", equals: true },
     },
 
     // --- the container itself -----------------------------------------------
