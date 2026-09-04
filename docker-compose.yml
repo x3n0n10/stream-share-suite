@@ -93,10 +93,26 @@ services:
   # after creation, POST because the proxy denies every method but GET/HEAD
   # unless it's turned on. Widen this only alongside new reconciler code that
   # actually needs it, never ahead of it.
+  #
+  # The same "least privilege, deny by default" reasoning also applies to the
+  # container itself, not just the API surface it exposes: pinned to a real
+  # release rather than :latest (an upstream bump to a security-mediating
+  # component should be a reviewed choice, not something that changes under
+  # you), every Linux capability dropped (proxying HTTP to a Unix socket needs
+  # none of them), and no-new-privileges (nothing in it should ever need to
+  # escalate). `read_only: true` was considered too, but the proxy's own
+  # changelog shows it writes to /var/lib/haproxy/server-state at startup, and
+  # full read-only compatibility isn't documented upstream — worth verifying
+  # locally (with a tmpfs mount for that path if it's still needed) before
+  # turning it on, rather than shipping it unverified.
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:latest
+    image: tecnativa/docker-socket-proxy:v0.5.0
     container_name: stream-share-suite-docker-proxy
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     environment:
       CONTAINERS: 1
       NETWORKS: 1

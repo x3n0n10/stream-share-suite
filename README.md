@@ -141,6 +141,20 @@ is denied by default. A service that can create containers is root-equivalent
 on the host, so it never gets unmediated access to the thing that lets it do
 that.
 
+The proxy container itself is pinned to a specific release rather than
+`:latest` (an upstream bump to something this security-sensitive should be a
+reviewed choice), has every Linux capability dropped and no-new-privileges
+set — proxying HTTP to a Unix socket needs neither. `read_only: true` on it
+is a documented next step, not yet enabled: the proxy writes to its own
+filesystem at startup, and that needs verifying against a real deployment
+before it ships. The same "deny by default" reasoning is enforced one layer
+in as well: whatever container spec a component renders, `docker/spec.js`
+refuses outright to build a create request carrying a Docker capability,
+device, or privileged flag it doesn't already recognise as something the
+Suite itself has ever needed (gluetun's tunnel, and nothing else) — so the
+proxy's allowlist isn't the only thing standing between a bug or a stray
+config value and a container with more host access than intended.
+
 Four kinds of component: **gluetun**, **PostgreSQL** (run by the Suite or an
 external server you point at), **StreamShare instances** (as many as you have
 providers) and **Caddy** — the last one is optional and off by default; see
@@ -501,8 +515,9 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | shipped |
 | 2c | Import from running containers, Caddy routes, the setup wizard | shipped |
 | 3 | Absorb the VPN watchdog: probe scheduling and reconnect-on-blocked, no server reputation tracking | shipped |
-| 4a | Component inventory: live status, health, and image per plan row | this branch |
-| 4b | Release channels, rollback, backup/restore, hardened Docker agent | planned |
+| 4a | Component inventory: live status, health, and image per plan row | shipped |
+| 4b | Hardened Docker agent: pinned/capability-dropped proxy, an app-level privilege allowlist | this branch |
+| 4c | Release channels, rollback, backup/restore | planned |
 
 Phase 1 is the one that changed the Suite's threat model: it was the first
 phase with any access to the Docker API at all, even mediated by the socket
