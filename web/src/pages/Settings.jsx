@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout.jsx";
-import { Button, Card, ConfirmDialog, ErrorNote, Badge } from "../components/common.jsx";
+import { Button, Card, ConfirmDialog, ErrorNote, Badge, FIELD } from "../components/common.jsx";
 import { IconTrash, IconCheck, IconAlert } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
-
-const FIELD =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
-  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
-  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
 function Field({ label, hint, children }) {
   return (

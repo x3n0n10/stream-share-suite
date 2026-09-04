@@ -1,10 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, ErrorNote } from "./common.jsx";
-
-const FIELD =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
-  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
-  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
+import { Button, ErrorNote, FIELD } from "./common.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
 // the point of the schema registry: a new field on the server is a new row

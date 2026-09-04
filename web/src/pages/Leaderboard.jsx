@@ -1,11 +1,10 @@
 import { useState } from "react";
 import Layout from "../components/Layout.jsx";
 import HoursSelect from "../components/HoursSelect.jsx";
-import { Card, Badge, EmptyState, ErrorNote, Skeleton } from "../components/common.jsx";
-import { IconRefresh } from "../components/Icons.jsx";
+import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatNumber, formatRelativeTime, titleCase } from "../lib/format.js";
+import { formatDuration, formatNumber, titleCase } from "../lib/format.js";
 
 function BarRow({ primary, secondary, meta, value, max }) {
   const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
@@ -44,21 +43,12 @@ export default function Leaderboard({ pollIntervalMs }) {
       headerExtra={
         <>
           <HoursSelect hours={hours} onChange={setHours} />
-          <button
-            onClick={refresh}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            aria-label="Refresh"
-          >
-            <IconRefresh className="h-4 w-4" />
-          </button>
+          <RefreshButton onClick={refresh} />
         </>
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"} · summed across all
-          instances
-        </p>
+        <PollStatus updatedAt={updatedAt}> · summed across all instances</PollStatus>
         {error && <ErrorNote message={`Refresh failed: ${error}`} />}
       </div>
 

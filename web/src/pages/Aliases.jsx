@@ -1,12 +1,12 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-import { Card, Badge, EmptyState, ErrorNote, Skeleton, Select, Button } from "../components/common.jsx";
-import { IconRefresh, IconTag, IconTrash, IconChevronDown } from "../components/Icons.jsx";
+import { Card, Badge, EmptyState, ErrorNote, Skeleton, Select, Button, RefreshButton, PollStatus } from "../components/common.jsx";
+import { IconTag, IconTrash, IconChevronDown } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
-import { formatDateTime, formatRelativeTime } from "../lib/format.js";
+import { formatDateTime } from "../lib/format.js";
 
 function entryKey(a) {
   return `${a.instance_id}::${a.ip_address}`;
@@ -157,13 +157,7 @@ export default function Aliases({ pollIntervalMs }) {
     <Layout
       title="Aliases"
       headerExtra={
-        <button
-          onClick={refresh}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          aria-label="Refresh"
-        >
-          <IconRefresh className="h-4 w-4" />
-        </button>
+        <RefreshButton onClick={refresh} />
       }
     >
       <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
@@ -248,9 +242,7 @@ export default function Aliases({ pollIntervalMs }) {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900"
         />
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
-        </p>
+        <PollStatus updatedAt={updatedAt} />
       </div>
 
       {error && (
