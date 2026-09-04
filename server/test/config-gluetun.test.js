@@ -52,6 +52,25 @@ test("an explicit gluetun.url setting always wins over the fallback", () => {
   assert.equal(loadConfig().gluetun.url, "http://my-adopted-gluetun:9000");
 });
 
+test("the fallback carries the reconciler's generated control-server API key", () => {
+  saveComponentValues("gluetun", {
+    vpnServiceProvider: "nordvpn",
+    _controlServerApiKey: "generated-key",
+  });
+
+  assert.equal(loadConfig().gluetun.apiKey, "generated-key");
+});
+
+test("an explicit gluetun.api_key setting still wins over the generated one", () => {
+  saveComponentValues("gluetun", {
+    vpnServiceProvider: "nordvpn",
+    _controlServerApiKey: "generated-key",
+  });
+  setSetting("gluetun.api_key", "typed-in-key");
+
+  assert.equal(loadConfig().gluetun.apiKey, "typed-in-key");
+});
+
 test("no fallback while the VPN is switched off, even with gluetun configured", () => {
   saveComponentValues("gluetun", { vpnServiceProvider: "nordvpn" });
   setSetting(VPN_ENABLED_SETTING, "false");

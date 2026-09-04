@@ -8,6 +8,7 @@
 // one-off tweak to a single thing.
 
 import { Router } from "express";
+import { randomUUID } from "node:crypto";
 import { validate, toPublicFields, applyPatch } from "../schema/registry.js";
 import {
   getComponentValues,
@@ -191,6 +192,14 @@ export function createStackRouter() {
 
     const errors = validate(schema, next);
     if (errors.length > 0) return res.status(400).json({ errors });
+
+    // gluetun's control server needs an auth role configured at all (see
+    // renderGluetunSpec) — generated once, on the first save that gives
+    // gluetun any real values, and kept stable under a key the schema
+    // doesn't declare (same convention as an instance's generated _apiKey).
+    if (req.params.kind === "gluetun" && !next._controlServerApiKey) {
+      next._controlServerApiKey = randomUUID();
+    }
 
     saveComponentValues(req.params.kind, next, req.componentKey);
     res.json({ fields: toPublicFields(schema, next) });

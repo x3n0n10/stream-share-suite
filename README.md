@@ -447,10 +447,15 @@ One more thing this needed: the VPN page's own gluetun connection (Settings'
 URL/API key fields) and the Stack page's reconciler-managed gluetun container
 were, until now, two disconnected configurations — creating gluetun via the
 Stack page didn't make the VPN page (or a watchdog) able to reach it without
-also typing a matching URL into Settings by hand. Settings' URL now only
-needs to be set at all for an adopted/external gluetun with its own real
+also typing a matching URL into Settings by hand. Settings' URL/API key now
+only need to be set at all for an adopted/external gluetun with its own real
 authentication; left blank, it falls back to the Suite's own gluetun
-container, unauthenticated, exactly how the Stack page creates it.
+container, using the API key the reconciler generated for it — gluetun's
+control server rejects every route without one configured. That key is
+generated once, the first time gluetun's form is saved with real values, and
+kept stable afterwards, same as an instance's own generated API key; a
+gluetun configured before this shipped needs one resave (open the Stack
+page's gluetun card and hit Save) to pick it up.
 
 ## Data and backups
 

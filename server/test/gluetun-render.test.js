@@ -70,6 +70,19 @@ test("HTTP_CONTROL_SERVER_ADDRESS is fixed regardless of input", async () => {
   assert.equal(spec.env.HTTP_CONTROL_SERVER_ADDRESS, ":8000");
 });
 
+test("HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE is unset when no control-server key has been generated yet", async () => {
+  const spec = await renderGluetunSpec(WIREGUARD_VALUES);
+  assert.equal("HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE" in spec.env, false);
+});
+
+test("HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE carries the stored control-server key as apikey auth", async () => {
+  const spec = await renderGluetunSpec({ ...WIREGUARD_VALUES, _controlServerApiKey: "generated-key" });
+  assert.deepEqual(JSON.parse(spec.env.HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE), {
+    auth: "apikey",
+    apikey: "generated-key",
+  });
+});
+
 test("the networks field is parsed from a comma-separated string, trimmed", async () => {
   const spec = await renderGluetunSpec(WIREGUARD_VALUES);
   assert.deepEqual(spec.networks, ["ssbackend", "nordvpn"]);

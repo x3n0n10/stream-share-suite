@@ -28,10 +28,14 @@ function readGluetun() {
   // An operator who lets the reconciler create gluetun (the Stack page) never
   // has to type its address in a second time here: with no explicit URL, fall
   // back to the same container name and fixed port renderGluetunSpec creates
-  // it under (see reconcile/gluetun.js), unauthenticated exactly like that
-  // spec leaves it. An explicit gluetun.url below always wins — that is what
-  // an adopted/external gluetun with its own real auth still needs.
+  // it under (see reconcile/gluetun.js), authenticated with the same
+  // per-install API key the reconciler gave it — gluetun's control server
+  // rejects every route with no auth configured at all, so "unauthenticated"
+  // is not actually an option any more. An explicit gluetun.url/api_key below
+  // always wins — that is what an adopted/external gluetun with its own real
+  // auth still needs.
   let url = (getSetting("gluetun.url") || "").replace(/\/+$/, "");
+  let managedApiKey = "";
   if (!url) {
     // Only once the operator has actually filled in gluetun's own form on the
     // Stack page — never on isVpnEnabled()'s bare default (true on a totally
@@ -40,6 +44,7 @@ function readGluetun() {
     const gluetunValues = getComponentValues("gluetun");
     if (isVpnEnabled() && Object.keys(gluetunValues).length > 0) {
       url = `http://${gluetunContainerName(gluetunValues)}:8000`;
+      managedApiKey = gluetunValues._controlServerApiKey || "";
     }
   }
   if (!url) return null;
@@ -49,7 +54,7 @@ function readGluetun() {
 
   return {
     url,
-    apiKey: getSetting("gluetun.api_key") || "",
+    apiKey: getSetting("gluetun.api_key") || managedApiKey,
     basicAuth: user && password ? { user, password } : null,
     statusPath: getSetting("gluetun.status_path") || "/v1/vpn/status",
     timeoutMs: Math.max(1000, getNumber("gluetun.timeout_ms", 5000)),

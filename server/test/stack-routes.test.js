@@ -157,6 +157,22 @@ test("the schema's gluetun secret is write-only through the API, same as everywh
   assert.equal(JSON.stringify(read.body).includes("a-real-key"), false);
 });
 
+test("saving gluetun generates a control-server API key once, and keeps it stable on later saves", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+
+  const firstKey = getComponentValues("gluetun")._controlServerApiKey;
+  assert.ok(firstKey, "expected a control-server API key to be generated");
+
+  await c.put("/api/stack/components/gluetun", { ...GLUETUN_VALUES, containerName: "my-gluetun" });
+  assert.equal(getComponentValues("gluetun")._controlServerApiKey, firstKey);
+
+  // Never exposed through the API — same write-only convention as any
+  // other generated credential in this codebase.
+  const read = await c.get("/api/stack/components/gluetun");
+  assert.equal(JSON.stringify(read.body).includes(firstKey), false);
+});
+
 test("saving rejects an incomplete configuration with field-level errors", async () => {
   const c = await signedInClient(base);
   const res = await c.put("/api/stack/components/gluetun", { vpnServiceProvider: "nordvpn" });

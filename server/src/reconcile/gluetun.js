@@ -43,6 +43,20 @@ export async function renderGluetunSpec(values) {
   // there is no reason it would ever need to be anything else.
   env.HTTP_CONTROL_SERVER_ADDRESS = ":8000";
 
+  // gluetun's control server rejects every route with no auth role configured
+  // at all — there is no "unauthenticated but reachable" mode any more. This
+  // key is generated once, on the component's first save (see the gluetun
+  // branch in routes/stack.js's PUT /components/:kind), and kept stable in
+  // storage afterwards under a key the schema doesn't declare — regenerating
+  // it here on every render would make every plan see its own env as changed
+  // and think gluetun needs recreating.
+  if (values._controlServerApiKey) {
+    env.HTTP_CONTROL_SERVER_AUTH_DEFAULT_ROLE = JSON.stringify({
+      auth: "apikey",
+      apikey: values._controlServerApiKey,
+    });
+  }
+
   // Computed rather than asked of the operator: gluetun must accept inbound
   // from whatever subnet the Suite itself is on, or it blocks the Suite's own
   // reach to gluetun's control API and, once instances exist, their traffic
