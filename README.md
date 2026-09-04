@@ -569,7 +569,7 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 3 | Absorb the VPN watchdog: probe scheduling and reconnect-on-blocked, no server reputation tracking | shipped |
 | 4a | Component inventory: live status, health, and image per plan row | shipped |
 | 4b | Hardened Docker agent: pinned/capability-dropped proxy, an app-level privilege allowlist | shipped |
-| 4c | Release channels (pull and recreate on change), component history and rollback, backup/restore | this branch |
+| 4c | Release channels (pull and recreate on change), component history and rollback, backup/restore | shipped |
 
 Phase 1 is the one that changed the Suite's threat model: it was the first
 phase with any access to the Docker API at all, even mediated by the socket
