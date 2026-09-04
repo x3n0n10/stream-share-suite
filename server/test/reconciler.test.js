@@ -62,8 +62,12 @@ function route(method, url, res, body) {
       if (!container) return json(res, 404, { message: "No such container" });
       return json(res, 200, {
         Id: container.Id,
-        Config: { Labels: container.Config.Labels },
-        State: { Status: container.running ? "running" : "exited" },
+        Config: { Labels: container.Config.Labels, Image: container.image || undefined },
+        State: {
+          Status: container.running ? "running" : "exited",
+          Health: container.health ? { Status: container.health } : undefined,
+          RestartCount: container.restartCount,
+        },
       });
     }
     if (method === "POST" && action === "start") {
@@ -132,6 +136,7 @@ function collectLog() {
 test("plans 'create' when no container with the expected name exists", async () => {
   const plan = await planComponent(NODE, SPEC);
   assert.equal(plan.action, "create");
+  assert.equal(plan.runtime, null);
 });
 
 test("applying a 'create' plan creates, joins the second network, and starts", async () => {
@@ -165,6 +170,41 @@ test("plans 'noop' when a managed container already matches the desired spec has
 
   const plan = await planComponent(NODE, SPEC);
   assert.equal(plan.action, "noop");
+});
+
+test("a noop plan's runtime reflects the live container's status, image, and health", async () => {
+  const hash = computeSpecHash(SPEC);
+  containers.set("stream-share-gluetun", {
+    Id: "existing",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", hash) },
+    running: true,
+    image: "qmcgaw/gluetun:v3.40",
+    health: "healthy",
+    restartCount: 2,
+  });
+
+  const plan = await planComponent(NODE, SPEC);
+  assert.deepEqual(plan.runtime, {
+    status: "running",
+    health: "healthy",
+    restartCount: 2,
+    image: "qmcgaw/gluetun:v3.40",
+  });
+});
+
+test("a stopped container's runtime has no health when the image sets none", async () => {
+  const hash = computeSpecHash(SPEC);
+  containers.set("stream-share-gluetun", {
+    Id: "existing",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", hash) },
+    running: false,
+  });
+
+  const plan = await planComponent(NODE, SPEC);
+  assert.equal(plan.runtime.status, "exited");
+  assert.equal(plan.runtime.health, null);
 });
 
 test("applying a 'noop' plan makes no Docker calls beyond the inspect already used to plan", async () => {

@@ -391,6 +391,15 @@ are reported as orphaned and left running. Apply never removes them — that is
 a separate action with its own confirmation, because the reconciler should not
 destroy a container it can no longer describe.
 
+**Component inventory.** Deciding create/recreate/adopt/noop already means
+inspecting every container the plan mentions, so each row also shows what
+that inspect found: whether it's actually running right now, its image, its
+restart count, and — for an image that defines one — its Docker healthcheck
+status. That is a different question from the action badge next to it: a
+`noop` row (nothing to change) can still be a container stuck restarting.
+Nothing new is inspected to show this; it's the same Docker call the plan
+already makes, just no longer discarded.
+
 ### Turning the VPN off (and back on)
 
 Whether traffic routes through gluetun is one stack-wide setting rather than a
@@ -491,8 +500,9 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 2a | Many components per kind, the dependency graph and cascade, the stack plan, the VPN toggle | shipped |
 | 2b | Instances the Suite creates: container specs, port bands, per-instance databases, computed URLs | shipped |
 | 2c | Import from running containers, Caddy routes, the setup wizard | shipped |
-| 3 | Absorb the VPN watchdog: probe scheduling and reconnect-on-blocked, no server reputation tracking | this branch |
-| 4 | Component inventory, release channels, rollback, backup/restore, hardened Docker agent | planned |
+| 3 | Absorb the VPN watchdog: probe scheduling and reconnect-on-blocked, no server reputation tracking | shipped |
+| 4a | Component inventory: live status, health, and image per plan row | this branch |
+| 4b | Release channels, rollback, backup/restore, hardened Docker agent | planned |
 
 Phase 1 is the one that changed the Suite's threat model: it was the first
 phase with any access to the Docker API at all, even mediated by the socket
