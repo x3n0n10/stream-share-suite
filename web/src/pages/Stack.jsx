@@ -53,7 +53,7 @@ function RuntimeBadges({ runtime }) {
   );
 }
 
-export default function Stack() {
+export default function Stack({ pollIntervalMs = 15000 }) {
   const [dockerReachable, setDockerReachable] = useState(null);
   const [components, setComponents] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -98,6 +98,16 @@ export default function Stack() {
     reload();
     return () => clearTimeout(pollRef.current);
   }, [reload]);
+
+  // A container's own status can keep settling for a moment after a job
+  // finishes (a health check's start_period, say) — the one refresh right
+  // after Apply/Check for updates completes can catch it mid-transition,
+  // same as every other status this app polls rather than fetches once.
+  useEffect(() => {
+    if (!dockerReachable) return;
+    const id = setInterval(refreshPlan, pollIntervalMs);
+    return () => clearInterval(id);
+  }, [dockerReachable, refreshPlan, pollIntervalMs]);
 
   function pollJob(jobId) {
     clearTimeout(pollRef.current);

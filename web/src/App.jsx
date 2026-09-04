@@ -94,7 +94,7 @@ export default function App() {
         <Route path="/vpn" element={<Vpn pollIntervalMs={pollIntervalMs} />} />
         <Route path="/vod" element={<Vod />} />
         <Route path="/settings" element={<Settings onConfigChanged={loadConfig} />} />
-        <Route path="/stack" element={<Stack />} />
+        <Route path="/stack" element={<Stack pollIntervalMs={pollIntervalMs} />} />
         <Route path="/setup" element={<Setup />} />
       </Routes>
     </ConfigProvider>
