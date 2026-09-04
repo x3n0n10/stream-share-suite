@@ -36,6 +36,22 @@ import { validate } from "../schema/registry.js";
 import { activeComponents, inactiveComponents } from "./catalog.js";
 import { orderComponents, applyCascade, summarize } from "./graph.js";
 
+// The plan already inspects every container to decide create/recreate/adopt/
+// noop — this just keeps the bit of that inspect result worth showing an
+// operator (is it actually running, is it healthy, what image is it really
+// on) instead of discarding everything but the labels. `existing` is a full
+// `inspectContainer` result, or null when nothing exists yet.
+function runtimeFrom(existing) {
+  if (!existing) return null;
+  const state = existing.State || {};
+  return {
+    status: state.Status || "unknown",
+    health: state.Health?.Status || null,
+    restartCount: state.RestartCount ?? null,
+    image: existing.Config?.Image || null,
+  };
+}
+
 // Plans one component against what is actually deployed. `node` carries the
 // component's identity and its edges; the edges are copied onto the plan so
 // the cascade pass can work from plans alone.
@@ -54,6 +70,7 @@ export async function planComponent(node, spec) {
     warnings: [],
     spec,
     desiredHash,
+    runtime: runtimeFrom(existing),
   };
 
   if (!existing) {
@@ -120,6 +137,9 @@ async function findOrphans(activeIds) {
         namespaceHost: null,
         cascadedFrom: null,
         warnings: [],
+        // A listContainers row, not an inspect result — top-level Status/Image
+        // strings, no Health. Good enough for a row about to be removed.
+        runtime: { status: container.State || "unknown", health: null, restartCount: null, image: container.Image || null },
       };
     })
     .filter(Boolean);
@@ -159,6 +179,7 @@ async function findDisabled(nodes) {
       namespaceHost: null,
       cascadedFrom: null,
       warnings: [],
+      runtime: runtimeFrom(existing),
     });
   }
 

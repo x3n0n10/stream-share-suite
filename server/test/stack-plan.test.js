@@ -152,6 +152,7 @@ test("a managed container whose component left the stack is reported as orphaned
   assert.ok(orphan, "expected the running gluetun to be reported once it left the stack");
   assert.equal(orphan.containerId, "gluetun-id");
   assert.equal(orphan.containerName, "streamshare-suite-gluetun");
+  assert.ok(orphan.runtime, "an orphan row should still carry a runtime object");
 });
 
 test("an orphan is never counted as a change — removing it is its own action", async () => {
@@ -284,6 +285,7 @@ test("an adopted container is reported as switched off, not silently dropped", a
   assert.equal(row.containerId, "someone-elses-gluetun");
   assert.equal(row.containerName, "streamshare-suite-gluetun");
   assert.match(row.reason, /still running/i);
+  assert.ok(row.runtime, "a switched-off-but-running row should still carry a runtime object");
 });
 
 test("a switched-off component with nothing running produces no row at all", async () => {

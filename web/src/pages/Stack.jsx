@@ -23,6 +23,35 @@ function ActionBadge({ action }) {
   return <Badge tone={copy.tone}>{copy.label}</Badge>;
 }
 
+// Live container state, alongside the action badge's config-drift verdict —
+// "will this change" and "is this actually running right now" are different
+// questions, and a noop row can still be a container stuck restarting.
+const RUNTIME_STATUS = {
+  running: { label: "Running", tone: "green" },
+  restarting: { label: "Restarting", tone: "amber" },
+  paused: { label: "Paused", tone: "amber" },
+  exited: { label: "Stopped", tone: "rose" },
+  dead: { label: "Dead", tone: "rose" },
+  created: { label: "Created", tone: "slate" },
+};
+const HEALTH = {
+  healthy: { label: "Healthy", tone: "green" },
+  unhealthy: { label: "Unhealthy", tone: "rose" },
+  starting: { label: "Starting", tone: "amber" },
+};
+
+function RuntimeBadges({ runtime }) {
+  if (!runtime) return null;
+  const status = RUNTIME_STATUS[runtime.status] || { label: runtime.status, tone: "slate" };
+  const health = runtime.health && HEALTH[runtime.health];
+  return (
+    <>
+      <Badge tone={status.tone}>{status.label}</Badge>
+      {health && <Badge tone={health.tone}>{health.label}</Badge>}
+    </>
+  );
+}
+
 export default function Stack() {
   const [dockerReachable, setDockerReachable] = useState(null);
   const [components, setComponents] = useState([]);
@@ -775,6 +804,14 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
           {row.spec?.name || row.containerName || row.label}
         </p>
         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{row.reason}</p>
+        {row.runtime && (
+          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+            <RuntimeBadges runtime={row.runtime} />
+            {row.runtime.image && (
+              <span className="font-mono text-slate-400 dark:text-slate-500">{row.runtime.image}</span>
+            )}
+          </p>
+        )}
         {(row.warnings || []).map((warning) => (
           <p key={warning} className="mt-1 text-xs text-amber-600 dark:text-amber-400">
             {warning}
