@@ -65,6 +65,32 @@ const post = (path, body) => request("POST", path, { body });
 const put = (path, body) => request("PUT", path, { body });
 const del = (path) => request("DELETE", path);
 
+// The one request in this app that isn't JSON in either direction — a raw
+// file upload — so it can't go through request() above, which always
+// stringifies its body and sets a JSON content type.
+async function uploadFile(path, file) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      ...(csrfToken ? { "X-Suite-CSRF": csrfToken } : {}),
+    },
+    body: file,
+  });
+
+  const payload = await res.json().catch(() => ({}));
+
+  if (res.status === 401) {
+    csrfToken = null;
+    onUnauthorized(payload);
+  }
+
+  if (!res.ok) {
+    throw new ApiError(payload.error || `Request to ${path} failed: HTTP ${res.status}`, res.status, payload);
+  }
+  return payload;
+}
+
 // True until the first /api/overview of this page load comes back. It asks the
 // instances to re-read their provider subscription from the provider instead of
 // serving their cached copy, so a freshly opened dashboard shows current numbers
@@ -148,10 +174,16 @@ export const api = {
   componentFields: (kind, key) => get(`/api/stack/components/${kind}`, { key }),
   saveComponent: (kind, payload) => put(`/api/stack/components/${kind}`, payload),
   componentPlan: (kind) => get(`/api/stack/components/${kind}/plan`),
+  componentHistory: (kind, key) => get(`/api/stack/components/${kind}/history`, { key }),
+  restoreComponentHistory: (kind, id, key) =>
+    request("POST", `/api/stack/components/${kind}/history/${id}/restore`, { params: { key } }),
   applyComponent: (kind, payload) => post(`/api/stack/components/${kind}/apply`, payload),
+  pullComponent: (kind, key) => request("POST", `/api/stack/components/${kind}/pull`, { params: { key } }),
   job: (jobId) => get(`/api/stack/jobs/${jobId}`),
   importCandidates: () => get("/api/stack/import/candidates"),
   importCandidate: (containerId, kind) => post("/api/stack/import", { containerId, kind }),
+
+  restoreBackup: (file) => uploadFile("/api/backup/restore", file),
 };
 
 export { ApiError };

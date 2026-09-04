@@ -87,12 +87,15 @@ services:
   # gets unmediated access to the thing that lets it do that; see the
   # blueprint's threat-model section for the reasoning.
   #
-  # Everything not explicitly granted below defaults to denied. The three
-  # flags here are exactly what the reconciler calls today — CONTAINERS for
+  # Everything not explicitly granted below defaults to denied. The flags
+  # here are exactly what the reconciler calls today — CONTAINERS for
   # create/inspect/start/stop/remove, NETWORKS for joining a second network
   # after creation, POST because the proxy denies every method but GET/HEAD
-  # unless it's turned on. Widen this only alongside new reconciler code that
-  # actually needs it, never ahead of it.
+  # unless it's turned on, IMAGES for pulling a component's own already-
+  # configured image tag (never an arbitrary one) so "release channels" can
+  # tell a mutable tag apart from a stale local copy of it. IMAGES is the
+  # first widening since this proxy was introduced — done for the specific
+  # reconciler code that needs it, never ahead of it, same rule as always.
   #
   # The same "least privilege, deny by default" reasoning also applies to the
   # container itself, not just the API surface it exposes: pinned to a real
@@ -116,6 +119,7 @@ services:
     environment:
       CONTAINERS: 1
       NETWORKS: 1
+      IMAGES: 1
       POST: 1
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro

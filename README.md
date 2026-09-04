@@ -492,6 +492,58 @@ Everything else under `SUITE_DATA_DIR` (each component's own subfolder) and
 under the cache path is runtime state stream-share itself manages — useful to
 keep, but reconstructible, not the source of truth the way `suite.db` is.
 
+**Download and restore.** Settings has a "Backup & restore" section that does
+this for you: **Download backup** takes a consistent snapshot (via SQLite's
+own `VACUUM INTO`, so a write in progress elsewhere can never produce a torn
+copy) and streams it straight down. **Restore from backup** replaces the live
+file with an uploaded one — closing the store, swapping the file, and
+reopening it, without restarting the Suite itself. A copy of what was
+running is always kept alongside the live file first, so an upload that
+turns out not to be a valid Suite database restores that copy rather than
+leaving the Suite unable to start. Restoring an older backup also restores
+whatever admin password and sessions were current at the time, so expect to
+be signed out and need to log back in with that backup's password if it
+differs from your current one.
+
+### Component history and rollback
+
+Every time a component's stored configuration actually changes — through the
+Stack page, an instance edit, adoption, anything that calls the same save
+path — the previous values are kept, up to the last 10 versions per
+component. Each component's card (and each instance's edit panel) has a
+"History" disclosure listing them by time, with a **Restore** button per
+entry.
+
+Restoring only changes what's stored; it does not touch Docker on its own.
+Like any other edit, the Stack page's plan shows what restoring changed
+(almost always a "recreate"), and applying it is a separate, explicit step —
+exactly the same as saving new values by hand. Restoring is itself just
+another save, so it shows up in history too: restoring, then restoring the
+version before that, works with no special casing.
+
+### Release channels: checking for updates
+
+A component's `image` field is always a specific tag — `qmcgaw/gluetun:latest`,
+`postgres:14-alpine`, whatever you've set. Most of those tags are mutable: the
+same tag can point at different content over time as the upstream project
+publishes new builds under it. Editing the field to a new tag already
+triggers a recreate on its own; what didn't exist before is a way to notice
+that the *same* tag now points at something newer.
+
+Each component's card (and each instance row) has a **Check for updates**
+button: it pulls that component's own already-configured image and, only if
+the pull actually produced different content than what's currently running,
+recreates the container. A tag that hasn't changed upstream is a no-op — nothing
+is pulled speculatively, and nothing is pulled at all unless you ask, since
+the stack plan is read-only and side-effect-free by design (it runs on every
+page load) and a network pull can never be something that happens implicitly.
+
+This needed one new Docker permission — `IMAGES`, alongside the
+`CONTAINERS`/`NETWORKS`/`POST` the socket-proxy already had — to pull an
+image at all. It is scoped to exactly that: pulling a component's own
+configured tag, never an arbitrary image, and it is the first widening of
+the proxy's allowlist since it was introduced.
+
 ## Development
 
 ```sh
@@ -516,8 +568,8 @@ cd server && SUITE_DATA_DIR=../data PORT=3000 npm start
 | 2c | Import from running containers, Caddy routes, the setup wizard | shipped |
 | 3 | Absorb the VPN watchdog: probe scheduling and reconnect-on-blocked, no server reputation tracking | shipped |
 | 4a | Component inventory: live status, health, and image per plan row | shipped |
-| 4b | Hardened Docker agent: pinned/capability-dropped proxy, an app-level privilege allowlist | this branch |
-| 4c | Release channels, rollback, backup/restore | planned |
+| 4b | Hardened Docker agent: pinned/capability-dropped proxy, an app-level privilege allowlist | shipped |
+| 4c | Release channels (pull and recreate on change), component history and rollback, backup/restore | this branch |
 
 Phase 1 is the one that changed the Suite's threat model: it was the first
 phase with any access to the Docker API at all, even mediated by the socket

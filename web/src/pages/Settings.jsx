@@ -373,6 +373,7 @@ export default function Settings({ onConfigChanged }) {
         {settings && <GluetunSection settings={settings} onSave={saveSettings} />}
         {settings && <GeneralSection settings={settings} onSave={saveSettings} />}
         <PasswordSection />
+        <BackupSection />
       </div>
     </Layout>
   );
@@ -505,6 +506,77 @@ function GeneralSection({ settings, onSave }) {
           />
         </Field>
       </div>
+    </Section>
+  );
+}
+
+function BackupSection() {
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [done, setDone] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  async function restore() {
+    setConfirming(false);
+    setBusy(true);
+    setError(null);
+    setDone(false);
+    try {
+      await api.restoreBackup(file);
+      setFile(null);
+      setDone(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section
+      title="Backup & restore"
+      description="Every credential, instance definition and component setting lives in one file. Download it before a risky change."
+    >
+      <div>
+        <Button tone="default" onClick={() => window.location.assign("/api/backup")}>
+          Download backup
+        </Button>
+      </div>
+
+      <div className="mt-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        <Field
+          label="Restore from a backup file"
+          hint="Replaces everything currently stored — every credential and setting — with what's in the file. Signs everyone out."
+        >
+          <input
+            type="file"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-slate-700 hover:file:bg-slate-200 dark:text-slate-400 dark:file:bg-slate-800 dark:file:text-slate-300 dark:hover:file:bg-slate-700"
+          />
+        </Field>
+        <div className="mt-3">
+          <Button tone="rose" loading={busy} disabled={!file} onClick={() => setConfirming(true)}>
+            Restore from backup
+          </Button>
+        </div>
+      </div>
+
+      {error && <ErrorNote message={error} />}
+      {done && (
+        <p className="text-xs text-emerald-700 dark:text-emerald-400">
+          Restored. Reload the page — you'll need to sign in again if this backup predates your session.
+        </p>
+      )}
+
+      <ConfirmDialog
+        open={confirming}
+        title="Restore from this backup?"
+        body="This replaces every credential, instance definition and component setting currently stored with what's in the file, and will sign everyone out. This cannot be undone from here — make sure you have a current backup first if you want to keep what's there now."
+        confirmLabel="Restore"
+        onConfirm={restore}
+        onCancel={() => setConfirming(false)}
+      />
     </Section>
   );
 }

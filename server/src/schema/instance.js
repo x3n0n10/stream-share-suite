@@ -231,7 +231,7 @@ export const INSTANCE_SCHEMA = {
       key: "image",
       envVar: null,
       label: "Image",
-      help: "Release channels arrive in phase 4; until then this is the tag it runs.",
+      help: "Use \"Check for updates\" on this instance to pull this tag and recreate only if it actually changed.",
       group: "Container",
       default: "ghcr.io/x3n0n10/stream-share:latest",
       advanced: true,

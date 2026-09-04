@@ -52,6 +52,27 @@ export function apiClient(base) {
       csrf = null;
     },
     hasCookie: () => !!cookie,
+
+    // For the one pair of endpoints that isn't JSON in and out — a file
+    // download, a raw file upload — same cookie/CSRF plumbing as call()
+    // above, without assuming either side speaks JSON.
+    async getBuffer(p) {
+      const res = await fetch(`${base}${p}`, { headers: cookie ? { Cookie: cookie } : {} });
+      return { status: res.status, buffer: Buffer.from(await res.arrayBuffer()) };
+    },
+    async postBuffer(p, buffer, contentType) {
+      const res = await fetch(`${base}${p}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": contentType,
+          ...(cookie ? { Cookie: cookie } : {}),
+          ...(csrf ? { "X-Suite-CSRF": csrf } : {}),
+        },
+        body: buffer,
+      });
+      const json = await res.json().catch(() => ({}));
+      return { status: res.status, body: json };
+    },
   };
 }
 
