@@ -15,6 +15,8 @@ import {
   saveComponentValues,
   componentId,
   listComponents,
+  listComponentHistory,
+  getComponentHistoryEntry,
 } from "../store/components.js";
 import { setSetting, getNumber } from "../store/settings.js";
 import {
@@ -26,7 +28,14 @@ import {
   isCaddyEnabled,
   CADDY_ENABLED_SETTING,
 } from "../reconcile/catalog.js";
-import { planComponent, planStack, applyPlan, applyStack, removeOrphan } from "../reconcile/reconciler.js";
+import {
+  planComponent,
+  planStack,
+  applyPlan,
+  applyStack,
+  removeOrphan,
+  checkForUpdate,
+} from "../reconcile/reconciler.js";
 import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
 import { ping, DockerError } from "../docker/client.js";
 import {
@@ -205,6 +214,30 @@ export function createStackRouter() {
     res.json({ fields: toPublicFields(schema, next) });
   });
 
+  // Past versions of this component's stored values, newest first — never
+  // the raw config_json (which can hold secrets), same write-only convention
+  // as the component's *current* values, which are also only ever projected
+  // through toPublicFields.
+  router.get("/components/:kind/history", componentOr404, (req, res) => {
+    const entries = listComponentHistory(req.params.kind, req.componentKey);
+    res.json({ history: entries });
+  });
+
+  // Restoring is just another save of the values from that point in time —
+  // it does not touch Docker. Like any other edit, the operator sees the
+  // resulting plan (almost always "recreate") and applies it the normal way.
+  router.post("/components/:kind/history/:id/restore", componentOr404, (req, res) => {
+    const entry = getComponentHistoryEntry(Number(req.params.id));
+    if (!entry || entry.kind !== req.params.kind || entry.key !== req.componentKey) {
+      return res.status(404).json({ error: "Unknown history entry" });
+    }
+
+    const { schema } = req.componentEntry;
+    const values = JSON.parse(entry.config_json);
+    saveComponentValues(req.params.kind, values, req.componentKey);
+    res.json({ fields: toPublicFields(schema, values) });
+  });
+
   // The whole stack, ordered, with the cascade applied. Read-only and
   // side-effect-free, so the frontend can call it on every load of the page.
   router.get("/plan", async (req, res) => {
@@ -262,6 +295,28 @@ export function createStackRouter() {
       const plan = await planComponent(node, await node.render(values, node.key));
       log(`Plan: ${plan.action}.`);
       await applyPlan(plan, { log, takeover });
+    });
+  });
+
+  // Pulls this component's own already-configured image and recreates it
+  // only if that actually produced different content — see checkForUpdate.
+  // Same shape as /apply (job-based, componentOr404 gives it the ?key=
+  // convention for free, so this works for an instance without any special
+  // casing), deliberately a separate action rather than folded into /apply:
+  // planStack()/plan is called on every page load and must stay side-effect-
+  // free, so a network pull can never be something that happens implicitly.
+  router.post("/components/:kind/pull", componentOr404, async (req, res) => {
+    const node = activeNode(req.params.kind, req.componentKey);
+    if (!node) {
+      return res.status(409).json({ error: `${req.params.kind} is not part of the stack right now` });
+    }
+
+    const values = getComponentValues(req.params.kind, req.componentKey);
+    const errors = validate(node.schema, values);
+    if (errors.length > 0) return res.status(400).json({ errors });
+
+    startJob(res, req.params.kind, async (log) => {
+      await checkForUpdate(node, await node.render(values, node.key), { log });
     });
   });
 

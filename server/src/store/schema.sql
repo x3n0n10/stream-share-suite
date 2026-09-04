@@ -88,3 +88,20 @@ CREATE TABLE IF NOT EXISTS components (
   updated_at           TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (kind, key)
 );
+
+-- A capped trail of a component's previous config_json values, written by
+-- saveComponentValues() just before it overwrites the live row above (see
+-- store/components.js) — restoring one is itself just another save, so it's
+-- itself recorded here, and undo-of-undo needs nothing special. Holds the
+-- same plaintext secrets the live row already does; the write-only
+-- convention that keeps a secret from reaching the HTTP API is enforced at
+-- that layer (toPublicFields), not in storage, same as the live row.
+CREATE TABLE IF NOT EXISTS component_history (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind        TEXT NOT NULL,
+  key         TEXT NOT NULL DEFAULT '',
+  config_json TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_component_history_lookup
+  ON component_history (kind, key, created_at DESC);

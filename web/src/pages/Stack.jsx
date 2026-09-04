@@ -5,6 +5,7 @@ import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../components/com
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
 import { previewContainerName, previewContainerNameForKey } from "../lib/containerName.js";
+import { formatDateTime } from "../lib/format.js";
 
 // How each plan action reads on screen. The wording matters more than usual
 // here: this is the last thing anyone sees before containers get replaced.
@@ -52,7 +53,7 @@ function RuntimeBadges({ runtime }) {
   );
 }
 
-export default function Stack() {
+export default function Stack({ pollIntervalMs = 15000 }) {
   const [dockerReachable, setDockerReachable] = useState(null);
   const [components, setComponents] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -97,6 +98,16 @@ export default function Stack() {
     reload();
     return () => clearTimeout(pollRef.current);
   }, [reload]);
+
+  // A container's own status can keep settling for a moment after a job
+  // finishes (a health check's start_period, say) — the one refresh right
+  // after Apply/Check for updates completes can catch it mid-transition,
+  // same as every other status this app polls rather than fetches once.
+  useEffect(() => {
+    if (!dockerReachable) return;
+    const id = setInterval(refreshPlan, pollIntervalMs);
+    return () => clearInterval(id);
+  }, [dockerReachable, refreshPlan, pollIntervalMs]);
 
   function pollJob(jobId) {
     clearTimeout(pollRef.current);
@@ -193,6 +204,8 @@ export default function Stack() {
           onAdd={addInstance}
           onEdit={editInstance}
           onRemove={setInstanceToRemove}
+          onPull={(key) => runJob(() => api.pullComponent("instance", key))}
+          onRestored={reload}
         />
 
         {/* Instances have their own card above — these are the singletons. */}
@@ -207,6 +220,7 @@ export default function Stack() {
               onApplyTakeover={() =>
                 runJob(() => api.applyComponent(component.kind, { takeover: true }))
               }
+              onPull={() => runJob(() => api.pullComponent(component.kind))}
               takeoverAvailable={
                 plan?.plans.some((row) => row.kind === component.kind && row.action === "adopt") || false
               }
@@ -566,7 +580,7 @@ function ImportCard({ onImported }) {
   );
 }
 
-function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEdit, onRemove }) {
+function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEdit, onRemove, onPull, onRestored }) {
   const [adding, setAdding] = useState(false);
   const [addFields, setAddFields] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -672,6 +686,14 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEd
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <button
+                    onClick={() => onPull(instance.key)}
+                    disabled={busy}
+                    title="Pull this instance's own configured image tag and recreate only if it actually changed"
+                    className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+                  >
+                    Check for updates
+                  </button>
+                  <button
                     onClick={() => toggleEditing(instance.key)}
                     disabled={busy}
                     className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
@@ -707,6 +729,16 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEd
                       )}
                     />
                   )}
+
+                  <HistoryPanel
+                    kind="instance"
+                    componentKey={instance.key}
+                    busy={busy}
+                    onRestored={async () => {
+                      setEditFields(null);
+                      await onRestored();
+                    }}
+                  />
                 </div>
               )}
             </li>
@@ -833,7 +865,88 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
   );
 }
 
-function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTakeover }) {
+// Past versions of one component's stored values, with a restore button per
+// entry. Reused by both ComponentCard (a singleton, key="") and each
+// instance row. Restoring only changes stored config — like any other edit,
+// applying the resulting plan is a separate, explicit step.
+function HistoryPanel({ kind, componentKey = "", busy, onRestored }) {
+  const [open, setOpen] = useState(false);
+  const [entries, setEntries] = useState(null);
+  const [confirmId, setConfirmId] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+
+  useEffect(() => {
+    if (!open || entries) return;
+    api.componentHistory(kind, componentKey).then((res) => setEntries(res.history));
+  }, [open, entries, kind, componentKey]);
+
+  async function restore(id) {
+    setConfirmId(null);
+    setRestoring(true);
+    try {
+      await api.restoreComponentHistory(kind, id, componentKey);
+      setEntries(null);
+      await onRestored();
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        disabled={busy}
+        className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+      >
+        {open ? "Hide history" : "History"}
+      </button>
+
+      {open && (
+        <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-800">
+          {entries === null ? (
+            <p className="px-3 py-2 text-xs text-slate-400">Loading…</p>
+          ) : entries.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+              No earlier versions saved yet.
+            </p>
+          ) : (
+            <ul>
+              {entries.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2 text-xs last:border-b-0 dark:border-slate-800"
+                >
+                  <span className="text-slate-600 dark:text-slate-300">
+                    {formatDateTime(`${entry.created_at.replace(" ", "T")}Z`)}
+                  </span>
+                  <button
+                    onClick={() => setConfirmId(entry.id)}
+                    disabled={busy || restoring}
+                    className="font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+                  >
+                    Restore
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmId !== null}
+        title="Restore this version?"
+        body="This replaces the currently saved configuration with this earlier one. Nothing is applied to Docker until you Apply."
+        confirmLabel="Restore"
+        onConfirm={() => restore(confirmId)}
+        onCancel={() => setConfirmId(null)}
+      />
+    </div>
+  );
+}
+
+function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTakeover, onPull }) {
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -858,6 +971,12 @@ function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTak
     }
   }
 
+  async function refreshAfterRestore() {
+    const result = await api.componentFields(component.kind);
+    setFields(result.fields);
+    await onSaved();
+  }
+
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -869,6 +988,16 @@ function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTak
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!component.active && <Badge tone="slate">Not in the stack</Badge>}
+          {component.active && (
+            <button
+              onClick={onPull}
+              disabled={busy}
+              title="Pull this component's own configured image tag and recreate only if it actually changed"
+              className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+            >
+              Check for updates
+            </button>
+          )}
           <button
             onClick={() => setOpen((v) => !v)}
             className="text-xs font-medium text-accent-600 hover:underline dark:text-accent-400"
@@ -891,6 +1020,8 @@ function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTak
               submitLabel="Save configuration"
             />
           )}
+
+          <HistoryPanel kind={component.kind} busy={busy} onRestored={refreshAfterRestore} />
 
           {takeoverAvailable && (
             <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">

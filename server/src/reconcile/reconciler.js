@@ -28,6 +28,8 @@ import {
   stopContainer,
   removeContainer,
   connectNetwork,
+  pullImage,
+  inspectImage,
 } from "../docker/client.js";
 import { computeSpecHash, toCreatePayload } from "../docker/spec.js";
 import { LABEL_MANAGED, LABEL_SPEC_HASH, managedLabels, isManaged, componentOf } from "../docker/labels.js";
@@ -49,6 +51,13 @@ function runtimeFrom(existing) {
     health: state.Health?.Status || null,
     restartCount: state.RestartCount ?? null,
     image: existing.Config?.Image || null,
+    // The content the container actually runs, as opposed to Config.Image
+    // above (the name/tag it was asked for) — Docker inspect carries this as
+    // a top-level field. A mutable tag like ":latest" renders the same spec
+    // (and the same desiredHash) whether or not a newer build has appeared
+    // upstream, so this is the only way to tell "the same tag" apart from
+    // "the same content" — see checkForUpdate below.
+    imageId: existing.Image || null,
   };
 }
 
@@ -314,6 +323,40 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
 
   log("Done.");
   return created.Id;
+}
+
+// Pulls a component's own already-configured image and recreates the
+// container only if the pull actually produced different content than what's
+// running — the normal spec-hash plan can't see this on its own, since a
+// mutable tag like ":latest" renders the same spec (and the same
+// desiredHash) whether or not a newer build has appeared upstream. Reuses
+// applyPlan for the actual effect rather than duplicating its stop/remove/
+// create/start sequence.
+export async function checkForUpdate(node, spec, { log = () => {} } = {}) {
+  const plan = await planComponent(node, spec);
+
+  if (!["create", "noop", "recreate"].includes(plan.action)) {
+    log(`${plan.label}: ${plan.reason} — pulling an image doesn't apply here.`);
+    return applyPlan(plan, { log });
+  }
+
+  log(`Pulling ${spec.image}...`);
+  await pullImage(spec.image);
+
+  if (plan.action === "noop") {
+    const pulled = await inspectImage(spec.image);
+    const pulledId = pulled?.Id || null;
+    if (pulledId && pulledId !== plan.runtime?.imageId) {
+      log(`A newer image was pulled for ${spec.image}.`);
+      return applyPlan(
+        { ...plan, action: "recreate", reason: "A newer image was pulled", previousHash: plan.desiredHash },
+        { log }
+      );
+    }
+    log(`${spec.image} is already up to date.`);
+  }
+
+  return applyPlan(plan, { log });
 }
 
 // The actions a stack apply carries out. Everything else is either nothing to

@@ -9,7 +9,7 @@
 import { test, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { openDatabase, closeDatabase, SCHEMA_VERSION } from "../src/store/db.js";
@@ -121,4 +121,26 @@ test("a fresh store is created at the current version without migrating", () => 
   db.prepare("INSERT INTO components (kind, key, config_json) VALUES (?, ?, ?)").run("instance", "a", "{}");
   db.prepare("INSERT INTO components (kind, key, config_json) VALUES (?, ?, ?)").run("instance", "b", "{}");
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM components").get().n, 2);
+});
+
+test("a file that isn't a real database fails to open, and a later call against a good file recovers", () => {
+  // A DatabaseSync handle constructs fine over garbage bytes — SQLite only
+  // validates the format on first real read, which happens inside
+  // openDatabase() itself. If that failure left the module's db reference
+  // set to the broken handle, the guard at the top of openDatabase() would
+  // hand that same broken handle back forever, and nothing — a restart, a
+  // restore rolling back to a safety copy — could ever recover from it.
+  const dir = mkdtempSync(path.join(tmpdir(), "suite-corrupt-"));
+  dirs.push(dir);
+  writeFileSync(path.join(dir, "suite.db"), "SQLite format 3\0not a real database");
+
+  assert.throws(() => openDatabase(dir));
+
+  // Stands in for what a real recovery does — replace the bad file with a
+  // good one — to isolate what this test actually checks: that openDatabase
+  // itself is retryable after a failure, not stuck returning the broken
+  // handle it made on the first attempt.
+  rmSync(path.join(dir, "suite.db"));
+  const recovered = openDatabase(dir);
+  assert.equal(recovered.prepare("SELECT version FROM schema_version LIMIT 1").get().version, SCHEMA_VERSION);
 });

@@ -120,6 +120,15 @@ function routeDocker(method, url, res, body) {
     return res.writeHead(200).end();
   }
 
+  if (method === "POST" && url.pathname === "/v1.43/images/create") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ status: "Status: Downloaded newer image" }));
+  }
+
+  if (method === "GET" && /^\/v1\.43\/images\/[^/]+\/json$/.test(url.pathname)) {
+    return json(res, 200, { Id: "sha256:pulled" });
+  }
+
   json(res, 500, { message: `unhandled ${method} ${url.pathname}` });
 }
 
@@ -173,6 +182,44 @@ test("saving gluetun generates a control-server API key once, and keeps it stabl
   assert.equal(JSON.stringify(read.body).includes(firstKey), false);
 });
 
+test("history is empty right after the first save, then gains an entry on the next real change", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+
+  const first = await c.get("/api/stack/components/gluetun/history");
+  assert.deepEqual(first.body.history, []);
+
+  await c.put("/api/stack/components/gluetun", { ...GLUETUN_VALUES, containerName: "renamed" });
+  const second = await c.get("/api/stack/components/gluetun/history");
+  assert.equal(second.body.history.length, 1);
+  assert.ok(second.body.history[0].id);
+  assert.ok(second.body.history[0].created_at);
+  // Never the raw config_json — same write-only convention as the current
+  // values, which are also only ever projected through toPublicFields.
+  assert.equal("config_json" in second.body.history[0], false);
+});
+
+test("restoring a history entry brings back its values, without touching Docker", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+  await c.put("/api/stack/components/gluetun", { ...GLUETUN_VALUES, containerName: "renamed" });
+
+  const { history } = (await c.get("/api/stack/components/gluetun/history")).body;
+  const restoreRes = await c.post(`/api/stack/components/gluetun/history/${history[0].id}/restore`, {});
+  assert.equal(restoreRes.status, 200);
+
+  const fields = restoreRes.body.fields;
+  assert.notEqual(fields.find((f) => f.key === "containerName").value, "renamed");
+  assert.equal(containers.size, 0, "restoring a saved value must never touch Docker");
+});
+
+test("restoring an unknown history id is a 404", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+  const res = await c.post("/api/stack/components/gluetun/history/999999/restore", {});
+  assert.equal(res.status, 404);
+});
+
 test("saving rejects an incomplete configuration with field-level errors", async () => {
   const c = await signedInClient(base);
   const res = await c.put("/api/stack/components/gluetun", { vpnServiceProvider: "nordvpn" });
@@ -211,6 +258,26 @@ test("apply returns a job id immediately and the job reaches success", async () 
   assert.equal(job.status, "success");
   assert.ok(job.log.some((l) => l.line.includes("Creating")));
   assert.ok(containers.has("streamshare-suite-gluetun"));
+});
+
+test("pull returns a job id immediately and pulls before creating on a fresh install", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+
+  const pullRes = await c.post("/api/stack/components/gluetun/pull", {});
+  assert.equal(pullRes.status, 202);
+  assert.ok(pullRes.body.jobId);
+
+  const job = await waitForJob(c, pullRes.body.jobId);
+  assert.equal(job.status, "success");
+  assert.ok(job.log.some((l) => l.line.includes("Pulling")));
+  assert.ok(containers.has("streamshare-suite-gluetun"));
+});
+
+test("pull on an unconfigured component is a 400, not a crash", async () => {
+  const c = await signedInClient(base);
+  const res = await c.post("/api/stack/components/gluetun/pull", {});
+  assert.equal(res.status, 400);
 });
 
 test("a second apply with an unchanged configuration reaches a noop success", async () => {

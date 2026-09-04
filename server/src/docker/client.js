@@ -123,6 +123,54 @@ export async function connectNetwork(networkName, containerId) {
   await parseJsonOrThrow(res, `connectNetwork(${networkName}, ${containerId})`);
 }
 
+export async function inspectImage(idOrName) {
+  const res = await request("GET", `/images/${encodeURIComponent(idOrName)}/json`);
+  if (res.status === 404) return null;
+  return parseJsonOrThrow(res, `inspectImage(${idOrName})`);
+}
+
+// Splits "repo:tag" the way the /images/create endpoint wants it — as two
+// separate query params, not one string — without mistaking a registry
+// host's port for a tag separator (myregistry:5000/repo has a colon that
+// isn't one). The tag-separating colon, if any, is always the last one and
+// always comes after the last slash.
+function splitImageTag(image) {
+  const lastSlash = image.lastIndexOf("/");
+  const lastColon = image.lastIndexOf(":");
+  if (lastColon > lastSlash) {
+    return [image.slice(0, lastColon), image.slice(lastColon + 1)];
+  }
+  return [image, "latest"];
+}
+
+// Docker streams NDJSON progress lines instead of one JSON body, and reports
+// a failed pull as an {error: "..."} line rather than an HTTP error status —
+// callers who only checked res.ok would see a pull that silently did
+// nothing. A pull can take a while, hence the much longer default timeout
+// than every other call in this file.
+export async function pullImage(image, { timeoutMs = 300000 } = {}) {
+  const [fromImage, tag] = splitImageTag(image);
+  const res = await request("POST", "/images/create", { query: { fromImage, tag }, timeoutMs });
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new DockerError(`pullImage(${image}): HTTP ${res.status}`, res.status);
+  }
+
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (entry.error) {
+      throw new DockerError(`pullImage(${image}): ${entry.error}`, 502);
+    }
+  }
+}
+
 export async function ping() {
   const res = await request("GET", "/_ping", { timeoutMs: 5000 });
   return res.status === 200;

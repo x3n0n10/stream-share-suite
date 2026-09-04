@@ -155,6 +155,85 @@ test("removeContainer surfaces a 409 (still running) rather than swallowing it",
   await assert.rejects(() => removeContainer("running", { force: false }), DockerError);
 });
 
+test("inspectImage returns null on 404 rather than throwing", async () => {
+  const { inspectImage } = await client();
+  queue((res) => json(res, 404, { message: "No such image" }));
+  assert.equal(await inspectImage("qmcgaw/gluetun:latest"), null);
+});
+
+test("inspectImage returns the parsed body on 200", async () => {
+  const { inspectImage } = await client();
+  queue((res) => json(res, 200, { Id: "sha256:abc" }));
+  const result = await inspectImage("qmcgaw/gluetun:latest");
+  assert.equal(result.Id, "sha256:abc");
+});
+
+function ndjson(res, lines) {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(lines.map((line) => JSON.stringify(line)).join("\n"));
+}
+
+test("pullImage splits repo:tag into separate query params", async () => {
+  const { pullImage } = await client();
+  queue((res) => ndjson(res, [{ status: "Pulling from qmcgaw/gluetun" }, { status: "Status: Downloaded" }]));
+
+  await pullImage("qmcgaw/gluetun:latest");
+
+  assert.equal(requests[0].method, "POST");
+  assert.equal(requests[0].path, "/v1.43/images/create");
+  assert.equal(requests[0].query.get("fromImage"), "qmcgaw/gluetun");
+  assert.equal(requests[0].query.get("tag"), "latest");
+});
+
+test("pullImage defaults to the latest tag when none is given", async () => {
+  const { pullImage } = await client();
+  queue((res) => ndjson(res, [{ status: "ok" }]));
+
+  await pullImage("caddy");
+
+  assert.equal(requests[0].query.get("fromImage"), "caddy");
+  assert.equal(requests[0].query.get("tag"), "latest");
+});
+
+test("pullImage does not mistake a registry host's port for a tag separator", async () => {
+  const { pullImage } = await client();
+  queue((res) => ndjson(res, [{ status: "ok" }]));
+
+  await pullImage("myregistry:5000/repo/image:v2");
+
+  assert.equal(requests[0].query.get("fromImage"), "myregistry:5000/repo/image");
+  assert.equal(requests[0].query.get("tag"), "v2");
+});
+
+test("pullImage throws when any NDJSON line reports an error, even with HTTP 200", async () => {
+  const { pullImage, DockerError } = await client();
+  queue((res) =>
+    ndjson(res, [{ status: "Pulling..." }, { error: "manifest unknown: manifest unknown" }])
+  );
+
+  await assert.rejects(() => pullImage("qmcgaw/gluetun:bogus-tag"), (err) => {
+    assert.ok(err instanceof DockerError);
+    assert.match(err.message, /manifest unknown/);
+    return true;
+  });
+});
+
+test("pullImage tolerates a non-JSON line instead of failing the whole pull", async () => {
+  const { pullImage } = await client();
+  queue((res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end('{"status":"ok"}\n\nnot json\n{"status":"done"}');
+  });
+
+  await pullImage("qmcgaw/gluetun:latest");
+});
+
+test("pullImage surfaces a non-2xx HTTP status as a DockerError", async () => {
+  const { pullImage, DockerError } = await client();
+  queue((res) => json(res, 500, { message: "internal error" }));
+  await assert.rejects(() => pullImage("qmcgaw/gluetun:latest"), DockerError);
+});
+
 test("an unreachable proxy is reported as a DockerError, not a raw fetch failure", async () => {
   const original = process.env.DOCKER_PROXY_URL;
   process.env.DOCKER_PROXY_URL = "http://127.0.0.1:1"; // nothing listens on port 1

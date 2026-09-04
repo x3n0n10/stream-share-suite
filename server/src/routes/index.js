@@ -10,6 +10,7 @@ import { createSettingsRouter } from "./settings.js";
 import { createOpsRouter } from "./ops.js";
 import { createStackRouter } from "./stack.js";
 import { createWatchdogRouter } from "./watchdog.js";
+import { createBackupRouter } from "./backup.js";
 
 // Reads the store once per request and hands the result to the handlers. One
 // read per request rather than one per handler keeps a single response
@@ -42,6 +43,7 @@ export function createApiRouter() {
   router.use("/settings", createSettingsRouter());
   router.use("/stack", createStackRouter());
   router.use("/watchdog", createWatchdogRouter());
+  router.use("/backup", createBackupRouter());
   router.use("/", createOpsRouter());
 
   return router;

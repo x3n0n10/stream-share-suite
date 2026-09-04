@@ -6,7 +6,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { planComponent, applyPlan } from "../src/reconcile/reconciler.js";
+import { planComponent, applyPlan, checkForUpdate } from "../src/reconcile/reconciler.js";
 import { computeSpecHash } from "../src/docker/spec.js";
 import { managedLabels } from "../src/docker/labels.js";
 import { freshDatabase } from "./helpers.js";
@@ -15,6 +15,7 @@ let server;
 let requests;
 let containers; // name -> { Id, Config: { Labels }, running: bool }
 let nextId;
+let pulledImageId; // what the next pull "produces" for images/{name}/json
 
 before(async () => {
   server = createServer((req, res) => {
@@ -37,6 +38,7 @@ beforeEach(() => {
   requests = [];
   containers = new Map();
   nextId = 1;
+  pulledImageId = "sha256:unchanged";
 });
 
 function json(res, status, body) {
@@ -62,6 +64,7 @@ function route(method, url, res, body) {
       if (!container) return json(res, 404, { message: "No such container" });
       return json(res, 200, {
         Id: container.Id,
+        Image: container.imageId || undefined,
         Config: { Labels: container.Config.Labels, Image: container.image || undefined },
         State: {
           Status: container.running ? "running" : "exited",
@@ -104,6 +107,17 @@ function route(method, url, res, body) {
   if (method === "POST" && /^\/v1\.43\/networks\/[^/]+\/connect$/.test(url.pathname)) {
     res.writeHead(200).end();
     return;
+  }
+
+  if (method === "POST" && url.pathname === "/v1.43/images/create") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "Status: Downloaded newer image" }));
+    return;
+  }
+
+  const imageMatch = url.pathname.match(/^\/v1\.43\/images\/([^/]+)\/json$/);
+  if (method === "GET" && imageMatch) {
+    return json(res, 200, { Id: pulledImageId });
   }
 
   json(res, 500, { message: `unhandled ${method} ${url.pathname}` });
@@ -182,6 +196,7 @@ test("a noop plan's runtime reflects the live container's status, image, and hea
     image: "qmcgaw/gluetun:v3.40",
     health: "healthy",
     restartCount: 2,
+    imageId: "sha256:abc",
   });
 
   const plan = await planComponent(NODE, SPEC);
@@ -190,6 +205,7 @@ test("a noop plan's runtime reflects the live container's status, image, and hea
     health: "healthy",
     restartCount: 2,
     image: "qmcgaw/gluetun:v3.40",
+    imageId: "sha256:abc",
   });
 });
 
@@ -333,4 +349,90 @@ test("applying an 'adopt' plan WITH takeover stops and removes the foreign conta
   const deleteIdx = order.findIndex((r) => r === "DELETE /v1.43/containers/foreign-id");
   const createIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
   assert.ok(stopIdx >= 0 && deleteIdx > stopIdx && createIdx > deleteIdx);
+});
+
+// --- checkForUpdate (4c: release channels) ----------------------------------
+
+test("checkForUpdate on a fresh install pulls first, then creates normally", async () => {
+  const { log, lines } = collectLog();
+  const id = await checkForUpdate(NODE, SPEC, { log });
+
+  assert.ok(containers.get("stream-share-gluetun"));
+  assert.equal(containers.get("stream-share-gluetun").Id, id);
+  assert.ok(requests.some((r) => r.method === "POST" && r.path === "/v1.43/images/create"));
+  assert.ok(lines.some((l) => l.includes("Pulling")));
+});
+
+test("checkForUpdate does nothing further when the pulled image matches what's running", async () => {
+  const hash = computeSpecHash(SPEC);
+  containers.set("stream-share-gluetun", {
+    Id: "existing",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", hash) },
+    running: true,
+    imageId: "sha256:unchanged",
+  });
+  pulledImageId = "sha256:unchanged";
+
+  const { log, lines } = collectLog();
+  const id = await checkForUpdate(NODE, SPEC, { log });
+
+  assert.equal(id, "existing");
+  assert.ok(lines.some((l) => /already up to date/i.test(l)));
+  assert.equal(requests.some((r) => r.method === "DELETE"), false, "must not recreate when nothing changed");
+});
+
+test("checkForUpdate recreates when the pull produced a different image than what's running", async () => {
+  const hash = computeSpecHash(SPEC);
+  containers.set("stream-share-gluetun", {
+    Id: "old-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", hash) },
+    running: true,
+    imageId: "sha256:old",
+  });
+  pulledImageId = "sha256:new";
+
+  const { log, lines } = collectLog();
+  const newId = await checkForUpdate(NODE, SPEC, { log });
+
+  assert.notEqual(newId, "old-id");
+  const current = containers.get("stream-share-gluetun");
+  assert.equal(current.Id, newId);
+  assert.ok(lines.some((l) => /newer image was pulled/i.test(l)));
+
+  const order = requests.map((r) => `${r.method} ${r.path}`);
+  const stopIdx = order.findIndex((r) => r.includes("/old-id/stop"));
+  const createIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
+  assert.ok(stopIdx >= 0 && createIdx > stopIdx);
+});
+
+test("checkForUpdate pulls first and then recreates normally when the config itself changed", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "old-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "a-stale-hash") },
+    running: true,
+    imageId: "sha256:whatever",
+  });
+
+  const { log } = collectLog();
+  const newId = await checkForUpdate(NODE, SPEC, { log });
+
+  assert.notEqual(newId, "old-id");
+  assert.ok(requests.some((r) => r.method === "POST" && r.path === "/v1.43/images/create"));
+});
+
+test("checkForUpdate never pulls for an adopted, orphaned, or switched-off row", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "foreign-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: {} },
+    running: true,
+  });
+
+  const { log } = collectLog();
+  await checkForUpdate(NODE, SPEC, { log });
+
+  assert.equal(requests.some((r) => r.path === "/v1.43/images/create"), false);
 });

@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const SCHEMA_VERSION = 2;
 
 let db = null;
+let dbPath = null;
 
 export function openDatabase(dataDir) {
   if (db) return db;
@@ -32,6 +33,7 @@ export function openDatabase(dataDir) {
 
   try {
     db = new DatabaseSync(file);
+    dbPath = file;
   } catch (err) {
     // SQLITE_CANTOPEN on a directory that exists is almost always ownership:
     // the process cannot create a file in it. The raw error says none of that,
@@ -40,14 +42,33 @@ export function openDatabase(dataDir) {
       `Cannot open the store at ${file}: ${err.message}\n` + describePermissions(dataDir)
     );
   }
-  db.exec(readFileSync(path.join(__dirname, "schema.sql"), "utf8"));
+  try {
+    db.exec(readFileSync(path.join(__dirname, "schema.sql"), "utf8"));
 
-  const row = db.prepare("SELECT version FROM schema_version LIMIT 1").get();
-  if (!row) {
-    db.prepare("INSERT INTO schema_version (version) VALUES (?)").run(SCHEMA_VERSION);
-  } else if (row.version < SCHEMA_VERSION) {
-    migrate(db, row.version);
-    db.prepare("UPDATE schema_version SET version = ?").run(SCHEMA_VERSION);
+    const row = db.prepare("SELECT version FROM schema_version LIMIT 1").get();
+    if (!row) {
+      db.prepare("INSERT INTO schema_version (version) VALUES (?)").run(SCHEMA_VERSION);
+    } else if (row.version < SCHEMA_VERSION) {
+      migrate(db, row.version);
+      db.prepare("UPDATE schema_version SET version = ?").run(SCHEMA_VERSION);
+    }
+  } catch (err) {
+    // A file that isn't actually a usable SQLite database (corrupted, or a
+    // stray file at this path) constructs a DatabaseSync handle just fine —
+    // SQLite doesn't validate the format until the first real read, which
+    // just happened above. Leaving `db` pointing at that broken handle would
+    // make every later openDatabase() call return it unchanged (the guard at
+    // the top of this function), so a caller trying to recover — a restore
+    // rolling back to its safety copy, say — could never actually reopen
+    // anything. Clear it so the next call starts fresh.
+    try {
+      db.close();
+    } catch {
+      // already broken in whatever way got us here — nothing more to do
+    }
+    db = null;
+    dbPath = null;
+    throw err;
   }
 
   // The file holds provider passwords and instance API keys in the clear, so
@@ -128,9 +149,16 @@ export function getDatabase() {
   return db;
 }
 
+// The exact file openDatabase() resolved SUITE_DATA_DIR to — so a backup/
+// restore never has to duplicate that resolution to find the live file.
+export function getDatabasePath() {
+  return dbPath;
+}
+
 // Test seam: lets a suite open a fresh in-memory store per case.
 export function _setDatabaseForTests(instance) {
   db = instance;
+  dbPath = null;
 }
 
 export function closeDatabase() {

@@ -27,7 +27,7 @@ export const GLUETUN_SCHEMA = {
       key: "image",
       envVar: null,
       label: "Image",
-      help: "Any tag on qmcgaw/gluetun. Release channels arrive in a later phase.",
+      help: "Any tag on qmcgaw/gluetun. Use \"Check for updates\" on this card to pull it and recreate only if it actually changed.",
       group: "Image",
       default: "qmcgaw/gluetun:latest",
       advanced: true,
