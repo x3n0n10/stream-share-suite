@@ -9,16 +9,14 @@ import {
   Button,
   Badge,
   ConfirmDialog,
+  RefreshButton,
+  PollStatus,
+  FIELD,
 } from "../components/common.jsx";
 import { IconRefresh, IconShield, IconGlobe } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatRelativeTime } from "../lib/format.js";
-
-const FIELD =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
-  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
-  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
+import { useJobPolling } from "../lib/useJobPolling.js";
 
 // gluetun's public IP response field names have varied across versions —
 // read defensively and fall back to showing the raw JSON so nothing is lost.
@@ -109,19 +107,11 @@ export default function Vpn({ pollIntervalMs }) {
     <Layout
       title="VPN"
       headerExtra={
-        <button
-          onClick={refresh}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          aria-label="Refresh"
-        >
-          <IconRefresh className="h-4 w-4" />
-        </button>
+        <RefreshButton onClick={refresh} />
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
-        </p>
+        <PollStatus updatedAt={updatedAt} />
         {error && <ErrorNote message={`Refresh failed: ${error}`} />}
       </div>
 
@@ -279,10 +269,9 @@ function WatchdogCard() {
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [job, setJob] = useState(null);
   const [running, setRunning] = useState(false);
   const [runError, setRunError] = useState(null);
-  const pollRef = useRef(null);
+  const { job, setJob, poll: pollJob } = useJobPolling(api.watchdogJob, 1000, () => setRunning(false));
 
   useEffect(() => {
     api.watchdogSettings().then((s) => {
@@ -299,19 +288,7 @@ function WatchdogCard() {
       .then(({ jobId }) => (jobId ? api.watchdogJob(jobId) : null))
       .then((current) => current && setJob(current))
       .catch(() => {});
-    return () => clearTimeout(pollRef.current);
-  }, []);
-
-  function pollJob(jobId) {
-    clearTimeout(pollRef.current);
-    pollRef.current = setTimeout(async () => {
-      const current = await api.watchdogJob(jobId).catch(() => null);
-      if (!current) return;
-      setJob(current);
-      if (current.status === "running") pollJob(jobId);
-      else setRunning(false);
-    }, 1000);
-  }
+  }, [setJob]);
 
   async function runNow() {
     setRunning(true);

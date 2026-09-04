@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import HoursSelect from "../components/HoursSelect.jsx";
-import { Card, Badge, EmptyState, ErrorNote, Skeleton } from "../components/common.jsx";
-import { IconRefresh, IconTag } from "../components/Icons.jsx";
+import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
+import { IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, formatDateTime, formatRelativeTime, titleCase } from "../lib/format.js";
@@ -67,13 +67,7 @@ export default function History({ pollIntervalMs }) {
               Relative
             </button>
           </div>
-          <button
-            onClick={refresh}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            aria-label="Refresh"
-          >
-            <IconRefresh className="h-4 w-4" />
-          </button>
+          <RefreshButton onClick={refresh} />
         </>
       }
     >
@@ -85,9 +79,7 @@ export default function History({ pollIntervalMs }) {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900"
         />
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
-        </p>
+        <PollStatus updatedAt={updatedAt} />
       </div>
 
       {error && <ErrorNote message={`Refresh failed: ${error}`} />}

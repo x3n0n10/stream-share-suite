@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import HoursSelect from "../components/HoursSelect.jsx";
-import { Card, StatTile, Badge, StatusDot, EmptyState, ErrorNote, Skeleton, TechSummary } from "../components/common.jsx";
+import { Card, StatTile, Badge, StatusDot, EmptyState, ErrorNote, Skeleton, TechSummary, RefreshButton, PollStatus } from "../components/common.jsx";
 import { SubscriptionSummary } from "../components/Subscription.jsx";
-import { IconOverview, IconPlay, IconUsers, IconHistory, IconRefresh, IconTag } from "../components/Icons.jsx";
+import { IconOverview, IconPlay, IconUsers, IconHistory, IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatNumber, formatRelativeTime, titleCase } from "../lib/format.js";
+import { formatDuration, formatNumber, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
 
 // stream-share instances running the IP-alias feature return viewers as
@@ -57,20 +57,12 @@ export default function Overview({ pollIntervalMs }) {
       headerExtra={
         <>
           <HoursSelect hours={hours} onChange={setHours} />
-          <button
-            onClick={refresh}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            aria-label="Refresh"
-          >
-            <IconRefresh className="h-4 w-4" />
-          </button>
+          <RefreshButton onClick={refresh} />
         </>
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
-        </p>
+        <PollStatus updatedAt={updatedAt} />
         {error && <ErrorNote message={`Refresh failed: ${error}`} />}
       </div>
 
