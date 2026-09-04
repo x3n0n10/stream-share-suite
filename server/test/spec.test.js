@@ -92,6 +92,31 @@ test("a device entry without an explicit container path mirrors the host path", 
   assert.equal(payload.HostConfig.Devices[0].PathOnContainer, "/dev/net/tun");
 });
 
+// --- host-config allowlist (4b) ----------------------------------------------
+//
+// gluetun's tunnel is the only thing in this app that has ever needed
+// elevated Docker privileges. Neither function should let a spec reach the
+// real Docker socket with anything wider than that, regardless of where the
+// spec came from.
+
+test("an unrecognised capability is refused at plan time and at apply time", () => {
+  const spec = { ...BASE, capAdd: ["SYS_ADMIN"] };
+  assert.throws(() => computeSpecHash(spec), /unrecognised Docker capability/);
+  assert.throws(() => toCreatePayload(spec), /unrecognised Docker capability/);
+});
+
+test("an unrecognised device is refused at plan time and at apply time", () => {
+  const spec = { ...BASE, devices: ["/dev/sda:/dev/sda"] };
+  assert.throws(() => computeSpecHash(spec), /unrecognised device/);
+  assert.throws(() => toCreatePayload(spec), /unrecognised device/);
+});
+
+test("a privileged spec is refused outright", () => {
+  const spec = { ...BASE, privileged: true };
+  assert.throws(() => computeSpecHash(spec), /privileged/);
+  assert.throws(() => toCreatePayload(spec), /privileged/);
+});
+
 // --- volumes, ports and namespace sharing (2b) ------------------------------
 
 test("a spec that uses no volumes or ports hashes the same as before those fields existed", () => {

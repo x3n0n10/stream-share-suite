@@ -10,6 +10,33 @@
 
 import { createHash } from "node:crypto";
 
+// The only elevated Docker privileges anything in this app has ever needed
+// (gluetun's tunnel) — see reconcile/gluetun.js. Not a schema field, not
+// operator-editable, so this is not "let the operator pick a wider set" but
+// an assertion that nothing else can silently reach HostConfig with more:
+// the same "deny by default" the socket-proxy's own allowlist already
+// enforces one layer out, held here too, where the actual privilege
+// translation happens.
+const ALLOWED_CAPABILITIES = new Set(["NET_ADMIN"]);
+const ALLOWED_DEVICE_HOST_PATHS = new Set(["/dev/net/tun"]);
+
+function assertSafeHostConfig(spec) {
+  for (const cap of spec.capAdd || []) {
+    if (!ALLOWED_CAPABILITIES.has(cap)) {
+      throw new Error(`Refusing to grant an unrecognised Docker capability: ${cap}`);
+    }
+  }
+  for (const entry of spec.devices || []) {
+    const hostPath = entry.split(":")[0];
+    if (!ALLOWED_DEVICE_HOST_PATHS.has(hostPath)) {
+      throw new Error(`Refusing to grant access to an unrecognised device: ${hostPath}`);
+    }
+  }
+  if (spec.privileged) {
+    throw new Error("Refusing to create a privileged container");
+  }
+}
+
 // Recursively sorts object keys so JSON.stringify is order-independent.
 // Arrays are sorted too where the caller has already put them in a canonical
 // order (env vars, labels-as-pairs) — this function does not itself decide
@@ -45,6 +72,8 @@ function sortKeysDeep(value) {
 // not let it publish ports either — which is why an instance behind the VPN
 // has its ports published by gluetun instead of by itself.
 export function computeSpecHash(spec) {
+  assertSafeHostConfig(spec);
+
   // Fields are omitted when empty rather than canonicalised to [] or null, so
   // that adding a field to this function does not change the hash of a spec
   // that does not use it. Without that, every existing managed container would
@@ -87,6 +116,8 @@ function normalisePorts(ports) {
 // decides whether to include the managed/spec-hash pair — a plan preview wants
 // the hash the spec *would* get, not one baked into the payload it renders.
 export function toCreatePayload(spec, { labels } = {}) {
+  assertSafeHostConfig(spec);
+
   // A container sharing another's network namespace is not attached to any
   // network of its own, so networkMode wins outright when set.
   const primaryNetwork = spec.networkMode ? null : (spec.networks || [])[0];
