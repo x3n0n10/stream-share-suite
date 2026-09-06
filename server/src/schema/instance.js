@@ -147,6 +147,8 @@ export const INSTANCE_SCHEMA = {
       label: "Public base URL",
       help: "The address your users' players reach this instance at, e.g. https://tv.example.com/provider-1. Leave blank if it is not published externally.",
       group: "Addressing",
+      required: true,
+      requiredWhen: { key: "discordEnabled", equals: true },
     },
     {
       key: "timezone",
@@ -155,6 +157,39 @@ export const INSTANCE_SCHEMA = {
       help: "Must match your players' timezone — catchup depends on it.",
       group: "Addressing",
       default: "Europe/Amsterdam",
+    },
+
+    // --- Discord --------------------------------------------------------
+    //
+    // DISCORD_API_URL is deliberately not a field: it's the same address
+    // Discord needs to reach this instance at, which is exactly what
+    // publicBaseUrl already says — see reconcile/instance.js, which computes
+    // it from that field rather than asking a second time.
+    {
+      key: "discordEnabled",
+      envVar: null,
+      label: "Enable Discord bot",
+      type: "checkbox",
+      default: false,
+      group: "Discord",
+    },
+    {
+      key: "discordBotToken",
+      envVar: "DISCORD_BOT_TOKEN",
+      label: "Bot token",
+      group: "Discord",
+      secret: true,
+      required: true,
+      dependsOn: { key: "discordEnabled", equals: true },
+    },
+    {
+      key: "discordAdminRoleId",
+      envVar: "DISCORD_ADMIN_ROLE_ID",
+      label: "Admin role ID",
+      help: "Optional. A Discord role ID granted admin-level bot commands.",
+      group: "Discord",
+      advanced: true,
+      dependsOn: { key: "discordEnabled", equals: true },
     },
 
     // --- caching ------------------------------------------------------------

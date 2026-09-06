@@ -26,6 +26,8 @@ import { saveComponentValues, getComponentValues } from "../src/store/components
 import { managedLabels } from "../src/docker/labels.js";
 import { loadConfig } from "../src/config.js";
 import { freshDatabase } from "./helpers.js";
+import { INSTANCE_SCHEMA } from "../src/schema/instance.js";
+import { validate, renderEnv } from "../src/schema/registry.js";
 
 let server;
 let containers;
@@ -375,4 +377,51 @@ test("an instance with no database configured at all is blocked before it can fa
 
   assert.equal(instance.action, "incomplete");
   assert.match(instance.reason, /No PostgreSQL server is configured/i);
+});
+
+// --- Discord fields ----------------------------------------------------
+
+test("discordBotToken is required only once discordEnabled is on", () => {
+  const base = { ...PROVIDER, publicBaseUrl: "https://tv.example.com/p1" };
+  assert.equal(validate(INSTANCE_SCHEMA, base).some((e) => e.key === "discordBotToken"), false);
+  assert.equal(
+    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: true }).some((e) => e.key === "discordBotToken"),
+    true
+  );
+  assert.equal(
+    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: true, discordBotToken: "tok" }).some(
+      (e) => e.key === "discordBotToken"
+    ),
+    false
+  );
+});
+
+test("publicBaseUrl becomes required once discordEnabled is on, optional otherwise", () => {
+  assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "publicBaseUrl"), false);
+  assert.equal(
+    validate(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" }).some(
+      (e) => e.key === "publicBaseUrl"
+    ),
+    true
+  );
+});
+
+test("renderEnv only emits DISCORD_BOT_TOKEN/DISCORD_ADMIN_ROLE_ID when discordEnabled is on", () => {
+  const off = renderEnv(INSTANCE_SCHEMA, PROVIDER);
+  assert.equal("DISCORD_BOT_TOKEN" in off, false);
+  assert.equal("DISCORD_ADMIN_ROLE_ID" in off, false);
+
+  const on = renderEnv(INSTANCE_SCHEMA, {
+    ...PROVIDER,
+    discordEnabled: true,
+    discordBotToken: "tok",
+    discordAdminRoleId: "role-1",
+  });
+  assert.equal(on.DISCORD_BOT_TOKEN, "tok");
+  assert.equal(on.DISCORD_ADMIN_ROLE_ID, "role-1");
+});
+
+test("renderEnv omits DISCORD_ADMIN_ROLE_ID when left blank, even with Discord on", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" });
+  assert.equal("DISCORD_ADMIN_ROLE_ID" in env, false);
 });
