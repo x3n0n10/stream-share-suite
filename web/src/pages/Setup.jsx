@@ -4,8 +4,7 @@ import Layout from "../components/Layout.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
 import StepCaching from "./setup/StepCaching.jsx";
 import StepDatabase from "./setup/StepDatabase.jsx";
-// TODO(task 13): uncomment when StepExternalAccess.jsx exists
-// import StepExternalAccess from "./setup/StepExternalAccess.jsx";
+import StepExternalAccess from "./setup/StepExternalAccess.jsx";
 // TODO(task 13): uncomment when StepVpn.jsx exists
 // import StepVpn from "./setup/StepVpn.jsx";
 // TODO(task 14): uncomment when StepHealthCheck.jsx exists
@@ -76,8 +75,7 @@ export default function Setup() {
         {step === "instances" && <StepInstances {...stepProps} />}
         {step === "caching" && <StepCaching {...stepProps} />}
         {step === "database" && <StepDatabase {...stepProps} />}
-        {/* TODO(task 13): uncomment when StepExternalAccess.jsx exists */}
-        {/* {step === "access" && <StepExternalAccess {...stepProps} />} */}
+        {step === "access" && <StepExternalAccess {...stepProps} />}
         {/* TODO(task 13): uncomment when StepVpn.jsx exists */}
         {/* {step === "vpn" && <StepVpn {...stepProps} />} */}
         {/* TODO(task 14): uncomment when StepHealthCheck.jsx exists */}
