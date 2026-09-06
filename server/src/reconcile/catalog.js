@@ -102,13 +102,11 @@ const CATALOG = {
     present: () => true,
     // Takes the instance's own resolved values (see reconciler.js's
     // planStack, which already has them at hand) rather than reading
-    // anything global — the cache path is per-instance now, so "is it
-    // usable" can only be answered for one instance at a time.
+    // anything global. The cache path is deliberately not checked here —
+    // unlike the stack data path, the Suite never sees or manages it, so
+    // there is nothing for the Suite to validate; see renderInstanceSpec.
     ready: (values) =>
       validatePath(getDataPath(), "The stack data path") ||
-      ((values.vodCacheEnabled === "true" || values.catchupEnabled === "true")
-        ? validatePath(values.cachePath, "This instance's cache path")
-        : null) ||
       // An external server contributes no node, so the dependency check cannot
       // catch one that was never filled in. Without this an instance plans a
       // create and then fails mid-apply against a host that does not exist.

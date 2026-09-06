@@ -319,18 +319,19 @@ instance (in Setup or on the Stack page) rather than a shared, compose-time
 setting — there's no separate cache-directory environment variable to
 configure.
 
-Being entered through the UI instead of compose doesn't exempt a cache path
-from the same bind-mount rule as `SUITE_DATA_DIR` above: it still has to be
-mounted into the Suite's own container at the same path on both sides,
-because the Suite still can't create a directory at a host path it can't see
-itself, no matter which form set the value. `validatePath` in
-`server/src/store/paths.js` catches an unmounted or mistyped path and names
-the exact volumes line to add, but that's meant as a safety net for a typo,
-not the first place to learn the requirement. It also needs to already be
-writable by the Suite's `PUID:PGID` — unlike `SUITE_DATA_DIR`, which the
-entrypoint chowns automatically on startup, a cache path entered later
-through the UI is never touched by that step, so it has to be created with
-the right ownership on the host up front.
+Unlike `SUITE_DATA_DIR`, a cache path is **not** subject to the bind-mount
+rule above, and deliberately so: the Suite never reads, creates, or checks
+it. It's handed straight to Docker as the bind-mount source for the instance
+container, exactly the way any path in a hand-written compose file would be
+— which is what lets a cache path point at a brand new disk without ever
+touching the Suite's own compose file or restarting it, no matter how many
+instances you add later. The trade is that the Suite has no way to catch a
+typo or a permissions problem upfront the way `validatePath` does for
+`SUITE_DATA_DIR`: the directory must already exist on the host and be
+writable by the Suite's `PUID:PGID` (the same identity every component it
+creates runs as — see below), or the instance container will fail to write
+its cache, and that failure shows up in the *instance's own* logs, not
+anywhere in the Suite's UI.
 
 Self-inspection — the trick that computes gluetun's `FIREWALL_OUTBOUND_SUBNETS`
 from the Suite's own networks — can't replace this. `docker inspect` would
@@ -365,10 +366,13 @@ message on the form rather than a container that fails to start — but that
 check can only see "is this a writable directory from where I'm standing," so
 it can't catch the named-volume case above from the inside.
 
-The Suite creates each directory as its own `PUID:PGID`, mode `0777`, and runs
-every component it creates as those same ids where it can — the stream-share
-image runs as a non-root user and never chowns what it's given, so the two
-have to agree, and this is the mechanism that makes them. Mode `0777` (rather
+The Suite creates each directory it owns (configuration, PostgreSQL's data
+directory — not a cache path, which it never creates at all) as its own
+`PUID:PGID`, mode `0777`. Every component it creates still runs as that same
+identity regardless — the stream-share image runs as a non-root user and
+never chowns what it's given, so a cache path an operator sets up by hand has
+to match this identity too, just without the Suite's help getting there.
+Mode `0777` (rather
 than owner/group-only) is what a container the Suite does not otherwise
 control needs: an official postgres image starts as root and only drops to
 its own uid after it can write into its data directory, and there is no way

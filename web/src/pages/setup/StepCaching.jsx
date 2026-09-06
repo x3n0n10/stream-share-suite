@@ -119,10 +119,11 @@ export default function StepCaching({ instances, onNext }) {
           className={FIELD}
           value={parentPath}
           onChange={(e) => updateParentPath(e.target.value)}
-          placeholder="/mnt/user/cache/stream-share-suite"
         />
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
-          Suggests a subfolder below for any instance that doesn't already have a cache path.
+          Suggests a subfolder below for any instance that doesn't already have a cache path. Any
+          folder on the Docker host works — for example, a subfolder under the Suite's own data
+          folder, if you don't need cache on a separate disk.
         </span>
       </label>
 

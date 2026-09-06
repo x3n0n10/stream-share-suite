@@ -370,18 +370,17 @@ test("an instance with no usable stack paths is incomplete rather than mis-mount
   assert.match(instance.reason, /data path/i);
 });
 
-test("an instance caching without a usable cache path is incomplete, naming it", async () => {
+test("an instance caching with a cache path the Suite can't see still plans fine — the Suite never checks it", async () => {
   configureStack();
   const { key } = provisionInstance({ ...PROVIDER, vodCacheEnabled: "true", cachePath: "/definitely/not/mounted" });
 
   const { plans } = await planStack();
   const instance = plans.find((p) => p.kind === "instance");
 
-  assert.equal(instance.action, "incomplete");
-  assert.match(instance.reason, /cache path/i);
+  assert.notEqual(instance.action, "incomplete");
 });
 
-test("an instance not caching anything is unaffected by the cache path check", async () => {
+test("an instance not caching anything plans fine regardless of cachePath", async () => {
   configureStack();
   const { key } = provisionInstance(PROVIDER);
 

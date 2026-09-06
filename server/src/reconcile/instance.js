@@ -85,10 +85,14 @@ export async function renderInstanceSpec(values, key) {
   const port = Number(values.port);
 
   const configDir = ensureDirectory(componentDataDir(name), "config");
-  // No shared root to fall back to any more (see store/paths.js) — an
-  // instance that doesn't cache anything doesn't get a cache mount at all.
+  // Unlike configDir, the cache path is never created or checked by the
+  // Suite itself — it's handed straight to Docker as a bind-mount source,
+  // the same as any path in a hand-written compose file. That's what lets
+  // an operator point it at a new disk without ever touching the Suite's
+  // own compose file (see the README's "Where component data lives"
+  // section for the reasoning).
   const cachingOn = values.vodCacheEnabled === "true" || values.catchupEnabled === "true";
-  const cacheDir = cachingOn ? ensureDirectory(values.cachePath) : null;
+  const cacheDir = cachingOn ? values.cachePath : null;
 
   const env = {
     ...parseExtraEnv(values.extraEnv),

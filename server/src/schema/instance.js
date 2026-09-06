@@ -291,7 +291,7 @@ export const INSTANCE_SCHEMA = {
       key: "cachePath",
       envVar: null,
       label: "Cache location on the host",
-      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above — there's no default, since it always has to be a path that actually exists and is writable on this specific host.",
+      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above. The Suite does not create or check this path itself — it must already exist on the host and be writable by the same user the Suite's other components run as (see PUID/PGID in the Suite's own compose file), or the instance container will fail to write its cache.",
       group: "Container",
       required: true,
       dependsOn: {
