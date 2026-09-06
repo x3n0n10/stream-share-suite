@@ -6,8 +6,7 @@ import StepCaching from "./setup/StepCaching.jsx";
 import StepDatabase from "./setup/StepDatabase.jsx";
 import StepExternalAccess from "./setup/StepExternalAccess.jsx";
 import StepVpn from "./setup/StepVpn.jsx";
-// TODO(task 14): uncomment when StepHealthCheck.jsx exists
-// import StepHealthCheck from "./setup/StepHealthCheck.jsx";
+import StepHealthCheck from "./setup/StepHealthCheck.jsx";
 import StepDone from "./setup/StepDone.jsx";
 
 // Each step decides for itself where "next" goes (StepVpn skips
@@ -76,8 +75,7 @@ export default function Setup() {
         {step === "database" && <StepDatabase {...stepProps} />}
         {step === "access" && <StepExternalAccess {...stepProps} />}
         {step === "vpn" && <StepVpn {...stepProps} />}
-        {/* TODO(task 14): uncomment when StepHealthCheck.jsx exists */}
-        {/* {step === "health" && <StepHealthCheck {...stepProps} />} */}
+        {step === "health" && <StepHealthCheck {...stepProps} />}
         {step === "done" && <StepDone navigate={navigate} />}
       </div>
     </Layout>
