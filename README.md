@@ -47,7 +47,6 @@ every component the reconciler manages — is configured in the UI.
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on |
 | `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives. From phase 2b, also the default location for every component's own configuration — see **Where component data lives** below. |
-| `SUITE_CACHE_DIR` | — | Default VOD/catchup cache root for every instance. See **Where component data lives** below. |
 | `SUITE_CONTAINER_PREFIX` | `streamshare-suite-` | Prefix for the default name of every container the Suite creates (gluetun, PostgreSQL, each instance). Change it only to run more than one Suite on the same Docker host — each needs a different prefix so their default names don't collide. Any component's `containerName` field, if set, always wins over the prefixed default. |
 | `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory, and who every component the Suite creates runs as. **Unraid: set `99` / `100`.** |
 | `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Where the Docker socket proxy is reachable. See **Stack management** below. |
@@ -60,20 +59,16 @@ app as `PUID:PGID` — never as root. This is what makes a bind-mounted director
 work: a named volume inherits the image's ownership, but a bind mount keeps
 whatever the host says, and that rarely matches a uid baked into an image.
 
-**Use bind mounts for `SUITE_DATA_DIR` and `SUITE_CACHE_DIR`, not named
-volumes** — this changed from earlier phases. From phase 2b the Suite
-bind-mounts a subfolder of each into every component it creates, and that only
-works if they're real host paths: see **Where component data lives** below for
-why. Every component the Suite creates also runs as this same `PUID:PGID`, for
-the same reason the Suite itself does — a bind-mounted directory it creates
-needs to be writable by whatever actually runs inside the container using it.
+**Use bind mounts for `SUITE_DATA_DIR`, not named volumes** — this changed
+from earlier phases. From phase 2b the Suite bind-mounts a subfolder of it
+into every component it creates, and that only works if it's a real host path:
+see **Where component data lives** below for why. Every component the Suite
+creates also runs as this same `PUID:PGID`, for the same reason the Suite
+itself does — a bind-mounted directory it creates needs to be writable by
+whatever actually runs inside the container using it.
 
-The entrypoint only chowns `SUITE_DATA_DIR` — it starts as root for exactly
-long enough to fix that one directory, and nothing else. `SUITE_CACHE_DIR` gets
-no such treatment, so its host directory needs to already be owned by (or
-writable by) `PUID:PGID` before the Suite tries to use it. Get it wrong and the
-first instance that needs it comes back "incomplete" naming exactly that,
-rather than silently failing to write its cache.
+The entrypoint chowns `SUITE_DATA_DIR` — it starts as root for exactly long
+enough to fix that one directory, and nothing else.
 
 Get it wrong and SQLite fails with a bare `unable to open database file`
 (`SQLITE_CANTOPEN`). The Suite catches that and tells you which uid it is
@@ -301,27 +296,27 @@ you're still in the wizard.
 
 ### Where component data lives
 
-Two host paths — configuration and cache — set only in compose, never in the
-UI. Both are environment variables, read once at startup, exactly like
-`SUITE_DATA_DIR` already was for `suite.db`:
+One host path — configuration — set only in compose, never in the UI. It's
+an environment variable, read once at startup, exactly like it already was
+for `suite.db`:
 
 ```yaml
 environment:
   SUITE_DATA_DIR: /mnt/user/appdata/stream-share-suite
-  SUITE_CACHE_DIR: /mnt/user/cache/stream-share-suite
 
 volumes:
   - /mnt/user/appdata/stream-share-suite:/mnt/user/appdata/stream-share-suite
-  - /mnt/user/cache/stream-share-suite:/mnt/user/cache/stream-share-suite
 ```
 
 **Configuration** (`SUITE_DATA_DIR`) is the same folder `suite.db` already
 lives in — every component gets its own subfolder there (`gluetun/`,
-`provider-1/config/`, `postgres/data/`, ...). **Cache** (`SUITE_CACHE_DIR`)
-is kept separate on purpose: VOD and catchup reach tens of gigabytes per
-instance and usually belong on a different disk from a few kilobytes of
-config, so sharing one path for both would be the wrong guess more often than
-the right one.
+`provider-1/config/`, `postgres/data/`, ...).
+
+Each instance's VOD/catchup **cache** is a different story: since it can
+reach tens of gigabytes and often belongs on a different disk than a few
+kilobytes of config, it's a per-instance host path entered directly for that
+instance (in Setup or on the Stack page) rather than a shared, compose-time
+setting — there's no `SUITE_CACHE_DIR` to configure.
 
 Self-inspection — the trick that computes gluetun's `FIREWALL_OUTBOUND_SUBNETS`
 from the Suite's own networks — can't replace this. `docker inspect` would
@@ -349,8 +344,7 @@ an earlier phase instead of a bind mount — and it fails silently in the worst
 way: the Suite can still read and write `/data` for its own database just
 fine, so nothing looks wrong until it tries to share a subfolder of it with a
 component's container and either can't find a real host path at all or,
-worse, creates one somewhere unexpected. **Use bind mounts for both
-`SUITE_DATA_DIR` and `SUITE_CACHE_DIR`**, never named volumes, for exactly
+worse, creates one somewhere unexpected. **Use bind mounts for `SUITE_DATA_DIR`**, never named volumes, for exactly
 this reason.
 
 Paths are validated when you save them, so a mistyped or unmounted one is a
