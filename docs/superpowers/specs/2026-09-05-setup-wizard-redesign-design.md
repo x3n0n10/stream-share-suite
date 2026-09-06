@@ -15,7 +15,7 @@ reconnects) that exist today but aren't reachable from Setup at all.
 ## Scope
 
 This is a frontend-heavy pass with two small, bounded backend additions
-(Discord fields, and a per-instance cache path override — see below). It
+(Discord fields, and an explicit per-instance cache path — see below). It
 replaces `Setup.jsx`'s contents; it does not touch the Stack page, which
 remains the place to review/apply the resulting plan and to edit any of
 this configuration later.
@@ -40,7 +40,7 @@ Validation: `discordEnabled: true` requires `publicBaseUrl` to be set (a
 `requiredWhen`-style rule, matching the pattern `postgres.js`'s
 `adminPassword` already uses for `mode: "managed"`).
 
-## Backend change: per-instance cache path override
+## Backend change: per-instance cache path, always explicit
 
 Every instance's VOD/catchup cache lives at `<SUITE_CACHE_DIR>/<instance
 name>` today (`server/src/store/paths.js`'s `componentCacheDir`) —
@@ -48,28 +48,50 @@ name>` today (`server/src/store/paths.js`'s `componentCacheDir`) —
 compose, deliberately with no UI override (see that file's own comment: a
 per-component override would previously have just meant re-declaring the
 same string). This spec adds a genuine new capability on top of that,
-rather than reopening that decision: an **optional** per-instance override
-so a given instance's cache can live somewhere other than the shared root
-— useful when, say, one provider's catchup buffer should sit on a
-different disk than the rest.
+rather than reopening that decision — but per instruction, this one is
+**not** an optional override with a computed fallback: whenever an
+instance has VOD caching or catchup on, its host cache path must be typed
+in, every time, no default offered. (The container-internal mount point
+stays `/cache`, unchanged and not user-facing — confirmed against
+`reconcile/instance.js`'s `CACHE_MOUNT` constant, which is the actual
+current value despite an earlier `/tmp/cache` mention in this doc's
+history.)
 
-Add to `INSTANCE_SCHEMA`'s existing `Container` group (alongside
-`containerName`, `port` — the same "computed default, optional override"
-shape those already have):
+Add to `INSTANCE_SCHEMA`'s existing `Container` group:
 
 | Key | Env var | Type | Notes |
 |-----|---------|------|-------|
-| `cachePath` | — | text, advanced | Host path. Blank (the default) keeps today's computed `<SUITE_CACHE_DIR>/<name>` behavior. |
+| `cachePath` | — | text | Host path. Required whenever `vodCacheEnabled` or `catchupEnabled` is true for that instance; no default. |
+
+**Schema-engine gap this surfaces**: `requiredWhen` (see
+`server/src/schema/registry.js`) currently ANDs an array of conditions —
+there's no way to express "required if *either* of these is true," which
+is exactly what `cachePath` needs (required when VOD cache **or** catchup
+is on). `registry.js`'s `conditionMet` needs a small addition — an `any:
+[...]` form alongside the existing implicit AND-array, e.g.:
+
+```
+requiredWhen: { any: [
+  { key: "vodCacheEnabled", equals: true },
+  { key: "catchupEnabled", equals: true },
+] }
+```
+
+This is the one genuinely new piece of shared schema-engine logic in this
+spec; everything else reuses `dependsOn`/`requiredWhen` exactly as they
+exist today.
 
 `reconcile/instance.js` line 88 changes from
 `ensureDirectory(componentCacheDir(name))` to
-`ensureDirectory(values.cachePath?.trim() || componentCacheDir(name))`.
-Validated with the existing `validatePath` helper from `store/paths.js`
-(already does exactly this check — absolute, exists, writable by the
-Suite) wired into this instance's readiness check in
-`reconcile/catalog.js`, the same way the stack-wide data/cache paths are
-already checked there — so a bad override surfaces as a plan-time message,
-not a container that fails to start.
+`ensureDirectory(values.cachePath || componentCacheDir(name))` — the
+`componentCacheDir` fallback only still matters for an instance with both
+caching flags off, where the path is mounted but never written to, so its
+exact location is immaterial. Validated with the existing `validatePath`
+helper from `store/paths.js` (already does exactly this check — absolute,
+exists, writable by the Suite) wired into this instance's readiness check
+in `reconcile/catalog.js`, the same way the stack-wide data/cache paths
+are already checked there — so a bad path surfaces as a plan-time
+message, not a container that fails to start.
 
 No other backend changes. Auth-mode reuse, shared-caching-as-a-wizard-
 convenience, Postgres managed/external, VPN, and health check are all
@@ -143,17 +165,16 @@ and "Buffer live channels for catchup" (+ "Hours of catchup to keep" when
 catchup is on, `dependsOn`-style). These are wizard-only convenience
 values — each instance still stores its own copy.
 
-If either is turned on, an "Advanced: where should each instance's cache
-live?" disclosure appears below, listing every instance created in Step 1
-with its computed default path (`<SUITE_CACHE_DIR>/<name>`) shown as a
-placeholder and an optional text field to override it — surfacing the new
-`cachePath` field per instance, collapsed by default since most setups
-never need it.
+If either is turned on, a "Where should each instance's cache live?"
+section appears below, listing every instance created in Step 1 with a
+required, blank host-path input — no default, no placeholder value, since
+this must always be a deliberate choice on the operator's Docker host.
+Continuing is blocked until every listed instance has a path filled in.
 
-On continue: apply the shared VOD/catchup values to every instance created
-in Step 1 via `Promise.allSettled(instances.map(i =>
-api.updateStackInstance(i.key, patch)))`, where each instance's `patch`
-also includes its own `cachePath` if one was typed in the disclosure above.
+On continue: apply the shared VOD/catchup values, plus each instance's own
+required `cachePath`, to every instance created in Step 1 via
+`Promise.allSettled(instances.map(i => api.updateStackInstance(i.key,
+patch)))`.
 
 ## Step 3 — Database (once)
 
