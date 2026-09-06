@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote } from "../../components/common.jsx";
+import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
-
-const FIELD =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
-  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
-  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
 function blankAccess() {
   return { publicBaseUrl: "", discordEnabled: false, discordBotToken: "", discordAdminRoleId: "" };
