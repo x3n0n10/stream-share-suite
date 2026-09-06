@@ -251,6 +251,55 @@ test("an overridden container name is what the spec and the URL both use", async
   assert.equal((await renderInstanceSpec(values, key)).name, "my-existing-instance");
 });
 
+test("an instance with no caching enabled gets no cache volume at all", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance(PROVIDER);
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal(spec.volumes.some((v) => v.endsWith(":/cache")), false);
+  assert.equal(spec.volumes.some((v) => v.endsWith(":/root")), true, "the config mount is still there");
+});
+
+test("an instance with VOD caching on gets a cache volume from its own cachePath", async () => {
+  configureStack();
+  vpn(false);
+  const cacheDir = mkdtempSync(path.join(tmpdir(), "suite-instance-cache-"));
+  const { key } = provisionInstance({ ...PROVIDER, vodCacheEnabled: "true", cachePath: cacheDir });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.ok(spec.volumes.includes(`${cacheDir}:/cache`));
+  rmSync(cacheDir, { recursive: true, force: true });
+});
+
+test("Discord on computes DISCORD_API_URL from publicBaseUrl rather than asking for it twice", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({
+    ...PROVIDER,
+    publicBaseUrl: "https://tv.example.com/provider-1",
+    discordEnabled: true,
+    discordBotToken: "tok",
+  });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal(spec.env.DISCORD_API_URL, "https://tv.example.com/provider-1");
+  assert.equal(spec.env.DISCORD_BOT_TOKEN, "tok");
+});
+
+test("Discord off means no DISCORD_API_URL, even with a public base URL set", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({ ...PROVIDER, publicBaseUrl: "https://tv.example.com/provider-1" });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal("DISCORD_API_URL" in spec.env, false);
+});
+
 // --- the cascade, for real --------------------------------------------------
 
 test("recreating gluetun cascades to every instance inside its namespace", async () => {

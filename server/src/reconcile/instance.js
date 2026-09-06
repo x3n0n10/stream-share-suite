@@ -11,7 +11,7 @@ import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { renderEnv } from "../schema/registry.js";
 import { getComponentValues, listComponents } from "../store/components.js";
 import { getNumber } from "../store/settings.js";
-import { componentDataDir, componentCacheDir, ensureDirectory, ownershipString } from "../store/paths.js";
+import { componentDataDir, ensureDirectory, ownershipString } from "../store/paths.js";
 import { isVpnEnabled } from "./catalog.js";
 import { gluetunContainerName } from "./gluetun.js";
 import { connectionTarget } from "./postgres.js";
@@ -85,7 +85,10 @@ export async function renderInstanceSpec(values, key) {
   const port = Number(values.port);
 
   const configDir = ensureDirectory(componentDataDir(name), "config");
-  const cacheDir = ensureDirectory(componentCacheDir(name));
+  // No shared root to fall back to any more (see store/paths.js) — an
+  // instance that doesn't cache anything doesn't get a cache mount at all.
+  const cachingOn = values.vodCacheEnabled === "true" || values.catchupEnabled === "true";
+  const cacheDir = cachingOn ? ensureDirectory(values.cachePath) : null;
 
   const env = {
     ...parseExtraEnv(values.extraEnv),
@@ -96,9 +99,13 @@ export async function renderInstanceSpec(values, key) {
   // is not a field.
   env.PORT = String(port);
   env.INSTANCE_NAME = values.displayName || key;
-  env.CACHE_FOLDER = CACHE_MOUNT;
+  if (cachingOn) env.CACHE_FOLDER = CACHE_MOUNT;
   env.LDAP_ENABLED = values.authMode === "ldap" ? "true" : "false";
   if (values._apiKey) env.INTERNAL_API_KEY = values._apiKey;
+  // Discord needs the same externally-reachable address stream-share's own
+  // players already use — see schema/instance.js's Discord group header for
+  // why this isn't a field asked for a second time.
+  if (values.discordEnabled) env.DISCORD_API_URL = values.publicBaseUrl;
 
   // Fixed rather than asked, once health checking is on: the VPN watchdog
   // schedules probes itself (see watchdog/vpnWatchdog.js), so a second
@@ -124,7 +131,10 @@ export async function renderInstanceSpec(values, key) {
     name,
     image: values.image || "ghcr.io/x3n0n10/stream-share:latest",
     env,
-    volumes: [`${configDir}:${CONFIG_MOUNT}`, `${cacheDir}:${CACHE_MOUNT}`],
+    volumes: [
+      `${configDir}:${CONFIG_MOUNT}`,
+      ...(cacheDir ? [`${cacheDir}:${CACHE_MOUNT}`] : []),
+    ],
     // The image runs as a non-root user and never chowns what it is given, so
     // it has to run as whoever owns the directories above — which is the Suite.
     user: ownershipString(),
