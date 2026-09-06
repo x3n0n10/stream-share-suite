@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import { api } from "../lib/api.js";
 import StepInstances from "./setup/StepInstances.jsx";
 import StepCaching from "./setup/StepCaching.jsx";
 import StepDatabase from "./setup/StepDatabase.jsx";
@@ -59,9 +60,15 @@ function Progress({ step }) {
 export default function Setup() {
   const navigate = useNavigate();
   const [step, setStep] = useState("instances");
-  // { key, port, displayName } per instance created this run — later steps
-  // (caching, access, health) both read and patch entries here.
+  // Every existing instance, plus any created later in this run via
+  // StepInstances's own setInstances calls — every other step reads this
+  // same list, which is what makes the whole wizard idempotent rather than
+  // "first run only."
   const [instances, setInstances] = useState([]);
+
+  useEffect(() => {
+    api.stackInstances().then((r) => setInstances(r.instances));
+  }, []);
 
   const stepProps = { instances, setInstances, onNext: setStep };
 
