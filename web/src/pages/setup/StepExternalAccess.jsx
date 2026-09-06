@@ -195,12 +195,6 @@ export default function StepExternalAccess({ instances, onNext }) {
         </div>
       )}
 
-      <div className="mt-5">
-        <Button tone="accent" onClick={saveAccessAndContinue} loading={savingPartA} disabled={savingPartA}>
-          Continue
-        </Button>
-      </div>
-
       <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
           Also reach it from your local network?
@@ -240,6 +234,12 @@ export default function StepExternalAccess({ instances, onNext }) {
             <ErrorNote message={errorB} />
           </div>
         )}
+      </div>
+
+      <div className="mt-6">
+        <Button tone="accent" onClick={saveAccessAndContinue} loading={savingPartA} disabled={savingPartA}>
+          Continue
+        </Button>
       </div>
     </Card>
   );

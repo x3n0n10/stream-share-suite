@@ -57,7 +57,7 @@ export default function StepVpn({ onNext }) {
         tunnel — this isn't per-instance.
       </p>
 
-      {error && (
+      {error && !vpnEnabled && (
         <div className="mt-3">
           <ErrorNote message={error} />
         </div>

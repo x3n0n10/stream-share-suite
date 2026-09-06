@@ -61,9 +61,9 @@ export default function StepHealthCheck({ instances, onNext }) {
         setError(failureMessage);
         return;
       }
-      if (chosen.length > 0) {
-        await api.saveWatchdogSettings({ enabled: true, checkTimes });
-      }
+      await api.saveWatchdogSettings(
+        chosen.length > 0 ? { enabled: true, checkTimes } : { enabled: false }
+      );
       onNext("done");
     } catch (err) {
       setError(err.message);
