@@ -1,5 +1,32 @@
-import { IconAlert } from "./Icons.jsx";
+import { IconAlert, IconRefresh } from "./Icons.jsx";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
+import { formatRelativeTime } from "../lib/format.js";
+
+export const FIELD =
+  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
+  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
+  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
+
+export function RefreshButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+      aria-label="Refresh"
+    >
+      <IconRefresh className="h-4 w-4" />
+    </button>
+  );
+}
+
+export function PollStatus({ updatedAt, children, className = "" }) {
+  return (
+    <p className={`text-xs text-slate-400 dark:text-slate-500 ${className}`}>
+      {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
+      {children}
+    </p>
+  );
+}
 
 export function Card({ children, className = "" }) {
   return (
