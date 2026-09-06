@@ -16,13 +16,21 @@ export default function SchemaForm({ fields, onSave, saving, error, submitLabel 
 
   const groups = useMemo(() => groupFields(fields), [fields]);
 
+  // Mirrors registry.js's conditionMet/isVisible on the server — see that
+  // file for why a condition can also be { any: [...] }. No shared module
+  // between client and server here, same as containerName.js's preview logic
+  // already isn't; this is a preview of the same rule, not a second source
+  // of truth the server would ever defer to.
+  function conditionMet(condition) {
+    if ("any" in condition) return condition.any.some(conditionMet);
+    const depValue = draft[condition.key];
+    return "oneOf" in condition ? condition.oneOf.includes(depValue) : depValue === condition.equals;
+  }
+
   function isVisible(field) {
     if (!field.dependsOn) return true;
     const conditions = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
-    return conditions.every((condition) => {
-      const depValue = draft[condition.key];
-      return "oneOf" in condition ? condition.oneOf.includes(depValue) : depValue === condition.equals;
-    });
+    return conditions.every(conditionMet);
   }
 
   function set(key, value) {
