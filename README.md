@@ -320,18 +320,17 @@ setting — there's no `SUITE_CACHE_DIR` to configure.
 
 Self-inspection — the trick that computes gluetun's `FIREWALL_OUTBOUND_SUBNETS`
 from the Suite's own networks — can't replace this. `docker inspect` would
-hand back every bind mount the Suite has, but not which one means "cache" and
-which means "config", or whether a third one is for something else entirely.
-That's a question about intent, and an environment variable is the cheapest
-honest way to answer it — cheaper than a label, and no more typing than the
-bind-mount line already needs.
+hand back every bind mount the Suite has, but not which one is the Suite's own
+data directory and which are unrelated mounts the operator added. That's a
+question about intent, and an environment variable is the cheapest honest way
+to answer it — cheaper than a label, and no more typing than the bind-mount
+line already needs.
 
-There is no UI for either path — only these two environment variables. A
-wrong or unmounted value still surfaces, just not as a settings-form error: it
-shows up as an "incomplete" row on whichever component needs it (PostgreSQL,
-an instance), naming exactly what's missing, the same way any other
-unconfigured field does. Whichever paths you use, each must be mounted into
-the Suite **at the same path on both sides**, as above.
+`SUITE_DATA_DIR` has no UI — it is set only in compose. A wrong or unmounted
+value still surfaces, just not as a settings-form error: it shows up as an
+"incomplete" row on whichever component needs it (PostgreSQL), naming exactly
+what's missing, the same way any other unconfigured field does. It must be
+mounted into the Suite **at the same path on both sides**, as above.
 
 That looks redundant and isn't. A bind mount is resolved by the Docker daemon
 on the *host*, not inside the Suite's own container — so when the Suite tells

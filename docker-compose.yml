@@ -23,7 +23,7 @@ services:
 
       # Where the SQLite store lives, and — from phase 2b — where every
       # component's own configuration lives too, one subfolder each. Back this
-      # path up and you have backed up everything except the cache below.
+      # path up and you have backed up everything.
       SUITE_DATA_DIR: /mnt/user/appdata/stream-share-suite
 
       # Prefix for every container the Suite creates (gluetun, PostgreSQL,
