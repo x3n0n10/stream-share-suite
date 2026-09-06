@@ -316,7 +316,21 @@ Each instance's VOD/catchup **cache** is a different story: since it can
 reach tens of gigabytes and often belongs on a different disk than a few
 kilobytes of config, it's a per-instance host path entered directly for that
 instance (in Setup or on the Stack page) rather than a shared, compose-time
-setting — there's no `SUITE_CACHE_DIR` to configure.
+setting — there's no separate cache-directory environment variable to
+configure.
+
+Being entered through the UI instead of compose doesn't exempt a cache path
+from the same bind-mount rule as `SUITE_DATA_DIR` above: it still has to be
+mounted into the Suite's own container at the same path on both sides,
+because the Suite still can't create a directory at a host path it can't see
+itself, no matter which form set the value. `validatePath` in
+`server/src/store/paths.js` catches an unmounted or mistyped path and names
+the exact volumes line to add, but that's meant as a safety net for a typo,
+not the first place to learn the requirement. It also needs to already be
+writable by the Suite's `PUID:PGID` — unlike `SUITE_DATA_DIR`, which the
+entrypoint chowns automatically on startup, a cache path entered later
+through the UI is never touched by that step, so it has to be created with
+the right ownership on the host up front.
 
 Self-inspection — the trick that computes gluetun's `FIREWALL_OUTBOUND_SUBNETS`
 from the Suite's own networks — can't replace this. `docker inspect` would
