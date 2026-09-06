@@ -63,7 +63,7 @@ export default function Setup() {
   // (caching, access, health) both read and patch entries here.
   const [instances, setInstances] = useState([]);
 
-  const stepProps = { instances, setInstances, onNext: setStep, onBack: setStep };
+  const stepProps = { instances, setInstances, onNext: setStep };
 
   return (
     <Layout title="Setup wizard">

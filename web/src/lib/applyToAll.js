@@ -6,5 +6,10 @@ export function describeFailures(targets, results) {
     .map((r, idx) => ({ r, instance: targets[idx] }))
     .filter(({ r }) => r.status === "rejected");
   if (failed.length === 0) return null;
-  return `Failed on ${failed.map(({ instance, r }) => `${instance.name} (${r.reason.message})`).join(", ")}`;
+  return `Failed on ${failed
+    .map(({ instance, r }) => {
+      const detail = r.reason.body?.errors?.map((e) => e.message).join(" ") || r.reason.message;
+      return `${instance.name} (${detail})`;
+    })
+    .join(", ")}`;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, ErrorNote } from "../../components/common.jsx";
+import { Card } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 

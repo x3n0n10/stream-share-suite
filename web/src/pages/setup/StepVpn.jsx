@@ -15,10 +15,19 @@ export default function StepVpn({ onNext }) {
 
   async function chooseVpn(enabled) {
     setError(null);
-    setChoice(enabled);
+    if (!enabled) {
+      setChoice(false);
+      try {
+        await api.saveStackSettings({ vpnEnabled: false });
+        onNext("done");
+      } catch (err) {
+        setError(err.message);
+      }
+      return;
+    }
     try {
-      await api.saveStackSettings({ vpnEnabled: enabled });
-      if (!enabled) onNext("done");
+      await api.saveStackSettings({ vpnEnabled: true });
+      setChoice(true);
     } catch (err) {
       setError(err.message);
     }

@@ -23,6 +23,10 @@ export default function StepHealthCheck({ instances, onNext }) {
   const allStreamIdsFilled = chosen.every((i) => (streamIds[i.key] || "").trim());
 
   async function submit() {
+    if (chosen.length === 0) {
+      onNext("done");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {

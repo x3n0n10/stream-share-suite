@@ -327,11 +327,11 @@ const FIELD =
   "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
   "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
-// Data and cache paths are SUITE_DATA_DIR / SUITE_CACHE_DIR, set once in
-// compose — deliberately not shown here. A UI override would just be
-// retyping the same string the compose file already carries; a path that is
-// wrong still surfaces, as an "incomplete" row on whichever component needs
-// it, which is where a bad value actually has a consequence worth explaining.
+// The data path is SUITE_DATA_DIR, set once in compose — deliberately not
+// shown here. A UI override would just be retyping the same string the
+// compose file already carries; a path that is wrong still surfaces, as an
+// "incomplete" row on whichever component needs it, which is where a bad
+// value actually has a consequence worth explaining.
 function StackSettings({ settings, onSave, busy }) {
   return (
     <Card className="flex flex-col gap-5 p-5">

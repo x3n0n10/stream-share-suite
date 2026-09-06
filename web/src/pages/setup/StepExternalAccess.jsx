@@ -63,13 +63,14 @@ export default function StepExternalAccess({ instances, onNext }) {
 
   async function chooseCaddy(enabled) {
     setErrorB(null);
-    setWantsCaddy(enabled);
     if (!enabled) {
+      setWantsCaddy(false);
       onNext("vpn");
       return;
     }
     try {
       await api.saveStackSettings({ caddyEnabled: true });
+      setWantsCaddy(true);
     } catch (err) {
       setErrorB(err.message);
     }
@@ -109,7 +110,15 @@ export default function StepExternalAccess({ instances, onNext }) {
                   <input
                     className={FIELD}
                     value={values.publicBaseUrl}
-                    onChange={(e) => patch(instance.key, { publicBaseUrl: e.target.value })}
+                    onChange={(e) => {
+                      const publicBaseUrl = e.target.value;
+                      patch(
+                        instance.key,
+                        publicBaseUrl.trim()
+                          ? { publicBaseUrl }
+                          : { publicBaseUrl, discordEnabled: false, discordBotToken: "", discordAdminRoleId: "" }
+                      );
+                    }}
                     placeholder="https://tv.example.com/provider-1"
                   />
                 </label>
