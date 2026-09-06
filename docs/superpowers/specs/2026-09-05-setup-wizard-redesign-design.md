@@ -133,6 +133,17 @@ directory and its data don't move, the operator just retypes the same
 host path (previously `<old SUITE_CACHE_DIR>/<instance-name>`) into the
 new field.
 
+**Related default change**: `vodCacheEnabled` currently defaults to
+`"true"` (`catchupEnabled` already defaults to `"false"`). With a
+mandatory, no-fallback cache path, that default would leave an instance
+created outside the wizard (via Stack's plain "Add instance" form)
+silently caching and immediately stuck on a missing path nobody was ever
+asked for. This spec flips `vodCacheEnabled`'s default to `"false"`, so
+caching is an explicit opt-in everywhere, not just inside this wizard.
+This only changes the pre-filled state of a *new* instance form — an
+already-stored instance keeps whatever value was actually saved for it,
+regardless of the schema default.
+
 No other backend changes. Auth-mode reuse, shared-caching-as-a-wizard-
 convenience, Postgres managed/external, VPN, and health check are all
 already fully supported by the existing schemas and settings store — this
