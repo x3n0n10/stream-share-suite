@@ -328,7 +328,7 @@ line already needs.
 
 `SUITE_DATA_DIR` has no UI — it is set only in compose. A wrong or unmounted
 value still surfaces, just not as a settings-form error: it shows up as an
-"incomplete" row on whichever component needs it (PostgreSQL), naming exactly
+"incomplete" row on whichever component needs it (PostgreSQL, an instance), naming exactly
 what's missing, the same way any other unconfigured field does. It must be
 mounted into the Suite **at the same path on both sides**, as above.
 
