@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
-// TODO(task 11): uncomment when StepCaching.jsx exists
-// import StepCaching from "./setup/StepCaching.jsx";
+import StepCaching from "./setup/StepCaching.jsx";
 // TODO(task 12): uncomment when StepDatabase.jsx exists
 // import StepDatabase from "./setup/StepDatabase.jsx";
 // TODO(task 13): uncomment when StepExternalAccess.jsx exists
@@ -76,8 +75,7 @@ export default function Setup() {
         <Progress step={step} />
 
         {step === "instances" && <StepInstances {...stepProps} />}
-        {/* TODO(task 11): uncomment when StepCaching.jsx exists */}
-        {/* {step === "caching" && <StepCaching {...stepProps} />} */}
+        {step === "caching" && <StepCaching {...stepProps} />}
         {/* TODO(task 12): uncomment when StepDatabase.jsx exists */}
         {/* {step === "database" && <StepDatabase {...stepProps} />} */}
         {/* TODO(task 13): uncomment when StepExternalAccess.jsx exists */}
