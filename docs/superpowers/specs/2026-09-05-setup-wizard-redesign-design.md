@@ -14,11 +14,11 @@ reconnects) that exist today but aren't reachable from Setup at all.
 
 ## Scope
 
-This is a frontend-heavy pass with one small, bounded backend addition
-(Discord fields on the instance schema — see below). It replaces
-`Setup.jsx`'s contents; it does not touch the Stack page, which remains the
-place to review/apply the resulting plan and to edit any of this
-configuration later.
+This is a frontend-heavy pass with two small, bounded backend additions
+(Discord fields, and a per-instance cache path override — see below). It
+replaces `Setup.jsx`'s contents; it does not touch the Stack page, which
+remains the place to review/apply the resulting plan and to edit any of
+this configuration later.
 
 ## Backend change: Discord fields
 
@@ -39,6 +39,37 @@ same "don't ask twice" approach already used elsewhere in that file.
 Validation: `discordEnabled: true` requires `publicBaseUrl` to be set (a
 `requiredWhen`-style rule, matching the pattern `postgres.js`'s
 `adminPassword` already uses for `mode: "managed"`).
+
+## Backend change: per-instance cache path override
+
+Every instance's VOD/catchup cache lives at `<SUITE_CACHE_DIR>/<instance
+name>` today (`server/src/store/paths.js`'s `componentCacheDir`) —
+`SUITE_CACHE_DIR` is one shared host path for the whole Suite, set once in
+compose, deliberately with no UI override (see that file's own comment: a
+per-component override would previously have just meant re-declaring the
+same string). This spec adds a genuine new capability on top of that,
+rather than reopening that decision: an **optional** per-instance override
+so a given instance's cache can live somewhere other than the shared root
+— useful when, say, one provider's catchup buffer should sit on a
+different disk than the rest.
+
+Add to `INSTANCE_SCHEMA`'s existing `Container` group (alongside
+`containerName`, `port` — the same "computed default, optional override"
+shape those already have):
+
+| Key | Env var | Type | Notes |
+|-----|---------|------|-------|
+| `cachePath` | — | text, advanced | Host path. Blank (the default) keeps today's computed `<SUITE_CACHE_DIR>/<name>` behavior. |
+
+`reconcile/instance.js` line 88 changes from
+`ensureDirectory(componentCacheDir(name))` to
+`ensureDirectory(values.cachePath?.trim() || componentCacheDir(name))`.
+Validated with the existing `validatePath` helper from `store/paths.js`
+(already does exactly this check — absolute, exists, writable by the
+Suite) wired into this instance's readiness check in
+`reconcile/catalog.js`, the same way the stack-wide data/cache paths are
+already checked there — so a bad override surfaces as a plan-time message,
+not a container that fails to start.
 
 No other backend changes. Auth-mode reuse, shared-caching-as-a-wizard-
 convenience, Postgres managed/external, VPN, and health check are all
@@ -110,10 +141,19 @@ Provider/Access screen; no advances to Step 2.
 A small hand-built form, not tied to any one instance: "Cache VOD locally"
 and "Buffer live channels for catchup" (+ "Hours of catchup to keep" when
 catchup is on, `dependsOn`-style). These are wizard-only convenience
-values — each instance still stores its own copy. On continue, apply the
-same values to every instance created in Step 1 via
-`Promise.allSettled(instances.map(i => api.updateStackInstance(i.key,
-patch)))`.
+values — each instance still stores its own copy.
+
+If either is turned on, an "Advanced: where should each instance's cache
+live?" disclosure appears below, listing every instance created in Step 1
+with its computed default path (`<SUITE_CACHE_DIR>/<name>`) shown as a
+placeholder and an optional text field to override it — surfacing the new
+`cachePath` field per instance, collapsed by default since most setups
+never need it.
+
+On continue: apply the shared VOD/catchup values to every instance created
+in Step 1 via `Promise.allSettled(instances.map(i =>
+api.updateStackInstance(i.key, patch)))`, where each instance's `patch`
+also includes its own `cachePath` if one was typed in the disclosure above.
 
 ## Step 3 — Database (once)
 
