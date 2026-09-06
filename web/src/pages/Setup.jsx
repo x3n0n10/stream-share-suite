@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-// TODO(task 10): uncomment when StepInstances.jsx exists
-// import StepInstances from "./setup/StepInstances.jsx";
+import StepInstances from "./setup/StepInstances.jsx";
 // TODO(task 11): uncomment when StepCaching.jsx exists
 // import StepCaching from "./setup/StepCaching.jsx";
 // TODO(task 12): uncomment when StepDatabase.jsx exists
@@ -76,8 +75,7 @@ export default function Setup() {
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <Progress step={step} />
 
-        {/* TODO(task 10): uncomment when StepInstances.jsx exists */}
-        {/* {step === "instances" && <StepInstances {...stepProps} />} */}
+        {step === "instances" && <StepInstances {...stepProps} />}
         {/* TODO(task 11): uncomment when StepCaching.jsx exists */}
         {/* {step === "caching" && <StepCaching {...stepProps} />} */}
         {/* TODO(task 12): uncomment when StepDatabase.jsx exists */}
