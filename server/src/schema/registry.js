@@ -24,6 +24,10 @@
 // an array of conditions ANDed together — e.g. a field only relevant for one
 // provider's WireGuard setup: [{ key: "vpnType", equals: "wireguard" },
 // { key: "vpnServiceProvider", oneOf: ["mullvad"] }].
+//
+// A condition can also be { any: [condition, ...] } — satisfied when at
+// least one of those conditions is, e.g. a field required when either of
+// two independent toggles is on.
 
 function resolvedValue(field, values) {
   const raw = values[field.key];
@@ -37,7 +41,18 @@ function resolvedValue(field, values) {
 // not the raw stored one — otherwise a field whose visibility depends on
 // another field's default would incorrectly read as hidden until that other
 // field had actually been saved once.
-function conditionMet(condition, depValue) {
+//
+// A condition is either a leaf ({ key, equals } or { key, oneOf }) or an
+// { any: [...] } group, satisfied when at least one of its own conditions
+// is — e.g. a cache path that's only relevant when VOD caching *or* catchup
+// is on. Leaves and groups can nest arbitrarily since this recurses on
+// whichever shape it's handed; nothing here assumes only one level of "any".
+function conditionMet(condition, values, schema) {
+  if ("any" in condition) {
+    return condition.any.some((sub) => conditionMet(sub, values, schema));
+  }
+  const depField = schema.fields.find((f) => f.key === condition.key);
+  const depValue = depField ? resolvedValue(depField, values) : values[condition.key];
   if ("oneOf" in condition) return condition.oneOf.includes(depValue);
   return depValue === condition.equals;
 }
@@ -45,11 +60,7 @@ function conditionMet(condition, depValue) {
 function isVisible(field, values, schema) {
   if (!field.dependsOn) return true;
   const conditions = Array.isArray(field.dependsOn) ? field.dependsOn : [field.dependsOn];
-  return conditions.every((condition) => {
-    const depField = schema.fields.find((f) => f.key === condition.key);
-    const depValue = depField ? resolvedValue(depField, values) : values[condition.key];
-    return conditionMet(condition, depValue);
-  });
+  return conditions.every((condition) => conditionMet(condition, values, schema));
 }
 
 // Whether a field's `required` applies right now.
@@ -64,11 +75,7 @@ function isRequired(field, values, schema) {
   if (!field.requiredWhen) return true;
 
   const conditions = Array.isArray(field.requiredWhen) ? field.requiredWhen : [field.requiredWhen];
-  return conditions.every((condition) => {
-    const depField = schema.fields.find((f) => f.key === condition.key);
-    const depValue = depField ? resolvedValue(depField, values) : values[condition.key];
-    return conditionMet(condition, depValue);
-  });
+  return conditions.every((condition) => conditionMet(condition, values, schema));
 }
 
 // Required fields are only enforced when visible (dependsOn satisfied) — a

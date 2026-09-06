@@ -202,3 +202,71 @@ test("a select holding a value outside its options is rejected even when optiona
   assert.equal(validate(schema, { mode: "z" }).length, 1);
   assert.equal(validate(schema, {}).length, 0, "unset and optional is fine");
 });
+
+test("dependsOn's any form is satisfied when at least one sub-condition matches", () => {
+  const schema = {
+    kind: "cache",
+    label: "Cache",
+    fields: [
+      { key: "vodCacheEnabled", envVar: null, label: "VOD cache", type: "checkbox", default: false },
+      { key: "catchupEnabled", envVar: null, label: "Catchup", type: "checkbox", default: false },
+      {
+        key: "cachePath",
+        envVar: null,
+        label: "Cache path",
+        required: true,
+        dependsOn: {
+          any: [
+            { key: "vodCacheEnabled", equals: true },
+            { key: "catchupEnabled", equals: true },
+          ],
+        },
+      },
+    ],
+  };
+
+  // Neither flag on: hidden, so not reported missing even though required.
+  assert.equal(validate(schema, {}).some((e) => e.key === "cachePath"), false);
+
+  // Catchup alone satisfies the "any": visible and required.
+  assert.equal(validate(schema, { catchupEnabled: true }).some((e) => e.key === "cachePath"), true);
+
+  // VOD cache alone also satisfies it.
+  assert.equal(validate(schema, { vodCacheEnabled: true }).some((e) => e.key === "cachePath"), true);
+
+  // Both on, value supplied: satisfied.
+  assert.equal(
+    validate(schema, { vodCacheEnabled: true, catchupEnabled: true, cachePath: "/mnt/cache" }).some(
+      (e) => e.key === "cachePath"
+    ),
+    false
+  );
+});
+
+test("requiredWhen's any form works the same way as dependsOn's", () => {
+  const schema = {
+    kind: "db",
+    label: "DB",
+    fields: [
+      { key: "modeA", envVar: null, label: "A", type: "checkbox", default: false },
+      { key: "modeB", envVar: null, label: "B", type: "checkbox", default: false },
+      {
+        key: "password",
+        envVar: null,
+        label: "Password",
+        required: true,
+        requiredWhen: {
+          any: [
+            { key: "modeA", equals: true },
+            { key: "modeB", equals: true },
+          ],
+        },
+      },
+    ],
+  };
+
+  // Always visible (no dependsOn) — but not required until one mode is on.
+  assert.equal(validate(schema, {}).some((e) => e.key === "password"), false);
+  assert.equal(validate(schema, { modeA: true }).some((e) => e.key === "password"), true);
+  assert.equal(validate(schema, { modeB: true }).some((e) => e.key === "password"), true);
+});
