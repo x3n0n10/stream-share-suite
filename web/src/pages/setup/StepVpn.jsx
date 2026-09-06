@@ -16,7 +16,6 @@ export default function StepVpn({ onNext }) {
   async function chooseVpn(enabled) {
     setError(null);
     if (!enabled) {
-      setChoice(false);
       try {
         await api.saveStackSettings({ vpnEnabled: false });
         onNext("done");
