@@ -39,30 +39,31 @@ export default function StepHealthCheck({ instances, onNext }) {
   const allStreamIdsFilled = chosen.every((i) => (streamIds[i.key] || "").trim());
 
   async function submit() {
-    if (chosen.length === 0) {
-      onNext("done");
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
+      // Patch every instance, not just the chosen ones — an instance the
+      // user just unchecked still needs healthCheckEnabled: false sent, or
+      // turning health checks back off would never actually persist.
       const results = await Promise.allSettled(
-        chosen.map((i) =>
+        instances.map((i) =>
           api.updateStackInstance(i.key, {
-            healthCheckEnabled: true,
-            healthCheckStreamId: streamIds[i.key],
+            healthCheckEnabled: !!selected[i.key],
+            ...(selected[i.key] ? { healthCheckStreamId: streamIds[i.key] } : {}),
           })
         )
       );
       const failureMessage = describeFailures(
-        chosen.map((i) => ({ name: i.displayName })),
+        instances.map((i) => ({ name: i.displayName })),
         results
       );
       if (failureMessage) {
         setError(failureMessage);
         return;
       }
-      await api.saveWatchdogSettings({ enabled: true, checkTimes });
+      if (chosen.length > 0) {
+        await api.saveWatchdogSettings({ enabled: true, checkTimes });
+      }
       onNext("done");
     } catch (err) {
       setError(err.message);
