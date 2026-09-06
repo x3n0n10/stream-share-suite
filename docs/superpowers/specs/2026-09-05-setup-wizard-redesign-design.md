@@ -14,8 +14,11 @@ reconnects) that exist today but aren't reachable from Setup at all.
 
 ## Scope
 
-This is a frontend-heavy pass with two small, bounded backend additions
-(Discord fields, and an explicit per-instance cache path — see below). It
+This is a frontend-heavy pass with two bounded backend changes (Discord
+fields, and replacing the shared `SUITE_CACHE_DIR` mechanism with an
+explicit per-instance cache path — see below, larger than "small" for the
+second one since it touches a compose-time env var and its docs, but still
+fully contained to a handful of named files). It
 replaces `Setup.jsx`'s contents; it does not touch the Stack page, which
 remains the place to review/apply the resulting plan and to edit any of
 this configuration later.
@@ -40,24 +43,22 @@ Validation: `discordEnabled: true` requires `publicBaseUrl` to be set (a
 `requiredWhen`-style rule, matching the pattern `postgres.js`'s
 `adminPassword` already uses for `mode: "managed"`).
 
-## Backend change: per-instance cache path, always explicit
+## Backend change: per-instance cache path replaces `SUITE_CACHE_DIR`
 
 Every instance's VOD/catchup cache lives at `<SUITE_CACHE_DIR>/<instance
-name>` today (`server/src/store/paths.js`'s `componentCacheDir`) —
-`SUITE_CACHE_DIR` is one shared host path for the whole Suite, set once in
-compose, deliberately with no UI override (see that file's own comment: a
-per-component override would previously have just meant re-declaring the
-same string). This spec adds a genuine new capability on top of that,
-rather than reopening that decision — but per instruction, this one is
-**not** an optional override with a computed fallback: whenever an
-instance has VOD caching or catchup on, its host cache path must be typed
-in, every time, no default offered. (The container-internal mount point
+name>` today — one shared host path for the whole Suite, set once in
+compose (`server/src/store/paths.js`'s `getCachePath`/`componentCacheDir`).
+Per instruction, this spec removes that mechanism entirely rather than
+adding an override alongside it: `SUITE_CACHE_DIR` has exactly two
+call sites in the codebase (`reconcile/instance.js:88` and
+`reconcile/catalog.js:105`), both of which this change replaces, so there's
+nothing left over to keep it for. (The container-internal mount point
 stays `/cache`, unchanged and not user-facing — confirmed against
 `reconcile/instance.js`'s `CACHE_MOUNT` constant, which is the actual
 current value despite an earlier `/tmp/cache` mention in this doc's
 history.)
 
-Add to `INSTANCE_SCHEMA`'s existing `Container` group:
+**Schema**: add to `INSTANCE_SCHEMA`'s existing `Container` group:
 
 | Key | Env var | Type | Notes |
 |-----|---------|------|-------|
@@ -66,9 +67,9 @@ Add to `INSTANCE_SCHEMA`'s existing `Container` group:
 **Schema-engine gap this surfaces**: `requiredWhen` (see
 `server/src/schema/registry.js`) currently ANDs an array of conditions —
 there's no way to express "required if *either* of these is true," which
-is exactly what `cachePath` needs (required when VOD cache **or** catchup
-is on). `registry.js`'s `conditionMet` needs a small addition — an `any:
-[...]` form alongside the existing implicit AND-array, e.g.:
+is exactly what `cachePath` needs. `registry.js`'s `conditionMet` needs a
+small addition — an `any: [...]` form alongside the existing implicit
+AND-array, e.g.:
 
 ```
 requiredWhen: { any: [
@@ -81,17 +82,56 @@ This is the one genuinely new piece of shared schema-engine logic in this
 spec; everything else reuses `dependsOn`/`requiredWhen` exactly as they
 exist today.
 
-`reconcile/instance.js` line 88 changes from
-`ensureDirectory(componentCacheDir(name))` to
-`ensureDirectory(values.cachePath || componentCacheDir(name))` — the
-`componentCacheDir` fallback only still matters for an instance with both
-caching flags off, where the path is mounted but never written to, so its
-exact location is immaterial. Validated with the existing `validatePath`
-helper from `store/paths.js` (already does exactly this check — absolute,
-exists, writable by the Suite) wired into this instance's readiness check
-in `reconcile/catalog.js`, the same way the stack-wide data/cache paths
-are already checked there — so a bad path surfaces as a plan-time
-message, not a container that fails to start.
+**The cache mount becomes conditional.** Today `renderInstanceSpec` mounts
+a cache volume for every instance unconditionally, whether or not it
+caches anything. Without a global root to fall back to, that no longer
+makes sense for an instance with both caching flags off — so
+`reconcile/instance.js` changes to skip the cache directory and its volume
+entry entirely unless `vodCacheEnabled || catchupEnabled`:
+
+```
+const cachingOn = values.vodCacheEnabled === "true" || values.catchupEnabled === "true";
+const cacheDir = cachingOn ? ensureDirectory(values.cachePath) : null;
+// ...
+volumes: [
+  `${configDir}:${CONFIG_MOUNT}`,
+  ...(cacheDir ? [`${cacheDir}:${CACHE_MOUNT}`] : []),
+],
+```
+
+(`CACHE_FOLDER` is already only meaningful to stream-share when it's
+actually using the cache, so leaving it unset when there's no mount needs
+no special handling beyond `renderEnv`'s existing "omit rather than send
+empty" behavior.)
+
+**Readiness check**: `reconcile/catalog.js`'s instance `ready()` drops its
+unconditional `validatePath(getCachePath(), "The cache path")` and instead
+validates `values.cachePath` only when that instance is actually caching:
+
+```
+ready: () =>
+  validatePath(getDataPath(), "The stack data path") ||
+  (cachingOn ? validatePath(values.cachePath, "This instance's cache path") : null) ||
+  ...
+```
+
+**Cleanup**: `getCachePath` and `componentCacheDir` in `store/paths.js`
+become dead code once nothing calls them — delete them, along with their
+env var read and the tests exercising them (`paths.test.js`'s two
+`SUITE_CACHE_DIR` tests, and the `SUITE_CACHE_DIR` setup/teardown in
+`instance.test.js`, `caddy.test.js`, `import.test.js`). Remove
+`SUITE_CACHE_DIR` from `docker-compose.yml` and the README's "Where
+component data lives" section (which currently documents it as a
+stack-wide path alongside `SUITE_DATA_DIR` — that section needs rewriting
+to explain cache is now per-instance and explicit, not a compose-time
+setting at all).
+
+**Compatibility**: no migration code. An existing install with
+caching-enabled instances will see them marked "not ready" until their
+`cachePath` is filled in once after upgrading — the underlying cache
+directory and its data don't move, the operator just retypes the same
+host path (previously `<old SUITE_CACHE_DIR>/<instance-name>`) into the
+new field.
 
 No other backend changes. Auth-mode reuse, shared-caching-as-a-wizard-
 convenience, Postgres managed/external, VPN, and health check are all
