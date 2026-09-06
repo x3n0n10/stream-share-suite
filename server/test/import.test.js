@@ -32,7 +32,6 @@ beforeEach(() => {
   freshDatabase();
   containers = new Map();
   process.env.SUITE_DATA_DIR = "";
-  process.env.SUITE_CACHE_DIR = "";
 });
 
 function json(res, status, body) {

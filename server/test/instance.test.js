@@ -67,7 +67,6 @@ after(() => {
   server.close();
   if (root) rmSync(root, { recursive: true, force: true });
   delete process.env.SUITE_DATA_DIR;
-  delete process.env.SUITE_CACHE_DIR;
 });
 
 beforeEach(() => {
@@ -75,11 +74,10 @@ beforeEach(() => {
   containers = new Map();
   // A real directory, because validatePath deliberately refuses a path the
   // Suite cannot see — the whole point of it is to fail here rather than at
-  // container-start time. Both paths now come from the environment, same as
-  // they would from compose's SUITE_DATA_DIR / SUITE_CACHE_DIR.
+  // container-start time. Comes from the environment, same as it would from
+  // compose's SUITE_DATA_DIR.
   root = mkdtempSync(path.join(tmpdir(), "suite-stack-"));
   process.env.SUITE_DATA_DIR = root;
-  process.env.SUITE_CACHE_DIR = root;
 });
 
 const PROVIDER = {
@@ -363,7 +361,6 @@ test("gluetun is planned before the instances that live inside it", async () => 
 test("an instance with no usable stack paths is incomplete rather than mis-mounted", async () => {
   configureStack();
   delete process.env.SUITE_DATA_DIR;
-  delete process.env.SUITE_CACHE_DIR;
   provisionInstance(PROVIDER);
 
   const { plans } = await planStack();
@@ -371,6 +368,27 @@ test("an instance with no usable stack paths is incomplete rather than mis-mount
 
   assert.equal(instance.action, "incomplete");
   assert.match(instance.reason, /data path/i);
+});
+
+test("an instance caching without a usable cache path is incomplete, naming it", async () => {
+  configureStack();
+  const { key } = provisionInstance({ ...PROVIDER, vodCacheEnabled: "true", cachePath: "/definitely/not/mounted" });
+
+  const { plans } = await planStack();
+  const instance = plans.find((p) => p.kind === "instance");
+
+  assert.equal(instance.action, "incomplete");
+  assert.match(instance.reason, /cache path/i);
+});
+
+test("an instance not caching anything is unaffected by the cache path check", async () => {
+  configureStack();
+  const { key } = provisionInstance(PROVIDER);
+
+  const { plans } = await planStack();
+  const instance = plans.find((p) => p.kind === "instance");
+
+  assert.notEqual(instance.action, "incomplete");
 });
 
 test("instanceKeyFor does not collide with an externally configured instance", async () => {

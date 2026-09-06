@@ -20,14 +20,12 @@ let root;
 after(() => {
   if (root) rmSync(root, { recursive: true, force: true });
   delete process.env.SUITE_DATA_DIR;
-  delete process.env.SUITE_CACHE_DIR;
 });
 
 beforeEach(() => {
   freshDatabase();
   root = mkdtempSync(path.join(tmpdir(), "suite-caddy-"));
   process.env.SUITE_DATA_DIR = root;
-  process.env.SUITE_CACHE_DIR = root;
   saveComponentValues("postgres", {
     mode: "external",
     host: "db.example",
