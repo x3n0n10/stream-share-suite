@@ -205,14 +205,18 @@ and "Buffer live channels for catchup" (+ "Hours of catchup to keep" when
 catchup is on, `dependsOn`-style). These are wizard-only convenience
 values — each instance still stores its own copy.
 
-If either is turned on, a "Where should each instance's cache live?"
-section appears below, listing every instance created in Step 1 with a
-required, blank host-path input — no default, no placeholder value, since
-this must always be a deliberate choice on the operator's Docker host.
-Continuing is blocked until every listed instance has a path filled in.
+If either is turned on, a "Where should this stuff live?" section appears
+below: one required host-path input for a parent folder — no default, the
+operator must type it. Once that's filled in, every instance created in
+Step 1 shows a suggested subfolder, `<parent>/<instance.key>` (the
+instance's real, already-assigned key from Step 1 — not a re-derived
+preview slug, since it already exists by this point), as an **editable**
+text input, not a placeholder: the suggestion is a real value the user can
+accept as-is or type over, individually per instance. Continuing is
+blocked until every listed instance's field is non-empty.
 
 On continue: apply the shared VOD/catchup values, plus each instance's own
-required `cachePath`, to every instance created in Step 1 via
+(possibly-edited) `cachePath`, to every instance created in Step 1 via
 `Promise.allSettled(instances.map(i => api.updateStackInstance(i.key,
 patch)))`.
 
