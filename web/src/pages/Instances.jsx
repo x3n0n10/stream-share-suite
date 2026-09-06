@@ -1,10 +1,9 @@
 import Layout from "../components/Layout.jsx";
-import { Card, Badge, StatusDot, ErrorNote, Skeleton } from "../components/common.jsx";
+import { Card, Badge, StatusDot, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { SubscriptionDetail } from "../components/Subscription.jsx";
-import { IconRefresh } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatDateTime, formatRelativeTime } from "../lib/format.js";
+import { formatDuration, formatDateTime } from "../lib/format.js";
 
 function FeatureBadge({ on, label }) {
   return <Badge tone={on ? "accent" : "slate"}>{label}</Badge>;
@@ -19,19 +18,11 @@ export default function Instances({ pollIntervalMs }) {
     <Layout
       title="Instances"
       headerExtra={
-        <button
-          onClick={refresh}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-          aria-label="Refresh"
-        >
-          <IconRefresh className="h-4 w-4" />
-        </button>
+        <RefreshButton onClick={refresh} />
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-400 dark:text-slate-500">
-          {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
-        </p>
+        <PollStatus updatedAt={updatedAt} />
         {error && <ErrorNote message={`Refresh failed: ${error}`} />}
       </div>
 

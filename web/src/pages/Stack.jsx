@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../components/common.jsx";
+import { Card, Badge, Button, ErrorNote, ConfirmDialog, FIELD } from "../components/common.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
+import { useJobPolling } from "../lib/useJobPolling.js";
 import { previewContainerName, previewContainerNameForKey } from "../lib/containerName.js";
 import { formatDateTime } from "../lib/format.js";
 
@@ -61,12 +62,10 @@ export default function Stack({ pollIntervalMs = 15000 }) {
   const [portBand, setPortBand] = useState(null);
   const [plan, setPlan] = useState(null);
   const [planError, setPlanError] = useState(null);
-  const [job, setJob] = useState(null);
   const [busy, setBusy] = useState(false);
   const [orphanToRemove, setOrphanToRemove] = useState(null);
   const [instanceToRemove, setInstanceToRemove] = useState(null);
   const [dropDatabase, setDropDatabase] = useState(false);
-  const pollRef = useRef(null);
 
   const refreshPlan = useCallback(async () => {
     try {
@@ -94,9 +93,13 @@ export default function Stack({ pollIntervalMs = 15000 }) {
     if (status.reachable) await refreshPlan();
   }, [refreshPlan]);
 
+  const { job, setJob, poll: pollJob } = useJobPolling(api.job, 500, () => {
+    setBusy(false);
+    refreshPlan();
+  });
+
   useEffect(() => {
     reload();
-    return () => clearTimeout(pollRef.current);
   }, [reload]);
 
   // A container's own status can keep settling for a moment after a job
@@ -108,21 +111,6 @@ export default function Stack({ pollIntervalMs = 15000 }) {
     const id = setInterval(refreshPlan, pollIntervalMs);
     return () => clearInterval(id);
   }, [dockerReachable, refreshPlan, pollIntervalMs]);
-
-  function pollJob(jobId) {
-    clearTimeout(pollRef.current);
-    pollRef.current = setTimeout(async () => {
-      const current = await api.job(jobId).catch(() => null);
-      if (!current) return;
-      setJob(current);
-      if (current.status === "running") {
-        pollJob(jobId);
-      } else {
-        setBusy(false);
-        refreshPlan();
-      }
-    }, 500);
-  }
 
   async function runJob(start) {
     setBusy(true);
@@ -321,11 +309,6 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
     </div>
   );
 }
-
-const FIELD =
-  "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
-  "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
-  "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
 // Data and cache paths are SUITE_DATA_DIR / SUITE_CACHE_DIR, set once in
 // compose — deliberately not shown here. A UI override would just be

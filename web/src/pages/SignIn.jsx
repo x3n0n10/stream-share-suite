@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { api } from "../lib/api.js";
-import { Button, ErrorNote } from "../components/common.jsx";
+import { Button, ErrorNote, FIELD } from "../components/common.jsx";
 
 // One screen for both first-run setup and ordinary sign-in — they share every
 // field and differ only in the copy and which endpoint they post to, so
@@ -33,11 +33,6 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
     }
   }
 
-  const field =
-    "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
-    "placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 " +
-    "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
       <div className="w-full max-w-sm">
@@ -62,7 +57,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Username</span>
               <input
-                className={field}
+                className={FIELD}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
@@ -74,7 +69,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
             <label className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Password</span>
               <input
-                className={field}
+                className={FIELD}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -94,7 +89,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
                   Confirm password
                 </span>
                 <input
-                  className={field}
+                  className={FIELD}
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}

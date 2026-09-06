@@ -14,3 +14,4 @@ data/
 
 # Editor/IDE
 .DS_Store
+.superpowers/
