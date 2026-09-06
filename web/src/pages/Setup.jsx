@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
 import StepCaching from "./setup/StepCaching.jsx";
-// TODO(task 12): uncomment when StepDatabase.jsx exists
-// import StepDatabase from "./setup/StepDatabase.jsx";
+import StepDatabase from "./setup/StepDatabase.jsx";
 // TODO(task 13): uncomment when StepExternalAccess.jsx exists
 // import StepExternalAccess from "./setup/StepExternalAccess.jsx";
 // TODO(task 13): uncomment when StepVpn.jsx exists
@@ -76,8 +75,7 @@ export default function Setup() {
 
         {step === "instances" && <StepInstances {...stepProps} />}
         {step === "caching" && <StepCaching {...stepProps} />}
-        {/* TODO(task 12): uncomment when StepDatabase.jsx exists */}
-        {/* {step === "database" && <StepDatabase {...stepProps} />} */}
+        {step === "database" && <StepDatabase {...stepProps} />}
         {/* TODO(task 13): uncomment when StepExternalAccess.jsx exists */}
         {/* {step === "access" && <StepExternalAccess {...stepProps} />} */}
         {/* TODO(task 13): uncomment when StepVpn.jsx exists */}
