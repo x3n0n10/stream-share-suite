@@ -425,3 +425,33 @@ test("renderEnv omits DISCORD_ADMIN_ROLE_ID when left blank, even with Discord o
   const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" });
   assert.equal("DISCORD_ADMIN_ROLE_ID" in env, false);
 });
+
+// --- cache path ----------------------------------------------------------
+
+test("vodCacheEnabled now defaults to off", () => {
+  const fields = INSTANCE_SCHEMA.fields;
+  assert.equal(fields.find((f) => f.key === "vodCacheEnabled").default, "false");
+});
+
+test("cachePath is not required while both caching flags are off", () => {
+  assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "cachePath"), false);
+});
+
+test("cachePath is required once VOD caching is on", () => {
+  const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, vodCacheEnabled: "true" });
+  assert.equal(errors.some((e) => e.key === "cachePath"), true);
+});
+
+test("cachePath is required once catchup is on, independently of VOD caching", () => {
+  const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, catchupEnabled: "true" });
+  assert.equal(errors.some((e) => e.key === "cachePath"), true);
+});
+
+test("cachePath satisfied with either caching flag on and a value given", () => {
+  const errors = validate(INSTANCE_SCHEMA, {
+    ...PROVIDER,
+    vodCacheEnabled: "true",
+    cachePath: "/mnt/cache/provider-1",
+  });
+  assert.equal(errors.some((e) => e.key === "cachePath"), false);
+});

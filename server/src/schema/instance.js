@@ -199,7 +199,7 @@ export const INSTANCE_SCHEMA = {
       label: "Cache VOD locally",
       type: "select",
       options: ["true", "false"],
-      default: "true",
+      default: "false",
       group: "Caching",
       advanced: true,
     },
@@ -286,6 +286,20 @@ export const INSTANCE_SCHEMA = {
       help: "Allocated automatically from the instance port range set under Stack. Change it only if something else on this host already uses the allocated one.",
       group: "Container",
       advanced: true,
+    },
+    {
+      key: "cachePath",
+      envVar: null,
+      label: "Cache location on the host",
+      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above — there's no default, since it always has to be a path that actually exists and is writable on this specific host.",
+      group: "Container",
+      required: true,
+      dependsOn: {
+        any: [
+          { key: "vodCacheEnabled", equals: "true" },
+          { key: "catchupEnabled", equals: "true" },
+        ],
+      },
     },
     {
       key: "extraEnv",
