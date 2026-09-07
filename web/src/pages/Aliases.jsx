@@ -7,6 +7,7 @@ import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
 import { formatDateTime } from "../lib/format.js";
+import { describeFailures } from "../lib/applyToAll.js";
 
 function entryKey(a) {
   return `${a.instance_id}::${a.ip_address}`;
@@ -82,14 +83,6 @@ export default function Aliases({ pollIntervalMs }) {
 
   function patchRow(key, patch) {
     setRowState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
-  }
-
-  function describeFailures(targets, results) {
-    const failed = results
-      .map((r, idx) => ({ r, instance: targets[idx] }))
-      .filter(({ r }) => r.status === "rejected");
-    if (failed.length === 0) return null;
-    return `Failed on ${failed.map(({ instance, r }) => `${instance.name} (${r.reason.message})`).join(", ")}`;
   }
 
   async function submitAlias(e) {

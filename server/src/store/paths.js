@@ -1,16 +1,11 @@
 // Where components keep their data on the host.
 //
-// Two stack-wide paths rather than a setting per component: a base path whose
-// subfolders hold configuration, and a separate cache root, because a VOD or
-// catchup cache reaches tens of gigabytes and usually belongs on a different
-// disk from a few kilobytes of config.
-//
-// These are HOST paths, because they become bind-mount sources for containers
+// This is a HOST path, because it becomes a bind-mount source for containers
 // the Suite creates — and a bind mount is resolved by the Docker daemon on the
 // host, not inside the Suite. That means the Suite cannot create a directory
 // at a host path it cannot itself see. Rather than carrying a second "and
-// where is that mounted inside you" setting for every path, the Suite requires
-// each path to be mounted at the same location inside its own container:
+// where is that mounted inside you" setting, the Suite requires this path to
+// be mounted at the same location inside its own container:
 //
 //   volumes:
 //     - /mnt/user/appdata/streamshare:/mnt/user/appdata/streamshare
@@ -19,41 +14,41 @@
 // is nothing to translate. validatePath below is what turns getting this wrong
 // into a sentence rather than a container that fails to start.
 //
-// Both paths come from environment variables — SUITE_DATA_DIR (the same
-// folder suite.db already lives in) and SUITE_CACHE_DIR — set once in compose
-// and never touched in the UI; see the README's "Where component data lives"
-// section. There is deliberately no UI-facing override: the only consumer of
-// one would have been re-declaring the exact same string the compose file
-// already carries, which is the retyping this was built to avoid, not a
-// second real use case.
+// This comes from SUITE_DATA_DIR — set once in compose and never touched in
+// the UI; see the README's "Where component data lives" section. There is
+// deliberately no UI-facing override: the only consumer of one would have
+// been re-declaring the exact same string the compose file already carries,
+// which is the retyping this was built to avoid, not a second real use case.
+//
+// An instance's own cache path is a different story — each instance's
+// cachePath field is a real, per-instance, always-explicit value asked for
+// directly (see schema/instance.js), not a computed path under some shared
+// root the way it used to be. There's nothing to read from the environment
+// for it any more.
 //
 // Self-inspection (the same trick that computes gluetun's
 // FIREWALL_OUTBOUND_SUBNETS from the Suite's own networks) was considered and
-// rejected for reading these at all: `docker inspect` would hand back every
-// one of the Suite's bind mounts, but not which one is "the cache path" —
+// rejected for reading this at all: `docker inspect` would hand back every
+// one of the Suite's bind mounts, but not which one is "the data path" —
 // that's a question about intent, not topology, and there is no reliable way
-// to tell a config mount from a cache mount from an unrelated one an operator
-// happens to have without some deliberate signal. An env var already is that
-// signal, and declaring it once in compose is exactly as much typing as a
-// label would have been.
+// to tell a config mount from an unrelated one an operator happens to have
+// without some deliberate signal. An env var already is that signal, and
+// declaring it once in compose is exactly as much typing as a label would
+// have been.
 //
-// Reading these correctly depends on the backing variable being a bind mount
+// Reading this correctly depends on the backing variable being a bind mount
 // rather than a Docker-managed named volume: the Suite cannot tell the two
 // apart by looking at it from inside — both simply appear as a writable
 // directory. Someone who keeps a named volume from an earlier phase and
 // upgrades without changing it will have this silently resolve to the wrong
-// kind of path, so the shipped compose file uses bind mounts for both
-// variables for exactly this reason.
+// kind of path, so the shipped compose file uses a bind mount for exactly
+// this reason.
 
 import { mkdirSync, chmodSync, statSync, accessSync, constants } from "node:fs";
 import path from "node:path";
 
 export function getDataPath() {
   return String(process.env.SUITE_DATA_DIR || "").trim();
-}
-
-export function getCachePath() {
-  return String(process.env.SUITE_CACHE_DIR || "").trim();
 }
 
 // The ids component data is created as. The Suite already runs as these (the
@@ -130,11 +125,5 @@ export function ensureDirectory(...segments) {
 // Where one component's configuration lives: <base>/<name>.
 export function componentDataDir(name) {
   const base = getDataPath();
-  return base ? path.join(base, name) : "";
-}
-
-// Where one instance's cache lives: <cacheRoot>/<name>.
-export function componentCacheDir(name) {
-  const base = getCachePath();
   return base ? path.join(base, name) : "";
 }

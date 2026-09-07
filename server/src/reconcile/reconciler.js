@@ -213,7 +213,7 @@ export async function planStack() {
   for (const node of nodes) {
     const values = getComponentValues(node.kind, node.key);
     const blocker = (node.dependsOn || []).find((id) => blocked.has(id));
-    const notReady = node.ready ? node.ready() : null;
+    const notReady = node.ready ? node.ready(values) : null;
 
     let errors = [];
     if (blocker) {

@@ -26,7 +26,7 @@ import { renderInstanceSpec, instanceContainerName } from "./instance.js";
 import { renderCaddySpec, caddyContainerName } from "./caddy.js";
 import { prepareInstance } from "./provisioning.js";
 import { getBoolean } from "../store/settings.js";
-import { getDataPath, getCachePath, validatePath } from "../store/paths.js";
+import { getDataPath, validatePath } from "../store/paths.js";
 import { componentId, listComponents, getComponentValues } from "../store/components.js";
 
 // Whether the stack routes its traffic through a VPN at all. This is one
@@ -100,9 +100,13 @@ const CATALOG = {
     singleton: false,
     containerName: (key) => instanceContainerName(key, getComponentValues("instance", key)),
     present: () => true,
-    ready: () =>
+    // Takes the instance's own resolved values (see reconciler.js's
+    // planStack, which already has them at hand) rather than reading
+    // anything global. The cache path is deliberately not checked here —
+    // unlike the stack data path, the Suite never sees or manages it, so
+    // there is nothing for the Suite to validate; see renderInstanceSpec.
+    ready: (values) =>
       validatePath(getDataPath(), "The stack data path") ||
-      validatePath(getCachePath(), "The cache path") ||
       // An external server contributes no node, so the dependency check cannot
       // catch one that was never filled in. Without this an instance plans a
       // create and then fails mid-apply against a host that does not exist.

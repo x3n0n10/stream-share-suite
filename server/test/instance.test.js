@@ -26,6 +26,8 @@ import { saveComponentValues, getComponentValues } from "../src/store/components
 import { managedLabels } from "../src/docker/labels.js";
 import { loadConfig } from "../src/config.js";
 import { freshDatabase } from "./helpers.js";
+import { INSTANCE_SCHEMA } from "../src/schema/instance.js";
+import { validate, renderEnv } from "../src/schema/registry.js";
 
 let server;
 let containers;
@@ -65,7 +67,6 @@ after(() => {
   server.close();
   if (root) rmSync(root, { recursive: true, force: true });
   delete process.env.SUITE_DATA_DIR;
-  delete process.env.SUITE_CACHE_DIR;
 });
 
 beforeEach(() => {
@@ -73,11 +74,10 @@ beforeEach(() => {
   containers = new Map();
   // A real directory, because validatePath deliberately refuses a path the
   // Suite cannot see — the whole point of it is to fail here rather than at
-  // container-start time. Both paths now come from the environment, same as
-  // they would from compose's SUITE_DATA_DIR / SUITE_CACHE_DIR.
+  // container-start time. Comes from the environment, same as it would from
+  // compose's SUITE_DATA_DIR.
   root = mkdtempSync(path.join(tmpdir(), "suite-stack-"));
   process.env.SUITE_DATA_DIR = root;
-  process.env.SUITE_CACHE_DIR = root;
 });
 
 const PROVIDER = {
@@ -249,6 +249,55 @@ test("an overridden container name is what the spec and the URL both use", async
   assert.equal((await renderInstanceSpec(values, key)).name, "my-existing-instance");
 });
 
+test("an instance with no caching enabled gets no cache volume at all", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance(PROVIDER);
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal(spec.volumes.some((v) => v.endsWith(":/cache")), false);
+  assert.equal(spec.volumes.some((v) => v.endsWith(":/root")), true, "the config mount is still there");
+});
+
+test("an instance with VOD caching on gets a cache volume from its own cachePath", async () => {
+  configureStack();
+  vpn(false);
+  const cacheDir = mkdtempSync(path.join(tmpdir(), "suite-instance-cache-"));
+  const { key } = provisionInstance({ ...PROVIDER, vodCacheEnabled: "true", cachePath: cacheDir });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.ok(spec.volumes.includes(`${cacheDir}:/cache`));
+  rmSync(cacheDir, { recursive: true, force: true });
+});
+
+test("Discord on computes DISCORD_API_URL from publicBaseUrl rather than asking for it twice", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({
+    ...PROVIDER,
+    publicBaseUrl: "https://tv.example.com/provider-1",
+    discordEnabled: true,
+    discordBotToken: "tok",
+  });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal(spec.env.DISCORD_API_URL, "https://tv.example.com/provider-1");
+  assert.equal(spec.env.DISCORD_BOT_TOKEN, "tok");
+});
+
+test("Discord off means no DISCORD_API_URL, even with a public base URL set", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({ ...PROVIDER, publicBaseUrl: "https://tv.example.com/provider-1" });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal("DISCORD_API_URL" in spec.env, false);
+});
+
 // --- the cascade, for real --------------------------------------------------
 
 test("recreating gluetun cascades to every instance inside its namespace", async () => {
@@ -312,7 +361,6 @@ test("gluetun is planned before the instances that live inside it", async () => 
 test("an instance with no usable stack paths is incomplete rather than mis-mounted", async () => {
   configureStack();
   delete process.env.SUITE_DATA_DIR;
-  delete process.env.SUITE_CACHE_DIR;
   provisionInstance(PROVIDER);
 
   const { plans } = await planStack();
@@ -320,6 +368,26 @@ test("an instance with no usable stack paths is incomplete rather than mis-mount
 
   assert.equal(instance.action, "incomplete");
   assert.match(instance.reason, /data path/i);
+});
+
+test("an instance caching with a cache path the Suite can't see still plans fine — the Suite never checks it", async () => {
+  configureStack();
+  const { key } = provisionInstance({ ...PROVIDER, vodCacheEnabled: "true", cachePath: "/definitely/not/mounted" });
+
+  const { plans } = await planStack();
+  const instance = plans.find((p) => p.kind === "instance");
+
+  assert.notEqual(instance.action, "incomplete");
+});
+
+test("an instance not caching anything plans fine regardless of cachePath", async () => {
+  configureStack();
+  const { key } = provisionInstance(PROVIDER);
+
+  const { plans } = await planStack();
+  const instance = plans.find((p) => p.kind === "instance");
+
+  assert.notEqual(instance.action, "incomplete");
 });
 
 test("instanceKeyFor does not collide with an externally configured instance", async () => {
@@ -375,4 +443,81 @@ test("an instance with no database configured at all is blocked before it can fa
 
   assert.equal(instance.action, "incomplete");
   assert.match(instance.reason, /No PostgreSQL server is configured/i);
+});
+
+// --- Discord fields ----------------------------------------------------
+
+test("discordBotToken is required only once discordEnabled is on", () => {
+  const base = { ...PROVIDER, publicBaseUrl: "https://tv.example.com/p1" };
+  assert.equal(validate(INSTANCE_SCHEMA, base).some((e) => e.key === "discordBotToken"), false);
+  assert.equal(
+    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: true }).some((e) => e.key === "discordBotToken"),
+    true
+  );
+  assert.equal(
+    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: true, discordBotToken: "tok" }).some(
+      (e) => e.key === "discordBotToken"
+    ),
+    false
+  );
+});
+
+test("publicBaseUrl becomes required once discordEnabled is on, optional otherwise", () => {
+  assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "publicBaseUrl"), false);
+  assert.equal(
+    validate(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" }).some(
+      (e) => e.key === "publicBaseUrl"
+    ),
+    true
+  );
+});
+
+test("renderEnv only emits DISCORD_BOT_TOKEN/DISCORD_ADMIN_ROLE_ID when discordEnabled is on", () => {
+  const off = renderEnv(INSTANCE_SCHEMA, PROVIDER);
+  assert.equal("DISCORD_BOT_TOKEN" in off, false);
+  assert.equal("DISCORD_ADMIN_ROLE_ID" in off, false);
+
+  const on = renderEnv(INSTANCE_SCHEMA, {
+    ...PROVIDER,
+    discordEnabled: true,
+    discordBotToken: "tok",
+    discordAdminRoleId: "role-1",
+  });
+  assert.equal(on.DISCORD_BOT_TOKEN, "tok");
+  assert.equal(on.DISCORD_ADMIN_ROLE_ID, "role-1");
+});
+
+test("renderEnv omits DISCORD_ADMIN_ROLE_ID when left blank, even with Discord on", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" });
+  assert.equal("DISCORD_ADMIN_ROLE_ID" in env, false);
+});
+
+// --- cache path ----------------------------------------------------------
+
+test("vodCacheEnabled now defaults to off", () => {
+  const fields = INSTANCE_SCHEMA.fields;
+  assert.equal(fields.find((f) => f.key === "vodCacheEnabled").default, "false");
+});
+
+test("cachePath is not required while both caching flags are off", () => {
+  assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "cachePath"), false);
+});
+
+test("cachePath is required once VOD caching is on", () => {
+  const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, vodCacheEnabled: "true" });
+  assert.equal(errors.some((e) => e.key === "cachePath"), true);
+});
+
+test("cachePath is required once catchup is on, independently of VOD caching", () => {
+  const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, catchupEnabled: "true" });
+  assert.equal(errors.some((e) => e.key === "cachePath"), true);
+});
+
+test("cachePath satisfied with either caching flag on and a value given", () => {
+  const errors = validate(INSTANCE_SCHEMA, {
+    ...PROVIDER,
+    vodCacheEnabled: "true",
+    cachePath: "/mnt/cache/provider-1",
+  });
+  assert.equal(errors.some((e) => e.key === "cachePath"), false);
 });

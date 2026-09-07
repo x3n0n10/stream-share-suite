@@ -147,6 +147,8 @@ export const INSTANCE_SCHEMA = {
       label: "Public base URL",
       help: "The address your users' players reach this instance at, e.g. https://tv.example.com/provider-1. Leave blank if it is not published externally.",
       group: "Addressing",
+      required: true,
+      requiredWhen: { key: "discordEnabled", equals: true },
     },
     {
       key: "timezone",
@@ -157,6 +159,39 @@ export const INSTANCE_SCHEMA = {
       default: "Europe/Amsterdam",
     },
 
+    // --- Discord --------------------------------------------------------
+    //
+    // DISCORD_API_URL is deliberately not a field: it's the same address
+    // Discord needs to reach this instance at, which is exactly what
+    // publicBaseUrl already says — see reconcile/instance.js, which computes
+    // it from that field rather than asking a second time.
+    {
+      key: "discordEnabled",
+      envVar: null,
+      label: "Enable Discord bot",
+      type: "checkbox",
+      default: false,
+      group: "Discord",
+    },
+    {
+      key: "discordBotToken",
+      envVar: "DISCORD_BOT_TOKEN",
+      label: "Bot token",
+      group: "Discord",
+      secret: true,
+      required: true,
+      dependsOn: { key: "discordEnabled", equals: true },
+    },
+    {
+      key: "discordAdminRoleId",
+      envVar: "DISCORD_ADMIN_ROLE_ID",
+      label: "Admin role ID",
+      help: "Optional. A Discord role ID granted admin-level bot commands.",
+      group: "Discord",
+      advanced: true,
+      dependsOn: { key: "discordEnabled", equals: true },
+    },
+
     // --- caching ------------------------------------------------------------
     {
       key: "vodCacheEnabled",
@@ -164,7 +199,7 @@ export const INSTANCE_SCHEMA = {
       label: "Cache VOD locally",
       type: "select",
       options: ["true", "false"],
-      default: "true",
+      default: "false",
       group: "Caching",
       advanced: true,
     },
@@ -251,6 +286,20 @@ export const INSTANCE_SCHEMA = {
       help: "Allocated automatically from the instance port range set under Stack. Change it only if something else on this host already uses the allocated one.",
       group: "Container",
       advanced: true,
+    },
+    {
+      key: "cachePath",
+      envVar: null,
+      label: "Cache location on the host",
+      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above. The Suite does not create or check this path itself — it must already exist on the host and be writable by the same user the Suite's other components run as (see PUID/PGID in the Suite's own compose file), or the instance container will fail to write its cache.",
+      group: "Container",
+      required: true,
+      dependsOn: {
+        any: [
+          { key: "vodCacheEnabled", equals: "true" },
+          { key: "catchupEnabled", equals: "true" },
+        ],
+      },
     },
     {
       key: "extraEnv",
