@@ -681,12 +681,12 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEd
                   <button
                     onClick={() => toggleEditing(instance.key)}
                     disabled={busy}
-                    aria-label={editingKey === instance.key ? "Hide" : "Edit"}
-                    title={editingKey === instance.key ? "Hide" : "Edit"}
+                    aria-label={editingKey === instance.key ? "Close" : "Edit"}
+                    title={editingKey === instance.key ? "Close" : "Edit"}
                     className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                   >
                     {editingKey === instance.key ? (
-                      <span className="text-xs font-medium">Hide</span>
+                      <span className="text-xs font-medium">Close</span>
                     ) : (
                       <IconEdit className="h-4 w-4" />
                     )}
@@ -994,11 +994,11 @@ function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTak
           )}
           <button
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Hide" : "Configure"}
-            title={open ? "Hide" : "Configure"}
+            aria-label={open ? "Close" : "Configure"}
+            title={open ? "Close" : "Configure"}
             className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
           >
-            {open ? <span className="text-xs font-medium">Hide</span> : <IconSettings className="h-4 w-4" />}
+            {open ? <span className="text-xs font-medium">Close</span> : <IconSettings className="h-4 w-4" />}
           </button>
         </div>
       </div>
