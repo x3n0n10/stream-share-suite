@@ -94,6 +94,9 @@ function PlanSummary({ summary }) {
 
 function PlanRow({ row, ordinal, onRemoveOrphan }) {
   const cascaded = !!row.cascadedFrom;
+  // noop's reason is always the same boilerplate ("Matches the saved
+  // configuration") — only worth a line when the row is doing something.
+  const explain = row.action !== "noop" && row.reason;
 
   return (
     <li
@@ -107,7 +110,7 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
           {cascaded && <span className="mr-1 text-slate-300 dark:text-slate-600">└</span>}
           {row.spec?.name || row.containerName || row.label}
         </p>
-        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{row.reason}</p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{row.label}</p>
         {row.runtime && (
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
             <RuntimeBadges runtime={row.runtime} />
@@ -121,6 +124,7 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
             {warning}
           </p>
         ))}
+        {explain && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{row.reason}</p>}
       </div>
       <div className="flex items-center gap-2">
         {row.action === "orphaned" && (
