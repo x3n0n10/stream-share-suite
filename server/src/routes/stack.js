@@ -43,6 +43,7 @@ import {
   instanceContainerName,
   portBand,
   allocatedPorts,
+  reassignOutOfRangeInstances,
   PORT_BAND_WIDTH,
   PORT_BAND_START_SETTING,
 } from "../reconcile/instance.js";
@@ -158,6 +159,11 @@ export function createStackRouter() {
         return res.status(400).json({
           error: `Instance port range start must be a whole number between 1 and ${MAX_PORT_BAND_START}.`,
         });
+      }
+      try {
+        reassignOutOfRangeInstances({ first: start, last: start + PORT_BAND_WIDTH - 1 });
+      } catch (err) {
+        return res.status(400).json({ error: err.message });
       }
       setSetting(PORT_BAND_START_SETTING, start);
     }

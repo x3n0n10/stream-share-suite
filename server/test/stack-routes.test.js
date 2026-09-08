@@ -423,6 +423,47 @@ const PROVIDER = {
   authPassword: "secret",
 };
 
+// --- moving the port range with instances already deployed -----------------
+
+test("moving the range past an existing instance's port reassigns it, pending apply", async () => {
+  const c = await signedInClient(base);
+  const { key, port } = provisionInstance(PROVIDER);
+  assert.equal(port, 8080);
+
+  const res = await c.put("/api/stack/settings", { instancePortStart: 9000 });
+  assert.equal(res.status, 200);
+
+  const instances = (await c.get("/api/stack/instances")).body.instances;
+  assert.equal(instances.find((i) => i.key === key).port, 9000, "moved into the new band");
+});
+
+test("an instance whose port already fits the new range keeps it", async () => {
+  const c = await signedInClient(base);
+  const { key, port } = provisionInstance(PROVIDER);
+  assert.equal(port, 8080);
+
+  // 8070-8089 still contains 8080 — no reassignment should happen.
+  await c.put("/api/stack/settings", { instancePortStart: 8070 });
+
+  const instances = (await c.get("/api/stack/instances")).body.instances;
+  assert.equal(instances.find((i) => i.key === key).port, 8080);
+});
+
+test("a range move with no room for every out-of-range instance is rejected, leaving the range untouched", async () => {
+  const c = await signedInClient(base);
+  // The band is always a fixed 20 slots, so insufficiency only bites once
+  // more instances hold a port than that — stamp 21 directly, the state an
+  // operator could reach through 21 manual port overrides.
+  for (let i = 0; i < 21; i++) {
+    saveComponentValues("instance", { displayName: `P${i}`, port: 100 + i }, `p${i}`);
+  }
+
+  const res = await c.put("/api/stack/settings", { instancePortStart: 9000 });
+  assert.equal(res.status, 400);
+  assert.match(res.body.error, /21 instance\(s\) fall outside the new range and only 20 free slot\(s\)/);
+  assert.equal((await c.get("/api/stack/settings")).body.instancePortStart, 8080);
+});
+
 test("editing an instance updates its stored fields", async () => {
   const c = await signedInClient(base);
   const { key } = provisionInstance(PROVIDER);
