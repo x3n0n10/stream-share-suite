@@ -69,25 +69,27 @@ export default function CaddyCard({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-4 dark:border-slate-800">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Caddy (reverse proxy)</h3>
-          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            Publishes any instance with a public base URL under a real hostname, with HTTPS handled
-            for you.
-          </p>
+      {settings && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Caddy (reverse proxy)</h3>
+            <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+              Publishes any instance with a public base URL under a real hostname, with HTTPS handled
+              for you.
+            </p>
+          </div>
+          <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <input
+              type="checkbox"
+              checked={!!settings.caddyEnabled}
+              disabled={busy}
+              onChange={(e) => onSaveSettings({ caddyEnabled: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+            />
+            {settings.caddyEnabled ? "On" : "Off"}
+          </label>
         </div>
-        <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-          <input
-            type="checkbox"
-            checked={!!settings.caddyEnabled}
-            disabled={busy}
-            onChange={(e) => onSaveSettings({ caddyEnabled: e.target.checked })}
-            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
-          />
-          {settings.caddyEnabled ? "On" : "Off"}
-        </label>
-      </div>
+      )}
 
       <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
         {fields === null ? (

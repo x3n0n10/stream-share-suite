@@ -1,6 +1,6 @@
 // web/src/pages/stack/InstancesTab.jsx
 import { useEffect, useState } from "react";
-import { Card, Button } from "../../components/common.jsx";
+import { Card, Button, FIELD } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { IconRefresh, IconEdit, IconTrash } from "../../components/Icons.jsx";
 import { api } from "../../lib/api.js";
@@ -101,7 +101,7 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
               Type <strong>{instance.displayName}</strong> to confirm
             </span>
             <input
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              className={FIELD}
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               autoComplete="off"

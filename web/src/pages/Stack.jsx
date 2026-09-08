@@ -167,34 +167,25 @@ export default function Stack({ pollIntervalMs = 15000 }) {
             />
           )}
           {activeTab === "import" && <ImportTab onImported={reload} />}
-          {activeTab === "plan" && (
-            <div className="lg:hidden">
-              <PlanPanel
-                plan={plan}
-                planError={planError}
-                components={components}
-                busy={busy}
-                job={job}
-                onApply={() => runJob(() => api.applyStack())}
-                onConfirmRemoveOrphan={(row) => runJob(() => api.removeOrphan(row.containerId))}
-              />
-            </div>
-          )}
         </div>
 
-        {activeTab !== "plan" && (
-          <div className="hidden lg:sticky lg:top-6 lg:block">
-            <PlanPanel
-              plan={plan}
-              planError={planError}
-              components={components}
-              busy={busy}
-              job={job}
-              onApply={() => runJob(() => api.applyStack())}
-              onConfirmRemoveOrphan={(row) => runJob(() => api.removeOrphan(row.containerId))}
-            />
-          </div>
-        )}
+        <div
+          className={
+            activeTab === "plan"
+              ? "lg:sticky lg:top-20 lg:block"
+              : "hidden lg:sticky lg:top-20 lg:block"
+          }
+        >
+          <PlanPanel
+            plan={plan}
+            planError={planError}
+            components={components}
+            busy={busy}
+            job={job}
+            onApply={() => runJob(() => api.applyStack())}
+            onConfirmRemoveOrphan={(row) => runJob(() => api.removeOrphan(row.containerId))}
+          />
+        </div>
       </div>
     </Layout>
   );

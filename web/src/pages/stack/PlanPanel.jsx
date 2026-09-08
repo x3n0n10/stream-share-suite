@@ -61,7 +61,7 @@ function EmptyPlan({ components }) {
       {switchedOff.length > 0 ? (
         `Nothing in the stack right now — ${switchedOff
           .map((component) => component.label)
-          .join(" and ")} ${switchedOff.length === 1 ? "is" : "are"} switched off. Turn the VPN back on above to manage it again.`
+          .join(" and ")} ${switchedOff.length === 1 ? "is" : "are"} switched off. Turn the VPN back on under the Components tab to manage it again.`
       ) : (
         <>
           Nothing in the stack yet. Configure a component under the Components tab to get started,
