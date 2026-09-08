@@ -100,7 +100,7 @@ export default function History({ pollIntervalMs }) {
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800">
+                <thead className="border-b border-slate-100 bg-accent-50 text-left text-xs uppercase tracking-wide text-accent-700 dark:border-slate-800 dark:bg-accent-900/20 dark:text-accent-300">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">When</th>
                     <th className="px-4 py-2.5 font-medium">User</th>
@@ -110,7 +110,7 @@ export default function History({ pollIntervalMs }) {
                     <th className="px-4 py-2.5 font-medium">Duration</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 [&>tr:nth-child(even)]:bg-accent-50/50 dark:[&>tr:nth-child(even)]:bg-accent-900/10">
                   {filtered.map((e, idx) => (
                     <tr key={`${e.instance_id}-${idx}-${e.start_time}`}>
                       <td
