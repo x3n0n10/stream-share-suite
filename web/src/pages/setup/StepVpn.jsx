@@ -102,7 +102,7 @@ export default function StepVpn({ onNext, onBack }) {
           </div>
         </div>
       ) : (
-        <div className="mt-5 flex items-center gap-2">
+        <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
           {onBack && (
             <Button tone="ghost" onClick={onBack}>
               Back

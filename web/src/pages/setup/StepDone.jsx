@@ -8,7 +8,7 @@ export default function StepDone({ navigate, onBack }) {
         Nothing has actually been created on Docker yet: review the plan and apply it to bring the
         containers up.
       </p>
-      <div className="mt-5 flex items-center justify-center gap-2">
+      <div className="mt-5 flex items-center justify-center gap-2 border-t border-slate-200 pt-5 dark:border-slate-800">
         {onBack && (
           <Button tone="ghost" onClick={onBack}>
             Back

@@ -97,7 +97,7 @@ export default function SchemaForm({
       {error && <ErrorNote message={error} />}
 
       {secondaryAction ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
           {secondaryAction}
           <div className="ml-auto">
             <Button type="submit" tone="accent" loading={saving} disabled={saving}>
