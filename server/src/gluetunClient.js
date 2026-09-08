@@ -1,6 +1,8 @@
 // Thin client for gluetun's control server HTTP API.
 // https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md
 
+import { setTimeout as sleep } from "node:timers/promises";
+
 class GluetunError extends Error {
   constructor(message, status) {
     super(message);
@@ -76,10 +78,6 @@ export async function setVpnStatus(gluetun, status) {
 
 export async function getPublicIP(gluetun) {
   return request(gluetun, "/v1/publicip/ip");
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function waitForVpnStatus(gluetun, desired, deadline) {

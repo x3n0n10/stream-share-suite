@@ -10,6 +10,7 @@
 // behind this, by design. "Server reputation" was considered and rejected;
 // this only ever reacts to the current, live probe.
 
+import { setTimeout as sleep } from "node:timers/promises";
 import { loadConfig } from "../config.js";
 import { fetchHealth } from "../instanceClient.js";
 import { reconnectVpn, getPublicIP } from "../gluetunClient.js";
@@ -52,10 +53,6 @@ export function watchdogCheckTimes() {
 
 export function watchdogMaxReconnects() {
   return Math.max(1, getNumber(WATCHDOG_MAX_RECONNECTS_SETTING, MAX_RECONNECTS_DEFAULT));
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function watchedInstances(config) {
