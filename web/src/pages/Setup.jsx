@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { api } from "../lib/api.js";
+import StepPortRange from "./setup/StepPortRange.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
 import StepCaching from "./setup/StepCaching.jsx";
 import StepDatabase from "./setup/StepDatabase.jsx";
@@ -15,6 +16,7 @@ import StepDone from "./setup/StepDone.jsx";
 // than a fixed-index array — see each step's own onNext call for the
 // sequencing decision that actually matters.
 const STEP_LABELS = {
+  portRange: "Port range",
   instances: "Instances",
   caching: "Caching",
   database: "Database",
@@ -59,7 +61,7 @@ function Progress({ step }) {
 
 export default function Setup() {
   const navigate = useNavigate();
-  const [step, setStep] = useState("instances");
+  const [step, setStep] = useState("portRange");
   // Every existing instance, plus any created later in this run via
   // StepInstances's own setInstances calls — every other step reads this
   // same list, which is what makes the whole wizard idempotent rather than
@@ -77,6 +79,7 @@ export default function Setup() {
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <Progress step={step} />
 
+        {step === "portRange" && <StepPortRange {...stepProps} />}
         {step === "instances" && <StepInstances {...stepProps} />}
         {step === "caching" && <StepCaching {...stepProps} />}
         {step === "database" && <StepDatabase {...stepProps} />}
