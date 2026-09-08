@@ -21,6 +21,19 @@ const ACCESS_MODES = [
   },
 ];
 
+const PROVIDER_TYPES = [
+  {
+    value: "xtream",
+    label: "Xtream API (recommended)",
+    help: "Unlocks VOD, series, EPG and subscription status. Use this if your provider offers an Xtream API — most do.",
+  },
+  {
+    value: "m3u",
+    label: "M3U playlist",
+    help: "Just a playlist link, no Xtream API. Live channels work; no VOD/series/EPG or subscription status.",
+  },
+];
+
 // Groups editable here — Addressing/Discord/Caching/Health check/Container
 // each have their own dedicated later step, so an existing instance's edit
 // form shouldn't duplicate them. displayName is its own "Instance" group,
@@ -41,9 +54,11 @@ function Field({ label, hint, children }) {
 function blankDraft() {
   return {
     displayName: "",
+    providerType: "xtream",
     xtreamBaseUrl: "",
     xtreamUser: "",
     xtreamPassword: "",
+    m3uUrl: "",
     accessMode: "provider",
     authUser: "",
     authPassword: "",
@@ -61,9 +76,14 @@ function blankDraft() {
 function toPatch(draft) {
   const base = {
     displayName: draft.displayName,
-    xtreamBaseUrl: draft.xtreamBaseUrl,
-    xtreamUser: draft.xtreamUser,
-    xtreamPassword: draft.xtreamPassword,
+    providerType: draft.providerType,
+    ...(draft.providerType === "m3u"
+      ? { m3uUrl: draft.m3uUrl }
+      : {
+          xtreamBaseUrl: draft.xtreamBaseUrl,
+          xtreamUser: draft.xtreamUser,
+          xtreamPassword: draft.xtreamPassword,
+        }),
   };
 
   if (draft.accessMode === "ldap") {
@@ -107,6 +127,18 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
 
   function set(key, value) {
     setDraft((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // Leaving Xtream mode with "provider" sign-in selected would submit a
+  // patch that references xtreamUser/xtreamPassword — fields that no longer
+  // exist in the draft once M3U is picked. Reset to "custom" instead of
+  // letting that combination happen.
+  function setProviderType(value) {
+    setDraft((prev) => ({
+      ...prev,
+      providerType: value,
+      accessMode: value === "m3u" && prev.accessMode === "provider" ? "custom" : prev.accessMode,
+    }));
   }
 
   function toggleAdding() {
@@ -233,50 +265,94 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                 autoFocus
               />
             </Field>
-            <Field label="Xtream base URL" hint="e.g. http://provider.example:8080">
-              <input
-                className={FIELD}
-                value={draft.xtreamBaseUrl}
-                onChange={(e) => set("xtreamBaseUrl", e.target.value)}
-                required
-              />
-            </Field>
-            <Field label="Xtream username">
-              <input
-                className={FIELD}
-                value={draft.xtreamUser}
-                onChange={(e) => set("xtreamUser", e.target.value)}
-                required
-              />
-            </Field>
-            <Field label="Xtream password">
-              <input
-                className={FIELD}
-                type="password"
-                value={draft.xtreamPassword}
-                onChange={(e) => set("xtreamPassword", e.target.value)}
-                required
-              />
-            </Field>
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">How users sign in</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Playlist source</span>
             <div className="flex flex-wrap gap-2">
-              {ACCESS_MODES.map((mode) => (
+              {PROVIDER_TYPES.map((type) => (
                 <button
-                  key={mode.value}
+                  key={type.value}
                   type="button"
-                  onClick={() => set("accessMode", mode.value)}
+                  onClick={() => setProviderType(type.value)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                    draft.accessMode === mode.value
+                    draft.providerType === type.value
                       ? "bg-accent-600 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                   }`}
                 >
-                  {mode.label}
+                  {type.label}
                 </button>
               ))}
+            </div>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              {PROVIDER_TYPES.find((t) => t.value === draft.providerType)?.help}
+            </span>
+          </div>
+
+          {draft.providerType === "xtream" ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Xtream base URL" hint="e.g. http://provider.example:8080">
+                <input
+                  className={FIELD}
+                  value={draft.xtreamBaseUrl}
+                  onChange={(e) => set("xtreamBaseUrl", e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Xtream username">
+                <input
+                  className={FIELD}
+                  value={draft.xtreamUser}
+                  onChange={(e) => set("xtreamUser", e.target.value)}
+                  required
+                />
+              </Field>
+              <Field label="Xtream password">
+                <input
+                  className={FIELD}
+                  type="password"
+                  value={draft.xtreamPassword}
+                  onChange={(e) => set("xtreamPassword", e.target.value)}
+                  required
+                />
+              </Field>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field
+                label="M3U playlist URL"
+                hint="e.g. http://provider.example/get.php?username=u&password=p&type=m3u_plus&output=m3u8"
+              >
+                <input
+                  className={FIELD}
+                  value={draft.m3uUrl}
+                  onChange={(e) => set("m3uUrl", e.target.value)}
+                  required
+                />
+              </Field>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">How users sign in</span>
+            <div className="flex flex-wrap gap-2">
+              {ACCESS_MODES.filter((mode) => mode.value !== "provider" || draft.providerType === "xtream").map(
+                (mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => set("accessMode", mode.value)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                      draft.accessMode === mode.value
+                        ? "bg-accent-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                )
+              )}
             </div>
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {ACCESS_MODES.find((m) => m.value === draft.accessMode)?.help}
