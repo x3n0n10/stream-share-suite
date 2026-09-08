@@ -37,12 +37,24 @@ export const INSTANCE_SCHEMA = {
 
     // --- provider -----------------------------------------------------------
     {
+      key: "providerType",
+      envVar: null,
+      label: "Playlist source",
+      help: "Xtream unlocks VOD, series, EPG and subscription status. Pick M3U only if your provider doesn't offer an Xtream API.",
+      type: "select",
+      options: ["xtream", "m3u"],
+      default: "xtream",
+      group: "Provider",
+      required: true,
+    },
+    {
       key: "xtreamBaseUrl",
       envVar: "XTREAM_BASE_URL",
       label: "Xtream base URL",
       help: "Your provider's portal address, e.g. http://provider.example:8080",
       group: "Provider",
       required: true,
+      dependsOn: { key: "providerType", equals: "xtream" },
     },
     {
       key: "xtreamUser",
@@ -50,6 +62,7 @@ export const INSTANCE_SCHEMA = {
       label: "Xtream username",
       group: "Provider",
       required: true,
+      dependsOn: { key: "providerType", equals: "xtream" },
     },
     {
       key: "xtreamPassword",
@@ -58,14 +71,16 @@ export const INSTANCE_SCHEMA = {
       group: "Provider",
       secret: true,
       required: true,
+      dependsOn: { key: "providerType", equals: "xtream" },
     },
     {
       key: "m3uUrl",
       envVar: "M3U_URL",
       label: "M3U URL",
-      help: "Only needed if your provider serves a playlist separately from its Xtream API.",
+      help: "The provider's M3U playlist URL. Required for an M3U-only provider; optional if your Xtream provider also serves extra channels via M3U.",
       group: "Provider",
-      advanced: true,
+      required: true,
+      requiredWhen: { key: "providerType", equals: "m3u" },
     },
 
     // --- who may use it -----------------------------------------------------

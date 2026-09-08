@@ -27,7 +27,7 @@ import { managedLabels } from "../src/docker/labels.js";
 import { loadConfig } from "../src/config.js";
 import { freshDatabase } from "./helpers.js";
 import { INSTANCE_SCHEMA } from "../src/schema/instance.js";
-import { validate, renderEnv } from "../src/schema/registry.js";
+import { validate, renderEnv, toPublicFields } from "../src/schema/registry.js";
 
 let server;
 let containers;
@@ -520,4 +520,86 @@ test("cachePath satisfied with either caching flag on and a value given", () => 
     cachePath: "/mnt/cache/provider-1",
   });
   assert.equal(errors.some((e) => e.key === "cachePath"), false);
+});
+
+// --- provider type ---------------------------------------------------------
+
+test("providerType defaults to xtream, matching every existing instance's stored config", () => {
+  const fields = INSTANCE_SCHEMA.fields;
+  assert.equal(fields.find((f) => f.key === "providerType").default, "xtream");
+});
+
+test("xtream fields are required by default (providerType unset, same as every existing instance)", () => {
+  const errors = validate(INSTANCE_SCHEMA, { displayName: "Provider 1" });
+  const keys = errors.map((e) => e.key);
+  assert.ok(keys.includes("xtreamBaseUrl"));
+  assert.ok(keys.includes("xtreamUser"));
+  assert.ok(keys.includes("xtreamPassword"));
+});
+
+test("xtream fields are hidden and not required once providerType is m3u", () => {
+  const errors = validate(INSTANCE_SCHEMA, {
+    displayName: "Provider 1",
+    providerType: "m3u",
+    m3uUrl: "http://provider.example/get.php?username=u&password=p&type=m3u_plus&output=m3u8",
+  });
+  const keys = errors.map((e) => e.key);
+  assert.equal(keys.includes("xtreamBaseUrl"), false);
+  assert.equal(keys.includes("xtreamUser"), false);
+  assert.equal(keys.includes("xtreamPassword"), false);
+});
+
+test("m3uUrl is not required while providerType is xtream", () => {
+  assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "m3uUrl"), false);
+});
+
+test("m3uUrl becomes required once providerType is m3u", () => {
+  const errors = validate(INSTANCE_SCHEMA, { displayName: "Provider 1", providerType: "m3u" });
+  assert.equal(errors.some((e) => e.key === "m3uUrl"), true);
+
+  const withUrl = validate(INSTANCE_SCHEMA, {
+    displayName: "Provider 1",
+    providerType: "m3u",
+    m3uUrl: "http://provider.example/playlist.m3u",
+  });
+  assert.equal(withUrl.some((e) => e.key === "m3uUrl"), false);
+});
+
+test("m3uUrl stays visible (in toPublicFields) even in xtream mode, unlike a dependsOn-hidden field", () => {
+  const fields = toPublicFields(INSTANCE_SCHEMA, PROVIDER);
+  assert.ok(fields.some((f) => f.key === "m3uUrl"));
+});
+
+test("renderEnv emits XTREAM_* and omits M3U_URL for a default (xtream) instance", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, PROVIDER);
+  assert.equal(env.XTREAM_BASE_URL, PROVIDER.xtreamBaseUrl);
+  assert.equal(env.XTREAM_USER, PROVIDER.xtreamUser);
+  assert.equal(env.XTREAM_PASSWORD, PROVIDER.xtreamPassword);
+  assert.equal("M3U_URL" in env, false);
+});
+
+test("renderEnv emits M3U_URL and omits XTREAM_* for an m3u instance", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, {
+    displayName: "Provider 1",
+    providerType: "m3u",
+    m3uUrl: "http://provider.example/playlist.m3u",
+    authMode: "basic",
+    authUser: "viewer",
+    authPassword: "secret",
+  });
+  assert.equal(env.M3U_URL, "http://provider.example/playlist.m3u");
+  assert.equal("XTREAM_BASE_URL" in env, false);
+  assert.equal("XTREAM_USER" in env, false);
+  assert.equal("XTREAM_PASSWORD" in env, false);
+});
+
+test("renderEnv still omits XTREAM_* for a stale value once providerType switches to m3u", () => {
+  // Same "no leftover env from a mode you switched away from" guarantee
+  // dependsOn already gives every other conditional field in this schema.
+  const env = renderEnv(INSTANCE_SCHEMA, {
+    ...PROVIDER,
+    providerType: "m3u",
+    m3uUrl: "http://provider.example/playlist.m3u",
+  });
+  assert.equal("XTREAM_BASE_URL" in env, false);
 });
