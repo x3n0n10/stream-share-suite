@@ -3,7 +3,7 @@ import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
-export default function StepCaching({ instances, onNext }) {
+export default function StepCaching({ instances, onNext, onBack }) {
   const [byKey, setByKey] = useState(null); // null until seeded
   const [parentPath, setParentPath] = useState("");
   // key -> the last value auto-suggested for it, so typing a new parent path
@@ -195,10 +195,17 @@ export default function StepCaching({ instances, onNext }) {
         </div>
       )}
 
-      <div className="mt-5">
-        <Button tone="accent" onClick={submit} loading={saving} disabled={saving || !allPathsFilled}>
-          Continue
-        </Button>
+      <div className="mt-5 flex items-center gap-2">
+        {onBack && (
+          <Button tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button tone="accent" onClick={submit} loading={saving} disabled={saving || !allPathsFilled}>
+            Continue
+          </Button>
+        </div>
       </div>
     </Card>
   );

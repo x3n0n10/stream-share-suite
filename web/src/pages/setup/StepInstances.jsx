@@ -73,7 +73,7 @@ function toPatch(draft) {
   return { ...base, authMode: "basic", authUser: draft.xtreamUser, authPassword: draft.xtreamPassword };
 }
 
-export default function StepInstances({ instances, setInstances, onNext }) {
+export default function StepInstances({ instances, setInstances, onNext, onBack }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(blankDraft());
   const [saving, setSaving] = useState(false);
@@ -333,12 +333,19 @@ export default function StepInstances({ instances, setInstances, onNext }) {
         </form>
       )}
 
-      <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-        <Button type="button" tone="accent" onClick={() => onNext("caching")} disabled={instances.length === 0}>
-          {instances.length === 0
-            ? "Add at least one instance to continue"
-            : `Continue with ${instances.length} instance${instances.length === 1 ? "" : "s"}`}
-        </Button>
+      <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        {onBack && (
+          <Button type="button" tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button type="button" tone="accent" onClick={() => onNext("caching")} disabled={instances.length === 0}>
+            {instances.length === 0
+              ? "Add at least one instance to continue"
+              : `Continue with ${instances.length} instance${instances.length === 1 ? "" : "s"}`}
+          </Button>
+        </div>
       </div>
     </Card>
   );

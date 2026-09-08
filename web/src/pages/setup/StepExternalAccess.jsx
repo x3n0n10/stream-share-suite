@@ -4,7 +4,7 @@ import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
-export default function StepExternalAccess({ instances, onNext }) {
+export default function StepExternalAccess({ instances, onNext, onBack }) {
   const [byKey, setByKey] = useState(null); // null until seeded
   const [savingPartA, setSavingPartA] = useState(false);
   const [errorA, setErrorA] = useState(null);
@@ -236,10 +236,17 @@ export default function StepExternalAccess({ instances, onNext }) {
         )}
       </div>
 
-      <div className="mt-6">
-        <Button tone="accent" onClick={saveAccessAndContinue} loading={savingPartA} disabled={savingPartA}>
-          Continue
-        </Button>
+      <div className="mt-6 flex items-center gap-2">
+        {onBack && (
+          <Button tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button tone="accent" onClick={saveAccessAndContinue} loading={savingPartA} disabled={savingPartA}>
+            Continue
+          </Button>
+        </div>
       </div>
     </Card>
   );

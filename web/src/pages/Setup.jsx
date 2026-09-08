@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-import { Button } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import StepPortRange from "./setup/StepPortRange.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
@@ -89,20 +88,17 @@ export default function Setup() {
     setHistory(history.slice(0, -1));
   }
 
-  const stepProps = { instances, setInstances, onNext: goNext };
+  const stepProps = {
+    instances,
+    setInstances,
+    onNext: goNext,
+    onBack: history.length > 0 ? goBack : undefined,
+  };
 
   return (
     <Layout title="Setup wizard">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <Progress step={step} />
-
-        {history.length > 0 && (
-          <div>
-            <Button tone="ghost" onClick={goBack}>
-              Back
-            </Button>
-          </div>
-        )}
 
         {step === "portRange" && <StepPortRange {...stepProps} />}
         {step === "instances" && <StepInstances {...stepProps} />}
@@ -111,7 +107,7 @@ export default function Setup() {
         {step === "access" && <StepExternalAccess {...stepProps} />}
         {step === "vpn" && <StepVpn {...stepProps} />}
         {step === "health" && <StepHealthCheck {...stepProps} />}
-        {step === "done" && <StepDone navigate={navigate} />}
+        {step === "done" && <StepDone navigate={navigate} onBack={stepProps.onBack} />}
       </div>
     </Layout>
   );

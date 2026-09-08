@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 
-export default function StepPortRange({ onNext }) {
+export default function StepPortRange({ onNext, onBack }) {
   const [settings, setSettings] = useState(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -60,10 +60,17 @@ export default function StepPortRange({ onNext }) {
         </div>
       )}
 
-      <div className="mt-5">
-        <Button tone="accent" onClick={save} loading={saving} disabled={settings === null}>
-          Save and continue
-        </Button>
+      <div className="mt-5 flex items-center gap-2">
+        {onBack && (
+          <Button tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button tone="accent" onClick={save} loading={saving} disabled={settings === null}>
+            Continue
+          </Button>
+        </div>
       </div>
     </Card>
   );

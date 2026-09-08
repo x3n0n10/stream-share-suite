@@ -3,7 +3,7 @@ import { Card, Button, ErrorNote } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 
-export default function StepVpn({ onNext }) {
+export default function StepVpn({ onNext, onBack }) {
   const [vpnEnabled, setVpnEnabled] = useState(null); // null until seeded
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -89,16 +89,30 @@ export default function StepVpn({ onNext }) {
                 onSave={saveGluetun}
                 saving={saving}
                 error={error}
-                submitLabel="Save and continue"
+                submitLabel="Continue"
+                secondaryAction={
+                  onBack && (
+                    <Button tone="ghost" onClick={onBack}>
+                      Back
+                    </Button>
+                  )
+                }
               />
             )}
           </div>
         </div>
       ) : (
-        <div className="mt-5">
-          <Button tone="accent" onClick={() => onNext("done")}>
-            Continue
-          </Button>
+        <div className="mt-5 flex items-center gap-2">
+          {onBack && (
+            <Button tone="ghost" onClick={onBack}>
+              Back
+            </Button>
+          )}
+          <div className="ml-auto">
+            <Button tone="accent" onClick={() => onNext("done")}>
+              Continue
+            </Button>
+          </div>
         </div>
       )}
     </Card>

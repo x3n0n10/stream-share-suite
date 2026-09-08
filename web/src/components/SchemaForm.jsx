@@ -5,7 +5,15 @@ import { Button, ErrorNote, FIELD } from "./common.jsx";
 // the point of the schema registry: a new field on the server is a new row
 // in the rendered form with no frontend change at all. Everything here is
 // generic over shape; a component's meaning lives entirely in its schema.
-export default function SchemaForm({ fields, onSave, saving, error, submitLabel = "Save", preview }) {
+export default function SchemaForm({
+  fields,
+  onSave,
+  saving,
+  error,
+  submitLabel = "Save",
+  preview,
+  secondaryAction,
+}) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -89,11 +97,22 @@ export default function SchemaForm({ fields, onSave, saving, error, submitLabel 
 
       {error && <ErrorNote message={error} />}
 
-      <div>
-        <Button type="submit" tone="accent" loading={saving} disabled={saving}>
-          {submitLabel}
-        </Button>
-      </div>
+      {secondaryAction ? (
+        <div className="flex items-center gap-2">
+          {secondaryAction}
+          <div className="ml-auto">
+            <Button type="submit" tone="accent" loading={saving} disabled={saving}>
+              {submitLabel}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Button type="submit" tone="accent" loading={saving} disabled={saving}>
+            {submitLabel}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }
