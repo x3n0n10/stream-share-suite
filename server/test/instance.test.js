@@ -27,7 +27,7 @@ import { managedLabels } from "../src/docker/labels.js";
 import { loadConfig } from "../src/config.js";
 import { freshDatabase } from "./helpers.js";
 import { INSTANCE_SCHEMA } from "../src/schema/instance.js";
-import { validate, renderEnv, toPublicFields } from "../src/schema/registry.js";
+import { validate, renderEnv } from "../src/schema/registry.js";
 
 let server;
 let containers;
@@ -565,9 +565,12 @@ test("m3uUrl becomes required once providerType is m3u", () => {
   assert.equal(withUrl.some((e) => e.key === "m3uUrl"), false);
 });
 
-test("m3uUrl stays visible (in toPublicFields) even in xtream mode, unlike a dependsOn-hidden field", () => {
-  const fields = toPublicFields(INSTANCE_SCHEMA, PROVIDER);
-  assert.ok(fields.some((f) => f.key === "m3uUrl"));
+test("m3uUrl has no dependsOn, unlike the xtream fields, which is what keeps it visible in both provider-type modes", () => {
+  const m3uUrl = INSTANCE_SCHEMA.fields.find((f) => f.key === "m3uUrl");
+  assert.equal(m3uUrl.dependsOn, undefined);
+
+  const xtreamBaseUrl = INSTANCE_SCHEMA.fields.find((f) => f.key === "xtreamBaseUrl");
+  assert.deepEqual(xtreamBaseUrl.dependsOn, { key: "providerType", equals: "xtream" });
 });
 
 test("renderEnv emits XTREAM_* and omits M3U_URL for a default (xtream) instance", () => {
