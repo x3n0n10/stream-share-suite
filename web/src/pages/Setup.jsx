@@ -4,7 +4,7 @@ import Layout from "../components/Layout.jsx";
 import { api } from "../lib/api.js";
 import StepPortRange from "./setup/StepPortRange.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
-import StepCaching from "./setup/StepCaching.jsx";
+import StepFeatures from "./setup/StepFeatures.jsx";
 import StepDatabase from "./setup/StepDatabase.jsx";
 import StepExternalAccess from "./setup/StepExternalAccess.jsx";
 import StepVpn from "./setup/StepVpn.jsx";
@@ -18,7 +18,7 @@ import StepDone from "./setup/StepDone.jsx";
 const STEP_LABELS = {
   portRange: "Port range",
   instances: "Instances",
-  caching: "Caching",
+  features: "Features",
   database: "Database",
   access: "External access",
   vpn: "VPN",
@@ -102,7 +102,7 @@ export default function Setup() {
 
         {step === "portRange" && <StepPortRange {...stepProps} />}
         {step === "instances" && <StepInstances {...stepProps} />}
-        {step === "caching" && <StepCaching {...stepProps} />}
+        {step === "features" && <StepFeatures {...stepProps} />}
         {step === "database" && <StepDatabase {...stepProps} />}
         {step === "access" && <StepExternalAccess {...stepProps} />}
         {step === "vpn" && <StepVpn {...stepProps} />}

@@ -345,7 +345,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
           </Button>
         )}
         <div className="ml-auto">
-          <Button type="button" tone="accent" onClick={() => onNext("caching")} disabled={instances.length === 0}>
+          <Button type="button" tone="accent" onClick={() => onNext("features")} disabled={instances.length === 0}>
             {instances.length === 0
               ? "Add at least one instance to continue"
               : `Continue with ${instances.length} instance${instances.length === 1 ? "" : "s"}`}
