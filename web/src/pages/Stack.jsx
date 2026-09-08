@@ -182,17 +182,19 @@ export default function Stack({ pollIntervalMs = 15000 }) {
           )}
         </div>
 
-        <div className="hidden lg:sticky lg:top-6 lg:block">
-          <PlanPanel
-            plan={plan}
-            planError={planError}
-            components={components}
-            busy={busy}
-            job={job}
-            onApply={() => runJob(() => api.applyStack())}
-            onConfirmRemoveOrphan={(row) => runJob(() => api.removeOrphan(row.containerId))}
-          />
-        </div>
+        {activeTab !== "plan" && (
+          <div className="hidden lg:sticky lg:top-6 lg:block">
+            <PlanPanel
+              plan={plan}
+              planError={planError}
+              components={components}
+              busy={busy}
+              job={job}
+              onApply={() => runJob(() => api.applyStack())}
+              onConfirmRemoveOrphan={(row) => runJob(() => api.removeOrphan(row.containerId))}
+            />
+          </div>
+        )}
       </div>
     </Layout>
   );
