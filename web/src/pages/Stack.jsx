@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog, FIELD, RefreshButton } from "../components/common.jsx";
+import { IconDownload, IconEdit, IconTrash, IconSettings } from "../components/Icons.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
 import { useJobPolling } from "../lib/useJobPolling.js";
@@ -671,24 +672,33 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEd
                   <button
                     onClick={() => onPull(instance.key)}
                     disabled={busy}
+                    aria-label="Check for updates"
                     title="Pull this instance's own configured image tag and recreate only if it actually changed"
-                    className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+                    className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                   >
-                    Check for updates
+                    <IconDownload className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => toggleEditing(instance.key)}
                     disabled={busy}
-                    className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+                    aria-label={editingKey === instance.key ? "Hide" : "Edit"}
+                    title={editingKey === instance.key ? "Hide" : "Edit"}
+                    className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                   >
-                    {editingKey === instance.key ? "Hide" : "Edit"}
+                    {editingKey === instance.key ? (
+                      <span className="text-xs font-medium">Hide</span>
+                    ) : (
+                      <IconEdit className="h-4 w-4" />
+                    )}
                   </button>
                   <button
                     onClick={() => onRemove(instance)}
                     disabled={busy}
-                    className="text-xs font-medium text-rose-600 hover:underline disabled:opacity-50 dark:text-rose-400"
+                    aria-label="Remove"
+                    title="Remove"
+                    className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-900/30"
                   >
-                    Remove
+                    <IconTrash className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -975,17 +985,20 @@ function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTak
             <button
               onClick={onPull}
               disabled={busy}
+              aria-label="Check for updates"
               title="Pull this component's own configured image tag and recreate only if it actually changed"
-              className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
+              className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
             >
-              Check for updates
+              <IconDownload className="h-4 w-4" />
             </button>
           )}
           <button
             onClick={() => setOpen((v) => !v)}
-            className="text-xs font-medium text-accent-600 hover:underline dark:text-accent-400"
+            aria-label={open ? "Hide" : "Configure"}
+            title={open ? "Hide" : "Configure"}
+            className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
           >
-            {open ? "Hide" : "Configure"}
+            {open ? <span className="text-xs font-medium">Hide</span> : <IconSettings className="h-4 w-4" />}
           </button>
         </div>
       </div>
