@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import { Button } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import StepPortRange from "./setup/StepPortRange.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
@@ -62,6 +63,11 @@ function Progress({ step }) {
 export default function Setup() {
   const navigate = useNavigate();
   const [step, setStep] = useState("portRange");
+  // The steps actually visited, in order — not a fixed prior-in-STEP_LABELS
+  // lookup, because the sequence itself branches (StepVpn skips StepHealthCheck
+  // when the VPN is off). Back has to retrace what really happened, not the
+  // display order.
+  const [history, setHistory] = useState([]);
   // Every existing instance, plus any created later in this run via
   // StepInstances's own setInstances calls — every other step reads this
   // same list, which is what makes the whole wizard idempotent rather than
@@ -72,12 +78,31 @@ export default function Setup() {
     api.stackInstances().then((r) => setInstances(r.instances));
   }, []);
 
-  const stepProps = { instances, setInstances, onNext: setStep };
+  function goNext(nextStep) {
+    setHistory((h) => [...h, step]);
+    setStep(nextStep);
+  }
+
+  function goBack() {
+    if (history.length === 0) return;
+    setStep(history[history.length - 1]);
+    setHistory(history.slice(0, -1));
+  }
+
+  const stepProps = { instances, setInstances, onNext: goNext };
 
   return (
     <Layout title="Setup wizard">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         <Progress step={step} />
+
+        {history.length > 0 && (
+          <div>
+            <Button tone="ghost" onClick={goBack}>
+              Back
+            </Button>
+          </div>
+        )}
 
         {step === "portRange" && <StepPortRange {...stepProps} />}
         {step === "instances" && <StepInstances {...stepProps} />}
