@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
+import { Card, Button, ErrorNote } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 
 export default function StepPortRange({ onNext }) {
@@ -43,7 +43,7 @@ export default function StepPortRange({ onNext }) {
           <div className="flex items-center gap-2">
             <input
               type="number"
-              className={`${FIELD} w-32`}
+              className="w-24 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
             />
