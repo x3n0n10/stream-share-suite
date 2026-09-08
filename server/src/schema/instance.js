@@ -37,12 +37,25 @@ export const INSTANCE_SCHEMA = {
 
     // --- provider -----------------------------------------------------------
     {
+      key: "providerType",
+      envVar: null,
+      label: "Playlist source",
+      help: "Xtream unlocks VOD, series, EPG and subscription status. Pick M3U only if your provider doesn't offer an Xtream API.",
+      type: "select",
+      options: ["xtream", "m3u"],
+      optionLabels: { xtream: "Xtream API", m3u: "M3U playlist" },
+      default: "xtream",
+      group: "Provider",
+      required: true,
+    },
+    {
       key: "xtreamBaseUrl",
       envVar: "XTREAM_BASE_URL",
       label: "Xtream base URL",
       help: "Your provider's portal address, e.g. http://provider.example:8080",
       group: "Provider",
       required: true,
+      dependsOn: { key: "providerType", equals: "xtream" },
     },
     {
       key: "xtreamUser",
@@ -50,6 +63,7 @@ export const INSTANCE_SCHEMA = {
       label: "Xtream username",
       group: "Provider",
       required: true,
+      dependsOn: { key: "providerType", equals: "xtream" },
     },
     {
       key: "xtreamPassword",
@@ -58,14 +72,16 @@ export const INSTANCE_SCHEMA = {
       group: "Provider",
       secret: true,
       required: true,
+      dependsOn: { key: "providerType", equals: "xtream" },
     },
     {
       key: "m3uUrl",
       envVar: "M3U_URL",
       label: "M3U URL",
-      help: "Only needed if your provider serves a playlist separately from its Xtream API.",
+      help: "The provider's M3U playlist URL.",
       group: "Provider",
-      advanced: true,
+      required: true,
+      dependsOn: { key: "providerType", equals: "m3u" },
     },
 
     // --- who may use it -----------------------------------------------------
@@ -75,6 +91,7 @@ export const INSTANCE_SCHEMA = {
       label: "How users sign in",
       type: "select",
       options: ["basic", "ldap"],
+      optionLabels: { basic: "Username & password", ldap: "LDAP" },
       default: "basic",
       group: "Access",
       required: true,
@@ -199,6 +216,7 @@ export const INSTANCE_SCHEMA = {
       label: "Cache VOD locally",
       type: "select",
       options: ["true", "false"],
+      optionLabels: { true: "On", false: "Off" },
       default: "false",
       group: "Caching",
       advanced: true,
@@ -210,6 +228,7 @@ export const INSTANCE_SCHEMA = {
       help: "Roughly 18 GB per active channel at 10 Mbps for four hours. Check where your cache path points before turning this on.",
       type: "select",
       options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
       default: "false",
       group: "Caching",
       advanced: true,

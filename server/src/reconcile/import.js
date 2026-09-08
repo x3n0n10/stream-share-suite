@@ -174,6 +174,7 @@ async function importInstance(inspect) {
   const name = nameOf(inspect);
   values.displayName = env.INSTANCE_NAME || values.displayName || name || "Imported instance";
   values.authMode = env.LDAP_ENABLED === "true" ? "ldap" : "basic";
+  values.providerType = env.XTREAM_BASE_URL ? "xtream" : env.M3U_URL ? "m3u" : "xtream";
   values.image = inspect.Config?.Image || values.image;
 
   const key = instanceKeyFor(values.displayName);
