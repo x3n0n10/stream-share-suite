@@ -31,7 +31,7 @@ export function PollStatus({ updatedAt, children, className = "" }) {
 export function Card({ children, className = "" }) {
   return (
     <div
-      className={`rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 ${className}`}
+      className={`rounded-2xl border border-slate-200/70 bg-white shadow-[0_8px_24px_-6px_rgba(101,200,107,0.12)] dark:border-slate-800 dark:bg-slate-900 dark:shadow-[0_8px_24px_-6px_rgba(155,248,159,0.08)] ${className}`}
     >
       {children}
     </div>
@@ -41,7 +41,7 @@ export function Card({ children, className = "" }) {
 export function StatTile({ label, value, sublabel, icon: Icon, tone = "default" }) {
   const toneClasses = {
     default: "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/30",
-    green: "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30",
+    green: "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/30",
     amber: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30",
     rose: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30",
   };
@@ -52,7 +52,7 @@ export function StatTile({ label, value, sublabel, icon: Icon, tone = "default" 
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
             {label}
           </p>
-          <p className="mt-1.5 text-2xl font-semibold tabular-nums text-slate-900 dark:text-white sm:text-3xl">
+          <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-slate-900 dark:text-white sm:text-3xl">
             {value}
           </p>
           {sublabel && (
@@ -72,7 +72,7 @@ export function StatTile({ label, value, sublabel, icon: Icon, tone = "default" 
 export function Badge({ children, tone = "slate" }) {
   const toneClasses = {
     slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
-    green: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    green: "bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-400",
     rose: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
     amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
     accent: "bg-accent-100 text-accent-700 dark:bg-accent-900/40 dark:text-accent-400",
@@ -90,11 +90,11 @@ export function StatusDot({ online }) {
   return (
     <span className="relative flex h-2.5 w-2.5">
       {online && (
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-400 opacity-60" />
       )}
       <span
         className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
-          online ? "bg-emerald-500" : "bg-rose-500"
+          online ? "bg-accent-500" : "bg-rose-500"
         }`}
       />
     </span>

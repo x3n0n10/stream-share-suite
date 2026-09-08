@@ -2,8 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Inter-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/Inter-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Inter-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/Manrope-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Manrope";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/Manrope-800.woff2") format("woff2");
+}
+
 html {
   color-scheme: light dark;
+}
+
+/* Unlayered so it wins over Tailwind's utility-layer font-semibold on
+   per-page h1/h2 without touching every page file. */
+h1 {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+}
+h2 {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
 }
 
 * {
