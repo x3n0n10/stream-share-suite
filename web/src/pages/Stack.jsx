@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-import { Card, Badge, Button, ErrorNote, ConfirmDialog, FIELD } from "../components/common.jsx";
+import { Card, Badge, Button, ErrorNote, ConfirmDialog, FIELD, RefreshButton } from "../components/common.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
 import { useJobPolling } from "../lib/useJobPolling.js";
@@ -157,14 +157,14 @@ export default function Stack({ pollIntervalMs = 15000 }) {
 
   if (dockerReachable === false) {
     return (
-      <Layout title="Stack">
+      <Layout title="Stack" headerExtra={<RefreshButton onClick={reload} />}>
         <ErrorNote message="Can't reach the Docker socket proxy. Set DOCKER_PROXY_URL, or check that the docker-socket-proxy service is running and reachable." />
       </Layout>
     );
   }
 
   return (
-    <Layout title="Stack">
+    <Layout title="Stack" headerExtra={<RefreshButton onClick={reload} />}>
       <div className="flex flex-col gap-4">
         {settings && <StackSettings settings={settings} onSave={saveSettings} busy={busy} />}
 
