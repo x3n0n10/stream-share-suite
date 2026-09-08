@@ -161,9 +161,14 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                     {i.displayName}
                   </p>
-                  {(i.containerName || i.url) && (
+                  {(i.containerName || i.port) && (
                     <p className="truncate text-xs text-slate-400">
-                      {[i.containerName, i.url].filter(Boolean).join(" · ")}
+                      {[
+                        i.containerName && `Container name: ${i.containerName}`,
+                        i.port && `Port: ${i.port}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   )}
                 </div>
