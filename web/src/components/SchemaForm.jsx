@@ -124,7 +124,11 @@ function FieldInput({ field, value, onChange }) {
     : field.help;
 
   return (
-    <label className={`flex flex-col gap-1.5 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}>
+    <label
+      className={`flex flex-col gap-1.5 ${
+        field.type === "textarea" || field.type === "checkbox" || field.type === "select" ? "sm:col-span-2" : ""
+      }`}
+    >
       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
         {field.label}
         {field.required && <span className="text-rose-500"> *</span>}
