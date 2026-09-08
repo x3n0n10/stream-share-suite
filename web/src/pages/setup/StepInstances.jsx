@@ -193,7 +193,8 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Your instances</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        One StreamShare instance per IPTV provider. At least one is required.
+        One StreamShare instance per IPTV provider. At least one is required. To remove an
+        instance, use the Stack page instead — it's not available here.
       </p>
 
       {instances.length > 0 && (
