@@ -77,10 +77,10 @@ export const INSTANCE_SCHEMA = {
       key: "m3uUrl",
       envVar: "M3U_URL",
       label: "M3U URL",
-      help: "The provider's M3U playlist URL. Required for an M3U-only provider; optional if your Xtream provider also serves extra channels via M3U.",
+      help: "The provider's M3U playlist URL.",
       group: "Provider",
       required: true,
-      requiredWhen: { key: "providerType", equals: "m3u" },
+      dependsOn: { key: "providerType", equals: "m3u" },
     },
 
     // --- who may use it -----------------------------------------------------

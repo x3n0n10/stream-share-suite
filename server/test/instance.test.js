@@ -549,11 +549,11 @@ test("xtream fields are hidden and not required once providerType is m3u", () =>
   assert.equal(keys.includes("xtreamPassword"), false);
 });
 
-test("m3uUrl is not required while providerType is xtream", () => {
+test("m3uUrl is hidden and not required while providerType is xtream", () => {
   assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "m3uUrl"), false);
 });
 
-test("m3uUrl becomes required once providerType is m3u", () => {
+test("m3uUrl becomes visible and required once providerType is m3u", () => {
   const errors = validate(INSTANCE_SCHEMA, { displayName: "Provider 1", providerType: "m3u" });
   assert.equal(errors.some((e) => e.key === "m3uUrl"), true);
 
@@ -565,12 +565,17 @@ test("m3uUrl becomes required once providerType is m3u", () => {
   assert.equal(withUrl.some((e) => e.key === "m3uUrl"), false);
 });
 
-test("m3uUrl has no dependsOn, unlike the xtream fields, which is what keeps it visible in both provider-type modes", () => {
+test("m3uUrl and the xtream fields depend on opposite providerType values, hiding each other", () => {
   const m3uUrl = INSTANCE_SCHEMA.fields.find((f) => f.key === "m3uUrl");
-  assert.equal(m3uUrl.dependsOn, undefined);
+  assert.deepEqual(m3uUrl.dependsOn, { key: "providerType", equals: "m3u" });
 
   const xtreamBaseUrl = INSTANCE_SCHEMA.fields.find((f) => f.key === "xtreamBaseUrl");
   assert.deepEqual(xtreamBaseUrl.dependsOn, { key: "providerType", equals: "xtream" });
+});
+
+test("renderEnv omits M3U_URL for a stale value once providerType is xtream", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, m3uUrl: "http://leftover-from-m3u-mode" });
+  assert.equal("M3U_URL" in env, false);
 });
 
 test("renderEnv emits XTREAM_* and omits M3U_URL for a default (xtream) instance", () => {
