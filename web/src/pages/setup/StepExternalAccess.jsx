@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
-import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
 export default function StepExternalAccess({ instances, onNext, onBack }) {
   const [byKey, setByKey] = useState(null); // null until seeded
-  const [savingPartA, setSavingPartA] = useState(false);
-  const [errorA, setErrorA] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const [caddyEnabled, setCaddyEnabled] = useState(null); // null until seeded
-  const [caddyFields, setCaddyFields] = useState(null);
-  const [savingCaddy, setSavingCaddy] = useState(false);
-  const [errorB, setErrorB] = useState(null);
+  const [caddyDraft, setCaddyDraft] = useState(null); // null until seeded
 
   useEffect(() => {
     Promise.all(instances.map((i) => api.componentFields("instance", i.key))).then((results) => {
@@ -37,63 +34,67 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
   }, []);
 
   useEffect(() => {
-    if (caddyEnabled && !caddyFields) api.componentFields("caddy").then((r) => setCaddyFields(r.fields));
-  }, [caddyEnabled, caddyFields]);
+    if (!caddyEnabled || caddyDraft) return;
+    api.componentFields("caddy").then((r) => {
+      const byFieldKey = Object.fromEntries(r.fields.map((f) => [f.key, f]));
+      setCaddyDraft({
+        tlsMode: byFieldKey.tlsMode?.value || "internal",
+        acmeEmail: byFieldKey.acmeEmail?.value || "",
+      });
+    });
+  }, [caddyEnabled, caddyDraft]);
 
   function patch(key, fields) {
     setByKey((prev) => ({ ...prev, [key]: { ...prev[key], ...fields } }));
   }
 
+  function patchCaddy(fields) {
+    setCaddyDraft((prev) => ({ ...prev, ...fields }));
+  }
+
+  const caddyValid = !caddyEnabled || !caddyDraft || caddyDraft.tlsMode !== "acme" || caddyDraft.acmeEmail.trim();
+
   async function saveAccessAndContinue() {
-    setSavingPartA(true);
-    setErrorA(null);
+    setSaving(true);
+    setError(null);
     try {
-      const results = await Promise.allSettled(
-        instances.map((i) => {
-          const values = byKey[i.key];
-          const p = { publicBaseUrl: values.publicBaseUrl, discordEnabled: values.discordEnabled };
-          if (values.discordEnabled) {
-            // Blank means "leave the stored token alone" — same write-only
-            // convention every secret field in this app already follows.
-            if (values.discordBotToken.trim()) p.discordBotToken = values.discordBotToken;
-            if (values.discordAdminRoleId) p.discordAdminRoleId = values.discordAdminRoleId;
-          }
-          return api.updateStackInstance(i.key, p);
-        })
-      );
-      const failureMessage = describeFailures(
-        instances.map((i) => ({ name: i.displayName })),
-        results
-      );
+      const targets = instances.map((i) => ({ name: i.displayName }));
+      const tasks = instances.map((i) => {
+        const values = byKey[i.key];
+        const p = { publicBaseUrl: values.publicBaseUrl, discordEnabled: values.discordEnabled };
+        if (values.discordEnabled) {
+          // Blank means "leave the stored token alone" — same write-only
+          // convention every secret field in this app already follows.
+          if (values.discordBotToken.trim()) p.discordBotToken = values.discordBotToken;
+          if (values.discordAdminRoleId) p.discordAdminRoleId = values.discordAdminRoleId;
+        }
+        return api.updateStackInstance(i.key, p);
+      });
+      if (caddyEnabled) {
+        targets.push({ name: "Caddy" });
+        const p = { tlsMode: caddyDraft.tlsMode };
+        if (caddyDraft.tlsMode === "acme") p.acmeEmail = caddyDraft.acmeEmail;
+        tasks.push(api.saveComponent("caddy", p));
+      }
+      const results = await Promise.allSettled(tasks);
+      const failureMessage = describeFailures(targets, results);
       if (failureMessage) {
-        setErrorA(failureMessage);
+        setError(failureMessage);
         return;
       }
       onNext("vpn");
     } finally {
-      setSavingPartA(false);
+      setSaving(false);
     }
   }
 
   async function toggleCaddy(enabled) {
-    setErrorB(null);
+    setError(null);
     try {
       await api.saveStackSettings({ caddyEnabled: enabled });
       setCaddyEnabled(enabled);
     } catch (err) {
-      setErrorB(err.message);
-    }
-  }
-
-  async function saveCaddy(caddyPatch) {
-    setSavingCaddy(true);
-    setErrorB(null);
-    try {
-      await api.saveComponent("caddy", caddyPatch);
-    } catch (err) {
-      setErrorB(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
-    } finally {
-      setSavingCaddy(false);
+      setError(err.message);
     }
   }
 
@@ -189,9 +190,9 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
         })}
       </div>
 
-      {errorA && (
+      {error && (
         <div className="mt-4">
-          <ErrorNote message={errorA} />
+          <ErrorNote message={error} />
         </div>
       )}
 
@@ -216,22 +217,35 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
 
         {caddyEnabled && (
           <div className="mt-3">
-            {caddyFields === null ? (
+            {caddyDraft === null ? (
               <p className="text-sm text-slate-400">Loading…</p>
             ) : (
-              <SchemaForm
-                fields={caddyFields.filter((f) => f.group === "HTTPS")}
-                onSave={saveCaddy}
-                saving={savingCaddy}
-                error={errorB}
-                submitLabel="Save"
-              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">HTTPS</span>
+                  <select
+                    className={FIELD}
+                    value={caddyDraft.tlsMode}
+                    onChange={(e) => patchCaddy({ tlsMode: e.target.value })}
+                  >
+                    <option value="internal">Self-signed</option>
+                    <option value="acme">Automatic (ACME)</option>
+                  </select>
+                </label>
+                {caddyDraft.tlsMode === "acme" && (
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      ACME contact email
+                    </span>
+                    <input
+                      className={FIELD}
+                      value={caddyDraft.acmeEmail}
+                      onChange={(e) => patchCaddy({ acmeEmail: e.target.value })}
+                    />
+                  </label>
+                )}
+              </div>
             )}
-          </div>
-        )}
-        {errorB && !caddyEnabled && (
-          <div className="mt-3">
-            <ErrorNote message={errorB} />
           </div>
         )}
       </div>
@@ -243,7 +257,12 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
           </Button>
         )}
         <div className="ml-auto">
-          <Button tone="accent" onClick={saveAccessAndContinue} loading={savingPartA} disabled={savingPartA}>
+          <Button
+            tone="accent"
+            onClick={saveAccessAndContinue}
+            loading={saving}
+            disabled={saving || !caddyValid}
+          >
             Continue
           </Button>
         </div>
