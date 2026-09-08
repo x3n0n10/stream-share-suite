@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
+import { IconEdit } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 
@@ -218,9 +219,15 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                 </div>
                 <button
                   onClick={() => toggleEditing(i.key)}
-                  className="shrink-0 text-xs font-medium text-accent-600 hover:underline dark:text-accent-400"
+                  aria-label={editingKey === i.key ? "Close" : "Edit"}
+                  title={editingKey === i.key ? "Close" : "Edit"}
+                  className="shrink-0 rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                 >
-                  {editingKey === i.key ? "Hide" : "Edit"}
+                  {editingKey === i.key ? (
+                    <span className="text-xs font-medium">Close</span>
+                  ) : (
+                    <IconEdit className="h-4 w-4" />
+                  )}
                 </button>
               </div>
 
