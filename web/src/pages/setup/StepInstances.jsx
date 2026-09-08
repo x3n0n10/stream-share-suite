@@ -4,9 +4,21 @@ import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 
 const ACCESS_MODES = [
-  { value: "provider", label: "Use my provider credentials" },
-  { value: "custom", label: "Set custom credentials" },
-  { value: "ldap", label: "Use LDAP" },
+  {
+    value: "provider",
+    label: "Use my provider credentials",
+    help: "Simplest option — everyone signs in with the same Xtream username and password typed in above.",
+  },
+  {
+    value: "custom",
+    label: "Set custom credentials",
+    help: "A separate username and password from your provider's, for sharing without handing out the real ones.",
+  },
+  {
+    value: "ldap",
+    label: "Use LDAP",
+    help: "Sign in against an existing directory server instead — for handing out per-user access.",
+  },
 ];
 
 // Groups editable here — Addressing/Discord/Caching/Health check/Container
@@ -73,7 +85,7 @@ function toPatch(draft) {
   return { ...base, authMode: "basic", authUser: draft.xtreamUser, authPassword: draft.xtreamPassword };
 }
 
-export default function StepInstances({ instances, setInstances, onNext }) {
+export default function StepInstances({ instances, setInstances, onNext, onBack }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(blankDraft());
   const [saving, setSaving] = useState(false);
@@ -161,9 +173,14 @@ export default function StepInstances({ instances, setInstances, onNext }) {
                   <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                     {i.displayName}
                   </p>
-                  {(i.containerName || i.url) && (
+                  {(i.containerName || i.port) && (
                     <p className="truncate text-xs text-slate-400">
-                      {[i.containerName, i.url].filter(Boolean).join(" · ")}
+                      {[
+                        i.containerName && `Container name: ${i.containerName}`,
+                        i.port && `Port: ${i.port}`,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   )}
                 </div>
@@ -261,6 +278,9 @@ export default function StepInstances({ instances, setInstances, onNext }) {
                 </button>
               ))}
             </div>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              {ACCESS_MODES.find((m) => m.value === draft.accessMode)?.help}
+            </span>
           </div>
 
           {draft.accessMode === "custom" && (
@@ -333,12 +353,19 @@ export default function StepInstances({ instances, setInstances, onNext }) {
         </form>
       )}
 
-      <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-        <Button type="button" tone="accent" onClick={() => onNext("caching")} disabled={instances.length === 0}>
-          {instances.length === 0
-            ? "Add at least one instance to continue"
-            : `Continue with ${instances.length} instance${instances.length === 1 ? "" : "s"}`}
-        </Button>
+      <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        {onBack && (
+          <Button type="button" tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button type="button" tone="accent" onClick={() => onNext("features")} disabled={instances.length === 0}>
+            {instances.length === 0
+              ? "Add at least one instance to continue"
+              : `Continue with ${instances.length} instance${instances.length === 1 ? "" : "s"}`}
+          </Button>
+        </div>
       </div>
     </Card>
   );

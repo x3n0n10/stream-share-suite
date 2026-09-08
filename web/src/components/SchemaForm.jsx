@@ -5,9 +5,16 @@ import { Button, ErrorNote, FIELD } from "./common.jsx";
 // the point of the schema registry: a new field on the server is a new row
 // in the rendered form with no frontend change at all. Everything here is
 // generic over shape; a component's meaning lives entirely in its schema.
-export default function SchemaForm({ fields, onSave, saving, error, submitLabel = "Save", preview }) {
+export default function SchemaForm({
+  fields,
+  onSave,
+  saving,
+  error,
+  submitLabel = "Save",
+  preview,
+  secondaryAction,
+}) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const groups = useMemo(() => groupFields(fields), [fields]);
 
@@ -70,7 +77,7 @@ export default function SchemaForm({ fields, onSave, saving, error, submitLabel 
               ))}
             </div>
             {advanced.length > 0 && (
-              <details className="group" open={showAdvanced} onToggle={(e) => setShowAdvanced(e.target.open)}>
+              <details className="group">
                 <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
                   Advanced
                 </summary>
@@ -89,11 +96,22 @@ export default function SchemaForm({ fields, onSave, saving, error, submitLabel 
 
       {error && <ErrorNote message={error} />}
 
-      <div>
-        <Button type="submit" tone="accent" loading={saving} disabled={saving}>
-          {submitLabel}
-        </Button>
-      </div>
+      {secondaryAction ? (
+        <div className="flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+          {secondaryAction}
+          <div className="ml-auto">
+            <Button type="submit" tone="accent" loading={saving} disabled={saving}>
+              {submitLabel}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Button type="submit" tone="accent" loading={saving} disabled={saving}>
+            {submitLabel}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

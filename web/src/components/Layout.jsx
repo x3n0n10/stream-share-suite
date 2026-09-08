@@ -25,15 +25,16 @@ import { api } from "../lib/api.js";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: IconOverview, end: true },
+  { to: "/users", label: "Users", icon: IconUsers },
   { to: "/history", label: "History", icon: IconHistory },
   { to: "/leaderboard", label: "Leaderboard", icon: IconTrophy },
-  { to: "/users", label: "Users", icon: IconUsers },
-  { to: "/aliases", label: "Aliases", icon: IconTag },
   { to: "/instances", label: "Instances", icon: IconServer },
+  { to: "/vod", label: "VOD search", icon: IconSearch },
+  { separator: true },
+  { to: "/aliases", label: "Aliases", icon: IconTag },
   { to: "/vpn", label: "VPN", icon: IconShield },
-  { to: "/vod", label: "VOD Search", icon: IconSearch },
-  { to: "/stack", label: "Stack", icon: IconStack },
   { to: "/setup", label: "Setup wizard", icon: IconWand },
+  { to: "/stack", label: "Stack", icon: IconStack },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
@@ -46,24 +47,28 @@ const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => MOBILE_NAV_PATHS.includes(it
 function NavList({ onNavigate }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-accent-50 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60"
-            }`
-          }
-        >
-          <Icon className="h-5 w-5 shrink-0" />
-          {label}
-        </NavLink>
-      ))}
+      {NAV_ITEMS.map((item, index) =>
+        item.separator ? (
+          <hr key={`separator-${index}`} className="my-2 border-slate-200 dark:border-slate-800" />
+        ) : (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-accent-50 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300"
+                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60"
+              }`
+            }
+          >
+            <item.icon className="h-5 w-5 shrink-0" />
+            {item.label}
+          </NavLink>
+        )
+      )}
     </nav>
   );
 }

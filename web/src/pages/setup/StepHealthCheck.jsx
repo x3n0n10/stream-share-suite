@@ -3,7 +3,7 @@ import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
-export default function StepHealthCheck({ instances, onNext }) {
+export default function StepHealthCheck({ instances, onNext, onBack }) {
   const [selected, setSelected] = useState(null); // null until seeded; then key -> bool
   const [streamIds, setStreamIds] = useState({}); // key -> string
   const [checkTimes, setCheckTimes] = useState(null); // null until seeded
@@ -137,15 +137,22 @@ export default function StepHealthCheck({ instances, onNext }) {
         </div>
       )}
 
-      <div className="mt-5 flex items-center gap-2">
-        <Button
-          tone="accent"
-          onClick={submit}
-          loading={saving}
-          disabled={saving || (chosen.length > 0 && !allStreamIdsFilled)}
-        >
-          {chosen.length > 0 ? "Save and continue" : "Skip"}
-        </Button>
+      <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        {onBack && (
+          <Button tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button
+            tone="accent"
+            onClick={submit}
+            loading={saving}
+            disabled={saving || (chosen.length > 0 && !allStreamIdsFilled)}
+          >
+            {chosen.length > 0 ? "Continue" : "Skip"}
+          </Button>
+        </div>
       </div>
     </Card>
   );

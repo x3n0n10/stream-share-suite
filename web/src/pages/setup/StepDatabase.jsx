@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Card } from "../../components/common.jsx";
+import { Card, Button } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 
-export default function StepDatabase({ onNext }) {
+export default function StepDatabase({ onNext, onBack }) {
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -36,7 +36,20 @@ export default function StepDatabase({ onNext }) {
         {fields === null ? (
           <p className="text-sm text-slate-400">Loading…</p>
         ) : (
-          <SchemaForm fields={fields} onSave={save} saving={saving} error={error} submitLabel="Save and continue" />
+          <SchemaForm
+            fields={fields}
+            onSave={save}
+            saving={saving}
+            error={error}
+            submitLabel="Continue"
+            secondaryAction={
+              onBack && (
+                <Button tone="ghost" onClick={onBack}>
+                  Back
+                </Button>
+              )
+            }
+          />
         )}
       </div>
     </Card>

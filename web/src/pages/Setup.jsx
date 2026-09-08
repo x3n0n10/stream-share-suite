@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { api } from "../lib/api.js";
+import StepWelcome from "./setup/StepWelcome.jsx";
+import StepPortRange from "./setup/StepPortRange.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
-import StepCaching from "./setup/StepCaching.jsx";
+import StepFeatures from "./setup/StepFeatures.jsx";
 import StepDatabase from "./setup/StepDatabase.jsx";
 import StepExternalAccess from "./setup/StepExternalAccess.jsx";
 import StepVpn from "./setup/StepVpn.jsx";
@@ -15,8 +17,9 @@ import StepDone from "./setup/StepDone.jsx";
 // than a fixed-index array — see each step's own onNext call for the
 // sequencing decision that actually matters.
 const STEP_LABELS = {
+  portRange: "Port range",
   instances: "Instances",
-  caching: "Caching",
+  features: "Features",
   database: "Database",
   access: "External access",
   vpn: "VPN",
@@ -59,7 +62,12 @@ function Progress({ step }) {
 
 export default function Setup() {
   const navigate = useNavigate();
-  const [step, setStep] = useState("instances");
+  const [step, setStep] = useState("welcome");
+  // The steps actually visited, in order — not a fixed prior-in-STEP_LABELS
+  // lookup, because the sequence itself branches (StepVpn skips StepHealthCheck
+  // when the VPN is off). Back has to retrace what really happened, not the
+  // display order.
+  const [history, setHistory] = useState([]);
   // Every existing instance, plus any created later in this run via
   // StepInstances's own setInstances calls — every other step reads this
   // same list, which is what makes the whole wizard idempotent rather than
@@ -70,20 +78,38 @@ export default function Setup() {
     api.stackInstances().then((r) => setInstances(r.instances));
   }, []);
 
-  const stepProps = { instances, setInstances, onNext: setStep };
+  function goNext(nextStep) {
+    setHistory((h) => [...h, step]);
+    setStep(nextStep);
+  }
+
+  function goBack() {
+    if (history.length === 0) return;
+    setStep(history[history.length - 1]);
+    setHistory(history.slice(0, -1));
+  }
+
+  const stepProps = {
+    instances,
+    setInstances,
+    onNext: goNext,
+    onBack: history.length > 0 ? goBack : undefined,
+  };
 
   return (
     <Layout title="Setup wizard">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <Progress step={step} />
+        {step !== "welcome" && <Progress step={step} />}
 
+        {step === "welcome" && <StepWelcome onNext={stepProps.onNext} />}
+        {step === "portRange" && <StepPortRange {...stepProps} />}
         {step === "instances" && <StepInstances {...stepProps} />}
-        {step === "caching" && <StepCaching {...stepProps} />}
+        {step === "features" && <StepFeatures {...stepProps} />}
         {step === "database" && <StepDatabase {...stepProps} />}
         {step === "access" && <StepExternalAccess {...stepProps} />}
         {step === "vpn" && <StepVpn {...stepProps} />}
         {step === "health" && <StepHealthCheck {...stepProps} />}
-        {step === "done" && <StepDone navigate={navigate} />}
+        {step === "done" && <StepDone navigate={navigate} onBack={stepProps.onBack} />}
       </div>
     </Layout>
   );

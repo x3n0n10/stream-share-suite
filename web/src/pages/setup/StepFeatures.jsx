@@ -3,7 +3,7 @@ import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
-export default function StepCaching({ instances, onNext }) {
+export default function StepFeatures({ instances, onNext, onBack }) {
   const [byKey, setByKey] = useState(null); // null until seeded
   const [parentPath, setParentPath] = useState("");
   // key -> the last value auto-suggested for it, so typing a new parent path
@@ -98,7 +98,7 @@ export default function StepCaching({ instances, onNext }) {
   if (byKey === null) {
     return (
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Caching</h2>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Features</h2>
         <p className="mt-5 text-sm text-slate-400">Loading…</p>
       </Card>
     );
@@ -108,7 +108,8 @@ export default function StepCaching({ instances, onNext }) {
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Caching</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Per instance — each one keeps whatever it's already set to until you change it here.
+        Per instance — each one keeps whatever it's already set to until you change it here. The
+        folder below is where an instance keeps its temporary files: VOD cache and catchup buffers.
       </p>
 
       <label className="mt-4 flex flex-col gap-1.5">
@@ -121,9 +122,9 @@ export default function StepCaching({ instances, onNext }) {
           onChange={(e) => updateParentPath(e.target.value)}
         />
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
-          Suggests a subfolder below for any instance that doesn't already have a cache path. Any
-          folder on the Docker host works — for example, a subfolder under the Suite's own data
-          folder, if you don't need cache on a separate disk.
+          Suggests a subfolder below for any instance that doesn't already have a temporary files
+          path. Any folder on the Docker host works — for example, a subfolder under the Suite's own
+          data folder, if you don't need these on a separate disk.
         </span>
       </label>
 
@@ -175,7 +176,7 @@ export default function StepCaching({ instances, onNext }) {
               {cachingOn && (
                 <label className="mt-3 flex flex-col gap-1.5">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    Cache location on this host
+                    Temporary files location on this host
                   </span>
                   <input
                     className={FIELD}
@@ -195,10 +196,17 @@ export default function StepCaching({ instances, onNext }) {
         </div>
       )}
 
-      <div className="mt-5">
-        <Button tone="accent" onClick={submit} loading={saving} disabled={saving || !allPathsFilled}>
-          Continue
-        </Button>
+      <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        {onBack && (
+          <Button tone="ghost" onClick={onBack}>
+            Back
+          </Button>
+        )}
+        <div className="ml-auto">
+          <Button tone="accent" onClick={submit} loading={saving} disabled={saving || !allPathsFilled}>
+            Continue
+          </Button>
+        </div>
       </div>
     </Card>
   );
