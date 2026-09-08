@@ -160,13 +160,22 @@ function renderControl(field, value, onChange) {
 
   if (field.type === "select") {
     return (
-      <select className={FIELD} value={value ?? ""} onChange={(e) => onChange(field.key, e.target.value)}>
+      <div className="flex flex-wrap gap-2">
         {field.options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(field.key, opt)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+              value === opt
+                ? "bg-accent-600 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            }`}
+          >
+            {field.optionLabels?.[opt] || opt}
+          </button>
         ))}
-      </select>
+      </div>
     );
   }
 

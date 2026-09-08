@@ -21,6 +21,7 @@ export const POSTGRES_SCHEMA = {
       help: "Let the Suite run a PostgreSQL container, or point at a server you already have.",
       type: "select",
       options: ["managed", "external"],
+      optionLabels: { managed: "Suite-managed", external: "External server" },
       default: "managed",
       group: "Database",
       required: true,

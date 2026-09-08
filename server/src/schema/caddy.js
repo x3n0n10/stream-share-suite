@@ -35,6 +35,7 @@ export const CADDY_SCHEMA = {
         "80 and 443 reachable from the internet and each hostname's DNS already pointed here.",
       type: "select",
       options: ["internal", "acme"],
+      optionLabels: { internal: "Self-signed", acme: "Automatic (ACME)" },
       default: "internal",
       group: "HTTPS",
       required: true,

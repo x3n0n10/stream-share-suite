@@ -13,6 +13,9 @@
 //     group: "VPN",                // for grouping the rendered form
 //     type: "text" | "select" | "checkbox",
 //     options: [...],              // required for "select"
+//     optionLabels: { wireguard: "WireGuard" }, // optional, "select" only —
+//                                   // the frontend's button row shows this
+//                                   // instead of the raw option value when set
 //     secret: true,                // write-only: see applyPatch and toPublicFields
 //     advanced: false,             // collapsed behind an "Advanced" toggle
 //     required: true,
@@ -164,6 +167,7 @@ export function toPublicFields(schema, values) {
       group: field.group || null,
       type: field.type || "text",
       options: field.options || null,
+      optionLabels: field.optionLabels || null,
       secret: !!field.secret,
       advanced: !!field.advanced,
       required: !!field.required,

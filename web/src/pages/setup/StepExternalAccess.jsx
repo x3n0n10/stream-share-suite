@@ -223,14 +223,25 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-400">HTTPS</span>
-                  <select
-                    className={FIELD}
-                    value={caddyDraft.tlsMode}
-                    onChange={(e) => patchCaddy({ tlsMode: e.target.value })}
-                  >
-                    <option value="internal">Self-signed</option>
-                    <option value="acme">Automatic (ACME)</option>
-                  </select>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: "internal", label: "Self-signed" },
+                      { value: "acme", label: "Automatic (ACME)" },
+                    ].map((mode) => (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        onClick={() => patchCaddy({ tlsMode: mode.value })}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+                          caddyDraft.tlsMode === mode.value
+                            ? "bg-accent-600 text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
                 </label>
                 {caddyDraft.tlsMode === "acme" && (
                   <label className="flex flex-col gap-1.5">
