@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog, FIELD, RefreshButton } from "../components/common.jsx";
-import { IconDownload, IconEdit, IconTrash, IconSettings } from "../components/Icons.jsx";
+import { IconRefresh, IconEdit, IconTrash, IconSettings } from "../components/Icons.jsx";
 import SchemaForm from "../components/SchemaForm.jsx";
 import { api, ApiError } from "../lib/api.js";
 import { useJobPolling } from "../lib/useJobPolling.js";
@@ -676,7 +676,7 @@ function InstancesCard({ instances, portBand, containerPrefix, busy, onAdd, onEd
                     title="Pull this instance's own configured image tag and recreate only if it actually changed"
                     className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                   >
-                    <IconDownload className="h-4 w-4" />
+                    <IconRefresh className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => toggleEditing(instance.key)}
@@ -989,7 +989,7 @@ function ComponentCard({ component, onSaved, busy, takeoverAvailable, onApplyTak
               title="Pull this component's own configured image tag and recreate only if it actually changed"
               className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
             >
-              <IconDownload className="h-4 w-4" />
+              <IconRefresh className="h-4 w-4" />
             </button>
           )}
           <button
