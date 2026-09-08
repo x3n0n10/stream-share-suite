@@ -4,9 +4,21 @@ import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 
 const ACCESS_MODES = [
-  { value: "provider", label: "Use my provider credentials" },
-  { value: "custom", label: "Set custom credentials" },
-  { value: "ldap", label: "Use LDAP" },
+  {
+    value: "provider",
+    label: "Use my provider credentials",
+    help: "Simplest option — everyone signs in with the same Xtream username and password typed in above.",
+  },
+  {
+    value: "custom",
+    label: "Set custom credentials",
+    help: "A separate username and password from your provider's, for sharing without handing out the real ones.",
+  },
+  {
+    value: "ldap",
+    label: "Use LDAP",
+    help: "Sign in against an existing directory server instead — for handing out per-user access.",
+  },
 ];
 
 // Groups editable here — Addressing/Discord/Caching/Health check/Container
@@ -266,6 +278,9 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                 </button>
               ))}
             </div>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              {ACCESS_MODES.find((m) => m.value === draft.accessMode)?.help}
+            </span>
           </div>
 
           {draft.accessMode === "custom" && (

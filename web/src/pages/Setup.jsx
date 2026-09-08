@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { api } from "../lib/api.js";
+import StepWelcome from "./setup/StepWelcome.jsx";
 import StepPortRange from "./setup/StepPortRange.jsx";
 import StepInstances from "./setup/StepInstances.jsx";
 import StepFeatures from "./setup/StepFeatures.jsx";
@@ -61,7 +62,7 @@ function Progress({ step }) {
 
 export default function Setup() {
   const navigate = useNavigate();
-  const [step, setStep] = useState("portRange");
+  const [step, setStep] = useState("welcome");
   // The steps actually visited, in order — not a fixed prior-in-STEP_LABELS
   // lookup, because the sequence itself branches (StepVpn skips StepHealthCheck
   // when the VPN is off). Back has to retrace what really happened, not the
@@ -98,8 +99,9 @@ export default function Setup() {
   return (
     <Layout title="Setup wizard">
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
-        <Progress step={step} />
+        {step !== "welcome" && <Progress step={step} />}
 
+        {step === "welcome" && <StepWelcome onNext={stepProps.onNext} />}
         {step === "portRange" && <StepPortRange {...stepProps} />}
         {step === "instances" && <StepInstances {...stepProps} />}
         {step === "features" && <StepFeatures {...stepProps} />}

@@ -32,8 +32,9 @@ export default function StepPortRange({ onNext, onBack }) {
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Instance port range</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Each instance gets its own port, allocated from a band of 20 starting here. Only worth
-        changing if that range is already taken by something else on the host.
+        Each instance gets its own port, allocated from a band of 20 starting here — this is what
+        you'd forward or firewall in if you're reaching an instance directly rather than through
+        Caddy. Only worth changing if that range is already taken by something else on the host.
       </p>
 
       <div className="mt-5">
