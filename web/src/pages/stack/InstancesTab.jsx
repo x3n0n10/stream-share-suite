@@ -9,7 +9,8 @@ import HistoryPanel from "./HistoryPanel.jsx";
 
 // The band an instance's port is allocated from — a fixed 20 slots starting
 // here. Only worth changing if that range is already taken by something else
-// on the host; an instance that already has a port keeps it regardless.
+// on the host; an instance whose port still fits the new range keeps it, one
+// that doesn't gets moved to a free port in it (server-side, on save).
 function PortRangeSetting({ settings, onSave, busy }) {
   const [draft, setDraft] = useState(String(settings.instancePortStart));
   const [error, setError] = useState(null);
@@ -35,7 +36,8 @@ function PortRangeSetting({ settings, onSave, busy }) {
         <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Instance port range</h2>
         <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
           Instances are allocated 20 ports starting here (currently {settings.instancePortStart}–
-          {settings.instancePortStart + 19}). Existing instances keep the port they already have.
+          {settings.instancePortStart + 19}). Instances already inside the range keep their port;
+          any that fall outside the new range move to a free port in it.
         </p>
         {error && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       </div>

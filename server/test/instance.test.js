@@ -14,6 +14,7 @@ import {
   instanceUrl,
   allocatePort,
   portBand,
+  reassignOutOfRangeInstances,
   PORT_BAND_START_SETTING,
 } from "../src/reconcile/instance.js";
 import { renderGluetunSpec } from "../src/reconcile/gluetun.js";
@@ -131,6 +132,69 @@ test("moving the band does not renumber an instance that already has a port", ()
   setSetting(PORT_BAND_START_SETTING, 9000);
   assert.equal(Number(getComponentValues("instance", key).port), 8080);
   assert.equal(allocatePort(), 9000, "the next allocation still comes from the new band");
+});
+
+// --- reassignment on a range move -------------------------------------------
+
+test("reassignOutOfRangeInstances leaves an instance alone when its port still fits", () => {
+  const { key } = provisionInstance(PROVIDER);
+  const moves = reassignOutOfRangeInstances({ first: 8000, last: 8099 });
+
+  assert.deepEqual(moves, []);
+  assert.equal(Number(getComponentValues("instance", key).port), 8080);
+});
+
+test("reassignOutOfRangeInstances moves a stray instance to the lowest free slot in the new band", () => {
+  const { key } = provisionInstance(PROVIDER);
+  assert.equal(Number(getComponentValues("instance", key).port), 8080);
+
+  const moves = reassignOutOfRangeInstances({ first: 9000, last: 9019 });
+
+  assert.deepEqual(moves, [{ key, from: 8080, to: 9000 }]);
+  assert.equal(Number(getComponentValues("instance", key).port), 9000);
+});
+
+test("reassignOutOfRangeInstances only moves the instances that fall outside the new band", () => {
+  const a = provisionInstance(PROVIDER);
+  const b = provisionInstance({ ...PROVIDER, displayName: "Provider 2" });
+  saveComponentValues("instance", { ...getComponentValues("instance", b.key), port: 9010 }, b.key);
+
+  const moves = reassignOutOfRangeInstances({ first: 9000, last: 9019 });
+
+  assert.deepEqual(moves, [{ key: a.key, from: 8080, to: 9000 }]);
+  assert.equal(Number(getComponentValues("instance", b.key).port), 9010, "already inside the new band, untouched");
+});
+
+test("reassignOutOfRangeInstances fills free slots ascending, skipping ones already kept", () => {
+  const a = provisionInstance(PROVIDER);
+  const b = provisionInstance({ ...PROVIDER, displayName: "Provider 2" });
+  const c = provisionInstance({ ...PROVIDER, displayName: "Provider 3" });
+  // b sits at 8081, already inside the new band — the only free slots below
+  // it (9000) and above are what a and c should land on, in creation order.
+  saveComponentValues("instance", { ...getComponentValues("instance", b.key), port: 9000 }, b.key);
+
+  const moves = reassignOutOfRangeInstances({ first: 9000, last: 9019 });
+
+  assert.deepEqual(
+    moves.map((m) => [m.key, m.to]),
+    [
+      [a.key, 9001],
+      [c.key, 9002],
+    ]
+  );
+});
+
+test("reassignOutOfRangeInstances throws and writes nothing when the new band has no room for every stray", () => {
+  const a = provisionInstance(PROVIDER);
+  const b = provisionInstance({ ...PROVIDER, displayName: "Provider 2" });
+
+  assert.throws(
+    () => reassignOutOfRangeInstances({ first: 9000, last: 9000 }),
+    /2 instance\(s\) fall outside the new range and only 1 free slot\(s\)/
+  );
+  // Nothing partially applied.
+  assert.equal(Number(getComponentValues("instance", a.key).port), 8080);
+  assert.equal(Number(getComponentValues("instance", b.key).port), 8081);
 });
 
 test("allocation skips ports already taken and is sticky across additions", () => {

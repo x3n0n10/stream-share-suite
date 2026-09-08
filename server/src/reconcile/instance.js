@@ -9,7 +9,7 @@
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { renderEnv } from "../schema/registry.js";
-import { getComponentValues, listComponents } from "../store/components.js";
+import { getComponentValues, listComponents, saveComponentValues } from "../store/components.js";
 import { getNumber } from "../store/settings.js";
 import { componentDataDir, ensureDirectory, ownershipString } from "../store/paths.js";
 import { isVpnEnabled } from "./catalog.js";
@@ -68,6 +68,48 @@ export function allocatePort() {
     if (!taken.has(port)) return port;
   }
   return null;
+}
+
+// The one deliberate exception to "moving the band never renumbers an
+// instance that already has a port" (see portBand above): an instance whose
+// port falls entirely outside the *new* band would otherwise sit at a port
+// nothing points at it by. Called by the settings route only, before the
+// setting itself is written — never partially: if there isn't room for
+// every stray instance in the new band, nothing is reassigned and the
+// caller should refuse the whole range change. Only rewrites stored config,
+// the same as any manual field edit; the resulting container recreation
+// still waits for the operator to review and apply the plan.
+export function reassignOutOfRangeInstances(newBand) {
+  const rows = listComponents("instance");
+  const kept = new Set();
+  const stray = [];
+  for (const row of rows) {
+    const values = JSON.parse(row.config_json);
+    const port = Number(values.port);
+    if (!Number.isFinite(port) || port <= 0) continue;
+    if (port >= newBand.first && port <= newBand.last) {
+      kept.add(port);
+    } else {
+      stray.push({ key: row.key, values, from: port });
+    }
+  }
+  if (stray.length === 0) return [];
+
+  const free = [];
+  for (let port = newBand.first; port <= newBand.last && free.length < stray.length; port++) {
+    if (!kept.has(port)) free.push(port);
+  }
+  if (free.length < stray.length) {
+    throw new Error(
+      `${stray.length} instance(s) fall outside the new range and only ${free.length} free slot(s) are available there — widen the range or remove instances first.`
+    );
+  }
+
+  return stray.map(({ key, values, from }, i) => {
+    const to = free[i];
+    saveComponentValues("instance", { ...values, port: to }, key);
+    return { key, from, to };
+  });
 }
 
 // The address the Suite's own dashboard reaches this instance at — computed,
