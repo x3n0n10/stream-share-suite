@@ -15,7 +15,6 @@ export default function SchemaForm({
   secondaryAction,
 }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const groups = useMemo(() => groupFields(fields), [fields]);
 
@@ -78,7 +77,7 @@ export default function SchemaForm({
               ))}
             </div>
             {advanced.length > 0 && (
-              <details className="group" open={showAdvanced} onToggle={(e) => setShowAdvanced(e.target.open)}>
+              <details className="group">
                 <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
                   Advanced
                 </summary>
