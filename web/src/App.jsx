@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import Overview from "./pages/Overview.jsx";
 import History from "./pages/History.jsx";
 import Leaderboard from "./pages/Leaderboard.jsx";
@@ -26,6 +26,7 @@ const SIGNED_IN = "signed-in";
 export default function App() {
   const [authState, setAuthState] = useState(CHECKING);
   const [config, setConfig] = useState(null);
+  const navigate = useNavigate();
 
   const loadConfig = useCallback(async () => {
     try {
@@ -63,6 +64,19 @@ export default function App() {
   useEffect(() => {
     if (authState === SIGNED_IN) loadConfig();
   }, [authState, loadConfig]);
+
+  // Nothing to manage yet — send a freshly signed-in user straight to the
+  // wizard instead of an empty Overview. Fires once per sign-in transition,
+  // not on every render, so navigating away from /setup afterward sticks.
+  useEffect(() => {
+    if (authState !== SIGNED_IN) return;
+    api
+      .stackInstances()
+      .then((result) => {
+        if (result.instances.length === 0) navigate("/setup");
+      })
+      .catch(() => {});
+  }, [authState, navigate]);
 
   if (authState === CHECKING) {
     return <div className="min-h-screen bg-slate-50 dark:bg-slate-950" />;
