@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
+import { ConfirmDialog } from "./common.jsx";
 import {
   IconOverview,
   IconHistory,
@@ -18,6 +19,7 @@ import {
   IconSignOut,
   IconStack,
   IconWand,
+  IconChevronDown,
 } from "./Icons.jsx";
 import { useTheme } from "../lib/useTheme.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
@@ -44,7 +46,7 @@ const NAV_ITEMS = [
 const MOBILE_NAV_PATHS = ["/", "/history", "/vpn", "/vod"];
 const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => MOBILE_NAV_PATHS.includes(item.to));
 
-function NavList({ onNavigate }) {
+function NavList({ onNavigate, collapsed = false }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
       {NAV_ITEMS.map((item, index) =>
@@ -56,8 +58,11 @@ function NavList({ onNavigate }) {
             to={item.to}
             end={item.end}
             onClick={onNavigate}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                collapsed ? "justify-center" : ""
+              } ${
                 isActive
                   ? "bg-accent-50 text-accent-700 dark:bg-accent-900/30 dark:text-accent-300"
                   : "text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60"
@@ -65,7 +70,7 @@ function NavList({ onNavigate }) {
             }
           >
             <item.icon className="h-5 w-5 shrink-0" />
-            {item.label}
+            <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
           </NavLink>
         )
       )}
@@ -77,12 +82,19 @@ export default function Layout({ title, children, headerExtra }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerMounted = useDelayedUnmount(drawerOpen, 220);
   const [theme, toggleTheme] = useTheme();
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("layout.sidebarCollapsed") === "1");
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const config = useConfig();
   const siteTitle = config?.title || "StreamShare Suite";
+
+  useEffect(() => {
+    localStorage.setItem("layout.sidebarCollapsed", collapsed ? "1" : "0");
+  }, [collapsed]);
 
   // The api layer's 401 handler is what actually returns the UI to the sign-in
   // screen, so this only has to make the next request unauthenticated.
   async function signOut() {
+    setSignOutOpen(false);
     try {
       await api.logout();
     } finally {
@@ -93,21 +105,38 @@ export default function Layout({ title, children, headerExtra }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-slate-200 bg-white py-5 dark:border-slate-800 dark:bg-slate-900 lg:flex">
-        <div className="mb-6 flex min-w-0 items-center gap-2 px-4">
+      <aside
+        className={`fixed inset-y-0 left-0 hidden flex-col border-r border-slate-200 bg-white py-5 transition-[width] duration-200 dark:border-slate-800 dark:bg-slate-900 lg:flex ${
+          collapsed ? "lg:w-16" : "lg:w-60"
+        }`}
+      >
+        <div className={`mb-6 flex min-w-0 items-center gap-2 px-4 ${collapsed ? "justify-center px-0" : ""}`}>
           <img src="/logo.svg" alt="" className="h-7 w-7 shrink-0 rounded-lg" />
-          <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+          <span className={`truncate text-sm font-semibold text-slate-900 dark:text-white ${collapsed ? "sr-only" : ""}`}>
             {siteTitle}
           </span>
         </div>
-        <NavList />
+        <NavList collapsed={collapsed} />
         <div className="px-3 pt-4">
           <button
-            onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60"
+            onClick={() => setSignOutOpen(true)}
+            title={collapsed ? "Sign out" : undefined}
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60 ${
+              collapsed ? "justify-center" : ""
+            }`}
           >
             <IconSignOut className="h-5 w-5 shrink-0" />
-            Sign out
+            <span className={collapsed ? "sr-only" : ""}>Sign out</span>
+          </button>
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60 ${
+              collapsed ? "justify-center" : ""
+            }`}
+          >
+            <IconChevronDown className={`h-5 w-5 shrink-0 transition-transform ${collapsed ? "-rotate-90" : "rotate-90"}`} />
+            <span className={collapsed ? "sr-only" : ""}>Collapse</span>
           </button>
         </div>
       </aside>
@@ -142,11 +171,23 @@ export default function Layout({ title, children, headerExtra }) {
               </button>
             </div>
             <NavList onNavigate={() => setDrawerOpen(false)} />
+            <div className="px-3 pt-4">
+              <button
+                onClick={() => {
+                  setDrawerOpen(false);
+                  setSignOutOpen(true);
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60"
+              >
+                <IconSignOut className="h-5 w-5 shrink-0" />
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="lg:pl-60">
+      <div className={`transition-[padding] duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-60"}`}>
         <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -192,6 +233,15 @@ export default function Layout({ title, children, headerExtra }) {
           </NavLink>
         ))}
       </nav>
+
+      <ConfirmDialog
+        open={signOutOpen}
+        title="Sign out?"
+        body="You'll need to sign in again to get back in."
+        confirmLabel="Sign out"
+        onConfirm={signOut}
+        onCancel={() => setSignOutOpen(false)}
+      />
     </div>
   );
 }
