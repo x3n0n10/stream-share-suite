@@ -137,7 +137,7 @@ export default function Stack({ pollIntervalMs = 15000 }) {
       <TabBar tabs={MOBILE_TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 lg:hidden" />
       <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 hidden lg:flex" />
 
-      <div className="lg:grid lg:grid-cols-[1fr_380px] lg:items-start lg:gap-4">
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
         <div>
           {activeTab === "instances" && (
             <InstancesTab
