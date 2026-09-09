@@ -342,6 +342,7 @@ export function createStackRouter() {
           port: Number(values.port) || null,
           // Computed, never typed — see reconcile/instance.js.
           url: instanceUrl(row.key, values),
+          publicBaseUrl: values.publicBaseUrl || null,
           databaseName: values._dbName || null,
         };
       }),
