@@ -124,6 +124,34 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
   );
 }
 
+function ConnectInfo({ instances }) {
+  return (
+    <div className="rounded-xl border border-accent-200 bg-accent-50 px-4 py-3 text-xs text-accent-800 dark:border-accent-900/50 dark:bg-accent-900/20 dark:text-accent-300">
+      <p className="text-sm font-medium">Point your IPTV client at one of these</p>
+      <p className="mt-1 max-w-prose text-accent-700 dark:text-accent-400">
+        The internal URL only works from this host or your local network. The public URL — set per
+        instance in the setup wizard's External access step — is the one to hand to anyone
+        connecting from outside it.
+      </p>
+      <ul className="mt-2.5 flex flex-col gap-1.5">
+        {instances.map((instance) => (
+          <li key={instance.key}>
+            <span className="font-medium">{instance.displayName}</span>
+            <br />
+            Internal: <span className="font-mono">{instance.url}</span>
+            {instance.publicBaseUrl && (
+              <>
+                {" · "}
+                Public: <span className="font-mono">{instance.publicBaseUrl}</span>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function InstancesTab({
   settings,
   onSaveSettings,
@@ -220,6 +248,8 @@ export default function InstancesTab({
           <PortRangeSetting settings={settings} onSave={onSaveSettings} busy={busy} />
         </Card>
       )}
+
+      {instances.length > 0 && <ConnectInfo instances={instances} />}
 
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
