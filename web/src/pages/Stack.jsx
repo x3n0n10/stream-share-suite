@@ -42,7 +42,7 @@ function ColumnResizer({ containerRef, onResize, onResizeEnd }) {
 
   return (
     <div
-      className="hidden lg:block lg:self-stretch cursor-col-resize rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+      className="hidden lg:block lg:self-stretch cursor-col-resize border-x-[2.5px] border-transparent bg-clip-content bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
       style={{ touchAction: "none" }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
