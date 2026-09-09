@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Layout from "../components/Layout.jsx";
 import { ErrorNote, RefreshButton } from "../components/common.jsx";
 import { api, ApiError } from "../lib/api.js";
@@ -14,6 +14,42 @@ const TABS = [
   { id: "import", label: "Import" },
 ];
 const MOBILE_TABS = [...TABS, { id: "plan", label: "Plan" }];
+
+// Draggable split between the tab content and the plan panel. Both sides
+// keep a 380px floor via CSS minmax — that holds even if a width restored
+// from localStorage no longer fits a narrower window, no JS re-check needed.
+const SPLIT_STORAGE_KEY = "stack.planPanelWidth";
+const SPLIT_MIN_PX = 380;
+const SPLIT_HANDLE_PX = 6;
+
+function ColumnResizer({ containerRef, onResize, onResizeEnd }) {
+  function handlePointerDown(e) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e) {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId) || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const raw = e.clientX - rect.left - SPLIT_HANDLE_PX / 2;
+    const max = rect.width - SPLIT_HANDLE_PX - SPLIT_MIN_PX;
+    onResize(Math.round(Math.min(Math.max(raw, SPLIT_MIN_PX), max)));
+  }
+
+  function handlePointerUp(e) {
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    onResizeEnd();
+  }
+
+  return (
+    <div
+      className="hidden lg:block lg:self-stretch cursor-col-resize rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+      style={{ touchAction: "none" }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    />
+  );
+}
 
 function TabBar({ tabs, activeTab, onChange, className = "" }) {
   return (
@@ -45,6 +81,11 @@ export default function Stack({ pollIntervalMs = 15000 }) {
   const [planError, setPlanError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [activeTab, setActiveTab] = useState("instances");
+  const [leftWidth, setLeftWidth] = useState(() => {
+    const stored = Number(localStorage.getItem(SPLIT_STORAGE_KEY));
+    return stored > 0 ? `${stored}px` : "1fr";
+  });
+  const splitRef = useRef(null);
 
   const refreshPlan = useCallback(async () => {
     try {
@@ -137,7 +178,11 @@ export default function Stack({ pollIntervalMs = 15000 }) {
       <TabBar tabs={MOBILE_TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 lg:hidden" />
       <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 hidden lg:flex" />
 
-      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-4">
+      <div
+        ref={splitRef}
+        className="lg:grid lg:items-start"
+        style={{ gridTemplateColumns: `minmax(${SPLIT_MIN_PX}px, ${leftWidth}) ${SPLIT_HANDLE_PX}px minmax(${SPLIT_MIN_PX}px, 1fr)` }}
+      >
         <div>
           {activeTab === "instances" && (
             <InstancesTab
@@ -168,6 +213,14 @@ export default function Stack({ pollIntervalMs = 15000 }) {
           )}
           {activeTab === "import" && <ImportTab onImported={reload} />}
         </div>
+
+        <ColumnResizer
+          containerRef={splitRef}
+          onResize={(px) => setLeftWidth(`${px}px`)}
+          onResizeEnd={() => {
+            if (leftWidth.endsWith("px")) localStorage.setItem(SPLIT_STORAGE_KEY, parseInt(leftWidth, 10));
+          }}
+        />
 
         <div
           className={
