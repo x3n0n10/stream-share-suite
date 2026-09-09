@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
+import { ConfirmDialog } from "./common.jsx";
 import {
   IconOverview,
   IconHistory,
@@ -82,6 +83,7 @@ export default function Layout({ title, children, headerExtra }) {
   const drawerMounted = useDelayedUnmount(drawerOpen, 220);
   const [theme, toggleTheme] = useTheme();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("layout.sidebarCollapsed") === "1");
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const config = useConfig();
   const siteTitle = config?.title || "StreamShare Suite";
 
@@ -92,6 +94,7 @@ export default function Layout({ title, children, headerExtra }) {
   // The api layer's 401 handler is what actually returns the UI to the sign-in
   // screen, so this only has to make the next request unauthenticated.
   async function signOut() {
+    setSignOutOpen(false);
     try {
       await api.logout();
     } finally {
@@ -116,7 +119,7 @@ export default function Layout({ title, children, headerExtra }) {
         <NavList collapsed={collapsed} />
         <div className="px-3 pt-4">
           <button
-            onClick={signOut}
+            onClick={() => setSignOutOpen(true)}
             title={collapsed ? "Sign out" : undefined}
             className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60 ${
               collapsed ? "justify-center" : ""
@@ -218,6 +221,15 @@ export default function Layout({ title, children, headerExtra }) {
           </NavLink>
         ))}
       </nav>
+
+      <ConfirmDialog
+        open={signOutOpen}
+        title="Sign out?"
+        body="You'll need to sign in again to get back in."
+        confirmLabel="Sign out"
+        onConfirm={signOut}
+        onCancel={() => setSignOutOpen(false)}
+      />
     </div>
   );
 }
