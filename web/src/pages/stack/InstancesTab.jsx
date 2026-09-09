@@ -250,9 +250,16 @@ export default function InstancesTab({
                     <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
                       {instance.displayName}
                     </p>
-                    <p className="mt-0.5 truncate font-mono text-xs text-slate-500 dark:text-slate-400">
-                      {instance.containerName} · {instance.url}
-                    </p>
+                    {(instance.containerName || instance.port) && (
+                      <p className="mt-0.5 truncate text-xs text-slate-400">
+                        {[
+                          instance.containerName && `Container name: ${instance.containerName}`,
+                          instance.port && `Port: ${instance.port}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <button
