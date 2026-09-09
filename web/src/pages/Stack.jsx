@@ -20,7 +20,7 @@ const MOBILE_TABS = [...TABS, { id: "plan", label: "Plan" }];
 // from localStorage no longer fits a narrower window, no JS re-check needed.
 const SPLIT_STORAGE_KEY = "stack.planPanelWidth";
 const SPLIT_MIN_PX = 380;
-const SPLIT_HANDLE_PX = 6;
+const SPLIT_HANDLE_PX = 16; // matches gap-4, so the resizer track reads as the original column gap
 
 function ColumnResizer({ containerRef, onResize, onResizeEnd }) {
   function handlePointerDown(e) {
@@ -42,7 +42,7 @@ function ColumnResizer({ containerRef, onResize, onResizeEnd }) {
 
   return (
     <div
-      className="hidden lg:block lg:self-stretch cursor-col-resize border-x-[2.5px] border-transparent bg-clip-content bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
+      className="hidden lg:block lg:self-stretch cursor-col-resize border-x-[7.5px] border-transparent bg-clip-content bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700"
       style={{ touchAction: "none" }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
