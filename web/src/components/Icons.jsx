@@ -234,10 +234,13 @@ export function IconSignOut({ className }) {
 
 export function IconWand({ className }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 20 15 9" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 9l2-2M4 20l2-2" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M18 3v3M18 12v3M13.5 6h3M18 10.5h3M20.5 4.5l-2 2M20.5 15.5l-2-2" />
+    <svg className={className} {...base}>
+      <path d="M4 20 13 11" />
+      <path
+        fill="currentColor"
+        stroke="none"
+        d="M18.5 2.5 19.3 4.7 21.5 5.5 19.3 6.3 18.5 8.5 17.7 6.3 15.5 5.5 17.7 4.7Z"
+      />
     </svg>
   );
 }
