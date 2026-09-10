@@ -139,8 +139,15 @@ function FieldInput({ field, value, onChange, extra }) {
       : "Not set."
     : field.help;
 
+  // A <label> wraps a single control by convention — fine for a lone
+  // input/textarea/checkbox, but a select field is really a row of several
+  // buttons, and some browsers (Safari) paint a hover highlight across a
+  // whole label's box when any of several wrapped controls is hovered. A
+  // plain <div> sidesteps that; it was never a real <label>/<input> pairing.
+  const Wrapper = field.type === "select" ? "div" : "label";
+
   return (
-    <label
+    <Wrapper
       className={`flex flex-col gap-1.5 ${
         field.type === "textarea" || field.type === "checkbox" || field.type === "select" ? "sm:col-span-2" : ""
       }`}
@@ -151,7 +158,7 @@ function FieldInput({ field, value, onChange, extra }) {
       </span>
       {renderControl(field, value, onChange, extra)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
-    </label>
+    </Wrapper>
   );
 }
 
