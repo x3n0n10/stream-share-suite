@@ -60,7 +60,7 @@ const CATALOG = {
     kind: "gluetun",
     label: "Gluetun (VPN)",
     description:
-      "The VPN tunnel. Every StreamShare instance shares its network namespace and is published through it, so replacing it briefly takes them with it.",
+      "The VPN tunnel. When enabled, every StreamShare instance shares its network namespace and is published through it, so replacing it briefly takes them with it. When disabled, every container gets its own network and publishes its own port.",
     schema: GLUETUN_SCHEMA,
     render: renderGluetunSpec,
     singleton: true,
