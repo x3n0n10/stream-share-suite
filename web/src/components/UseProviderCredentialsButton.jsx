@@ -1,51 +1,45 @@
 import { useState } from "react";
-import { Button, ErrorNote } from "./common.jsx";
+import { ConfirmDialog } from "./common.jsx";
 import { api } from "../lib/api.js";
 
+// Sits inside SchemaForm's authMode button-row (via its extraOptions prop) as
+// a third pill alongside "Username & password" / "LDAP" — visually one more
+// sign-in option, even though picking it fires an action instead of setting
+// a draft value.
 export default function UseProviderCredentialsButton({ instanceKey, onDone }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
 
   async function confirm() {
     setBusy(true);
-    setError(null);
     try {
       const { fields } = await api.useProviderCredentials(instanceKey);
       onDone(fields);
-      setConfirming(false);
-    } catch (err) {
-      setError(err.body?.error || err.message);
     } finally {
       setBusy(false);
+      setConfirming(false);
     }
   }
 
-  if (confirming) {
-    return (
-      <div className="mb-3 flex flex-col gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/50 dark:bg-amber-900/20">
-        <p className="text-xs text-amber-800 dark:text-amber-200">
-          Reset to provider credentials? Any custom username/password for this instance will stop
-          working.
-        </p>
-        {error && <ErrorNote message={error} />}
-        <div className="flex gap-2">
-          <Button type="button" tone="accent" onClick={confirm} loading={busy} disabled={busy}>
-            Reset
-          </Button>
-          <Button type="button" tone="ghost" onClick={() => setConfirming(false)} disabled={busy}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="mb-3">
-      <Button type="button" tone="ghost" onClick={() => setConfirming(true)}>
+    <>
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        disabled={busy}
+        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
+      >
         Use provider credentials
-      </Button>
-    </div>
+      </button>
+      <ConfirmDialog
+        open={confirming}
+        title="Use provider credentials?"
+        body="Sets this instance's sign-in to the same username and password as its Xtream provider account. Any custom username/password stops working."
+        confirmLabel="Use provider credentials"
+        tone="accent"
+        onConfirm={confirm}
+        onCancel={() => setConfirming(false)}
+      />
+    </>
   );
 }

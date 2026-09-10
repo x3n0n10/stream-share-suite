@@ -238,21 +238,25 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   {editFields === null ? (
                     <p className="text-sm text-slate-400">Loading…</p>
                   ) : (
-                    <>
-                      {editFields.find((f) => f.key === "providerType")?.value === "xtream" && (
-                        <UseProviderCredentialsButton
-                          instanceKey={i.key}
-                          onDone={(fields) => setEditFields(fields)}
-                        />
-                      )}
-                      <SchemaForm
-                        fields={editFields}
-                        onSave={saveEdit}
-                        saving={editSaving}
-                        error={editError}
-                        submitLabel="Save changes"
-                      />
-                    </>
+                    <SchemaForm
+                      fields={editFields}
+                      onSave={saveEdit}
+                      saving={editSaving}
+                      error={editError}
+                      submitLabel="Save changes"
+                      extraOptions={
+                        editFields.find((f) => f.key === "providerType")?.value === "xtream"
+                          ? {
+                              authMode: (
+                                <UseProviderCredentialsButton
+                                  instanceKey={i.key}
+                                  onDone={(fields) => setEditFields(fields)}
+                                />
+                              ),
+                            }
+                          : undefined
+                      }
+                    />
                   )}
                 </div>
               )}

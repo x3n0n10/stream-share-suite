@@ -13,6 +13,7 @@ export default function SchemaForm({
   submitLabel = "Save",
   preview,
   secondaryAction,
+  extraOptions,
 }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
 
@@ -73,7 +74,13 @@ export default function SchemaForm({
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               {basic.map((field) => (
-                <FieldInput key={field.key} field={field} value={draft[field.key]} onChange={set} />
+                <FieldInput
+                  key={field.key}
+                  field={field}
+                  value={draft[field.key]}
+                  onChange={set}
+                  extra={extraOptions?.[field.key]}
+                />
               ))}
             </div>
             {advanced.length > 0 && (
@@ -116,7 +123,7 @@ export default function SchemaForm({
   );
 }
 
-function FieldInput({ field, value, onChange }) {
+function FieldInput({ field, value, onChange, extra }) {
   const hint = field.secret
     ? field.valueSet
       ? "Set. Leave blank to keep it."
@@ -133,13 +140,13 @@ function FieldInput({ field, value, onChange }) {
         {field.label}
         {field.required && <span className="text-rose-500"> *</span>}
       </span>
-      {renderControl(field, value, onChange)}
+      {renderControl(field, value, onChange, extra)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
     </label>
   );
 }
 
-function renderControl(field, value, onChange) {
+function renderControl(field, value, onChange, extra) {
   if (field.type === "textarea") {
     return (
       <textarea
@@ -179,6 +186,7 @@ function renderControl(field, value, onChange) {
             {field.optionLabels?.[opt] || opt}
           </button>
         ))}
+        {extra}
       </div>
     );
   }
