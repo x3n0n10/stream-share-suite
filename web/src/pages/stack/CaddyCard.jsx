@@ -52,6 +52,7 @@ export default function CaddyCard({
           <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
             {component.description}
           </p>
+          <div className="flex flex-wrap gap-2">
           {settings && (
             <OnOffToggle
               value={!!settings.caddyEnabled}
@@ -59,6 +60,7 @@ export default function CaddyCard({
               onChange={(caddyEnabled) => onSaveSettings({ caddyEnabled })}
             />
           )}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!component.active && <Badge tone="slate">Not in the stack</Badge>}
