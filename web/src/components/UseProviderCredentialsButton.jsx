@@ -34,7 +34,7 @@ export default function UseProviderCredentialsButton({ instanceKey, onDone }) {
       <ConfirmDialog
         open={confirming}
         title="Use provider credentials?"
-        body="Sets this instance's sign-in to the same username and password as its Xtream provider account, immediately — no need to hit Save afterwards. Any custom username/password stops working right away."
+        body="Sets this instance's sign-in to the same username and password as its Xtream provider account immediately, no need to hit Save afterwards. Any custom username/password stops working right away."
         confirmLabel="Use provider credentials"
         tone="accent"
         onConfirm={confirm}
