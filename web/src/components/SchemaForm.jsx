@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, ErrorNote, FIELD } from "./common.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
@@ -13,8 +13,18 @@ export default function SchemaForm({
   submitLabel = "Save",
   preview,
   secondaryAction,
+  extraOptions,
 }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
+
+  // fields only changes reference when a caller hands in a fresh copy after
+  // its own server round-trip (initial load, or an action like "use provider
+  // credentials" that edits stored values out from under the open form) —
+  // never as a side effect of typing, which only touches draft. Re-sync then,
+  // so the inputs reflect what's actually stored instead of stale keystrokes.
+  useEffect(() => {
+    setDraft(initialDraft(fields));
+  }, [fields]);
 
   const groups = useMemo(() => groupFields(fields), [fields]);
 
@@ -73,7 +83,13 @@ export default function SchemaForm({
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               {basic.map((field) => (
-                <FieldInput key={field.key} field={field} value={draft[field.key]} onChange={set} />
+                <FieldInput
+                  key={field.key}
+                  field={field}
+                  value={draft[field.key]}
+                  onChange={set}
+                  extra={extraOptions?.[field.key]}
+                />
               ))}
             </div>
             {advanced.length > 0 && (
@@ -116,15 +132,22 @@ export default function SchemaForm({
   );
 }
 
-function FieldInput({ field, value, onChange }) {
+function FieldInput({ field, value, onChange, extra }) {
   const hint = field.secret
     ? field.valueSet
       ? "Set. Leave blank to keep it."
       : "Not set."
     : field.help;
 
+  // A <label> wraps a single control by convention — fine for a lone
+  // input/textarea/checkbox, but a select field is really a row of several
+  // buttons, and some browsers (Safari) paint a hover highlight across a
+  // whole label's box when any of several wrapped controls is hovered. A
+  // plain <div> sidesteps that; it was never a real <label>/<input> pairing.
+  const Wrapper = field.type === "select" ? "div" : "label";
+
   return (
-    <label
+    <Wrapper
       className={`flex flex-col gap-1.5 ${
         field.type === "textarea" || field.type === "checkbox" || field.type === "select" ? "sm:col-span-2" : ""
       }`}
@@ -133,13 +156,13 @@ function FieldInput({ field, value, onChange }) {
         {field.label}
         {field.required && <span className="text-rose-500"> *</span>}
       </span>
-      {renderControl(field, value, onChange)}
+      {renderControl(field, value, onChange, extra)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
-    </label>
+    </Wrapper>
   );
 }
 
-function renderControl(field, value, onChange) {
+function renderControl(field, value, onChange, extra) {
   if (field.type === "textarea") {
     return (
       <textarea
@@ -165,6 +188,7 @@ function renderControl(field, value, onChange) {
   if (field.type === "select") {
     return (
       <div className="flex flex-wrap gap-2">
+        {extra}
         {field.options.map((opt) => (
           <button
             key={opt}

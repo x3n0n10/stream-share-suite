@@ -142,7 +142,7 @@ function ConnectInfo({ instances }) {
             Internal: <span className="font-mono">{instance.url}</span>
             {instance.publicBaseUrl && (
               <>
-                {" · "}
+                <br />
                 Public: <span className="font-mono">{instance.publicBaseUrl}</span>
               </>
             )}
@@ -332,27 +332,31 @@ export default function InstancesTab({
                     {editFields === null ? (
                       <p className="text-sm text-slate-400">Loading…</p>
                     ) : (
-                      <>
-                        {editFields.find((f) => f.key === "providerType")?.value === "xtream" && (
-                          <UseProviderCredentialsButton
-                            instanceKey={instance.key}
-                            onDone={(fields) => setEditFields(fields)}
-                          />
+                      <SchemaForm
+                        fields={editFields}
+                        onSave={saveEdit}
+                        saving={editSaving}
+                        error={editError}
+                        submitLabel="Save changes"
+                        preview={(draft) => (
+                          <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
+                            Container name:{" "}
+                            {previewContainerNameForKey(draft, { prefix: containerPrefix, key: instance.key })}
+                          </p>
                         )}
-                        <SchemaForm
-                          fields={editFields}
-                          onSave={saveEdit}
-                          saving={editSaving}
-                          error={editError}
-                          submitLabel="Save changes"
-                          preview={(draft) => (
-                            <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
-                              Container name:{" "}
-                              {previewContainerNameForKey(draft, { prefix: containerPrefix, key: instance.key })}
-                            </p>
-                          )}
-                        />
-                      </>
+                        extraOptions={
+                          editFields.find((f) => f.key === "providerType")?.value === "xtream"
+                            ? {
+                                authMode: (
+                                  <UseProviderCredentialsButton
+                                    instanceKey={instance.key}
+                                    onDone={(fields) => setEditFields(fields)}
+                                  />
+                                ),
+                              }
+                            : undefined
+                        }
+                      />
                     )}
 
                     <HistoryPanel
