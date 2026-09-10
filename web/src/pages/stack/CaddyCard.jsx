@@ -47,11 +47,13 @@ export default function CaddyCard({
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 gap-2">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
-          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            {component.description}
-          </p>
+        <div className="flex min-w-0 flex-col gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
+            <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+              {component.description}
+            </p>
+          </div>
           {settings && (
             <OnOffToggle
               value={!!settings.caddyEnabled}
