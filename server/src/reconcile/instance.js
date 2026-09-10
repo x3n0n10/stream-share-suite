@@ -6,6 +6,8 @@
 // binding host ports, so gluetun publishes on its behalf (see gluetun.js).
 // With it off the instance sits on an ordinary network and publishes its own.
 
+import { writeFileSync } from "node:fs";
+import path from "node:path";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { renderEnv } from "../schema/registry.js";
@@ -152,6 +154,15 @@ export async function renderInstanceSpec(values, key) {
   // players already use — see schema/instance.js's Discord group header for
   // why this isn't a field asked for a second time.
   if (values.discordEnabled) env.DISCORD_API_URL = values.publicBaseUrl;
+
+  // Written into the config mount every instance already has, rather than a
+  // volume of its own — see the schema's "error slates" header for why the
+  // path itself isn't a field. Enabled with no custom messages just sends
+  // ERROR_SLATE_ENABLED, leaning on the image's own defaults.
+  if (values.errorSlateEnabled && String(values.errorSlateMessages || "").trim()) {
+    writeFileSync(path.join(configDir, "error-slate-messages.json"), values.errorSlateMessages);
+    env.ERROR_SLATE_MESSAGES_FILE = `${CONFIG_MOUNT}/error-slate-messages.json`;
+  }
 
   // Fixed rather than asked, once health checking is on: the VPN watchdog
   // schedules probes itself (see watchdog/vpnWatchdog.js), so a second

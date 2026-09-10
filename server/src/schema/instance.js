@@ -320,6 +320,33 @@ export const INSTANCE_SCHEMA = {
         ],
       },
     },
+    // --- error slates --------------------------------------------------------
+    //
+    // ERROR_SLATE_MESSAGES_FILE is deliberately not a field of its own: it
+    // wants a path inside the container, not something an operator should
+    // type. errorSlateMessages holds the JSON itself (edited through a
+    // structured row editor on the frontend, see ErrorSlateEditor.jsx) and
+    // reconcile/instance.js writes it into the instance's own config mount,
+    // computing the path from there.
+    {
+      key: "errorSlateEnabled",
+      envVar: "ERROR_SLATE_ENABLED",
+      label: "Show error slates",
+      help: "Streams a synthetic error slate to viewers instead of failing outright when the upstream provider errors.",
+      type: "checkbox",
+      default: false,
+      group: "Error slates",
+    },
+    {
+      key: "errorSlateMessages",
+      envVar: null,
+      label: "Custom messages",
+      help: "Override the default message shown for a status code or connection failure. Leave a code out to keep its default.",
+      type: "errorSlates",
+      json: true,
+      group: "Error slates",
+      dependsOn: { key: "errorSlateEnabled", equals: true },
+    },
     {
       key: "extraEnv",
       envVar: null,

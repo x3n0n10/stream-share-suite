@@ -5,7 +5,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -674,4 +674,54 @@ test("renderEnv still omits XTREAM_* for a stale value once providerType switche
     m3uUrl: "http://provider.example/playlist.m3u",
   });
   assert.equal("XTREAM_BASE_URL" in env, false);
+});
+
+// --- error slates ------------------------------------------------------------
+
+function configMountPath(spec) {
+  return spec.volumes.find((v) => v.endsWith(":/root")).split(":")[0];
+}
+
+test("error slates off means neither env var is set, regardless of leftover messages", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, {
+    ...PROVIDER,
+    errorSlateEnabled: false,
+    errorSlateMessages: '{"404":{"message":"stale"}}',
+  });
+  assert.equal(env.ERROR_SLATE_ENABLED, "false");
+  assert.equal("ERROR_SLATE_MESSAGES_FILE" in env, false);
+});
+
+test("error slates on with no custom messages: ERROR_SLATE_ENABLED only, leaning on the image's defaults", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: true });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal(spec.env.ERROR_SLATE_ENABLED, "true");
+  assert.equal("ERROR_SLATE_MESSAGES_FILE" in spec.env, false);
+});
+
+test("error slates on with custom messages: written into the config mount, path handed to the container", async () => {
+  configureStack();
+  vpn(false);
+  const messages = '{"404":{"message":"This channel doesn\'t exist anymore."}}';
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: true, errorSlateMessages: messages });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal(spec.env.ERROR_SLATE_MESSAGES_FILE, "/root/error-slate-messages.json");
+  const written = readFileSync(`${configMountPath(spec)}/error-slate-messages.json`, "utf8");
+  assert.equal(written, messages);
+});
+
+test("error slates enabled but messages left blank writes no file", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: true, errorSlateMessages: "   " });
+
+  const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+  assert.equal("ERROR_SLATE_MESSAGES_FILE" in spec.env, false);
 });

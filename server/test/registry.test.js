@@ -12,6 +12,7 @@ const SCHEMA = {
     { key: "secretKey", envVar: "SECRET_KEY", label: "Secret", secret: true, required: true },
     { key: "aOnly", envVar: "A_ONLY", label: "A only", required: true, dependsOn: { key: "mode", equals: "a" } },
     { key: "computed", envVar: null, label: "Not an env var" },
+    { key: "jsonField", envVar: null, label: "Some JSON", json: true },
     { key: "flag", envVar: "FLAG", label: "Flag", type: "checkbox", default: false },
     {
       key: "abOnly",
@@ -269,4 +270,19 @@ test("requiredWhen's any form works the same way as dependsOn's", () => {
   assert.equal(validate(schema, {}).some((e) => e.key === "password"), false);
   assert.equal(validate(schema, { modeA: true }).some((e) => e.key === "password"), true);
   assert.equal(validate(schema, { modeB: true }).some((e) => e.key === "password"), true);
+});
+
+test("a field flagged json rejects a value that doesn't parse", () => {
+  const errors = validate(SCHEMA, { name: "x", secretKey: "k", aOnly: "1", jsonField: "{not json" });
+  assert.equal(errors.some((e) => e.key === "jsonField"), true);
+});
+
+test("a field flagged json accepts valid JSON, any shape", () => {
+  const errors = validate(SCHEMA, { name: "x", secretKey: "k", aOnly: "1", jsonField: '{"403":{"message":"x"}}' });
+  assert.equal(errors.some((e) => e.key === "jsonField"), false);
+});
+
+test("a field flagged json left blank is not flagged — it's optional here, not malformed", () => {
+  const errors = validate(SCHEMA, { name: "x", secretKey: "k", aOnly: "1" });
+  assert.equal(errors.some((e) => e.key === "jsonField"), false);
 });
