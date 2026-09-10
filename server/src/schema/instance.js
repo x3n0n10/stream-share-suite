@@ -348,6 +348,15 @@ export const INSTANCE_SCHEMA = {
       dependsOn: { key: "errorSlateEnabled", equals: true },
     },
     {
+      key: "errorSlateRetryMaxMinutes",
+      envVar: "ERROR_SLATE_RETRY_MAX_MINUTES",
+      label: "Retry for (minutes)",
+      help: "How long to keep retrying the upstream provider behind the slate before giving up on that request.",
+      default: "10",
+      group: "Error slates",
+      dependsOn: { key: "errorSlateEnabled", equals: true },
+    },
+    {
       key: "extraEnv",
       envVar: null,
       label: "Extra environment variables",

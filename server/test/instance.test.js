@@ -725,3 +725,16 @@ test("error slates enabled but messages left blank writes no file", async () => 
 
   assert.equal("ERROR_SLATE_MESSAGES_FILE" in spec.env, false);
 });
+
+test("errorSlateRetryMaxMinutes defaults to 10 and is omitted while error slates are off", () => {
+  const onEnv = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: true });
+  assert.equal(onEnv.ERROR_SLATE_RETRY_MAX_MINUTES, "10");
+
+  const offEnv = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: false });
+  assert.equal("ERROR_SLATE_RETRY_MAX_MINUTES" in offEnv, false);
+});
+
+test("errorSlateRetryMaxMinutes is overridable", () => {
+  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: true, errorSlateRetryMaxMinutes: "30" });
+  assert.equal(env.ERROR_SLATE_RETRY_MAX_MINUTES, "30");
+});
