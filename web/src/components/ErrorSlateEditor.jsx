@@ -65,11 +65,14 @@ export default function ErrorSlateEditor({ value, onChange }) {
         <div key={i} className="flex items-start gap-2 rounded-lg border border-slate-200 p-2.5 dark:border-slate-800">
           <div className="grid flex-1 gap-2 sm:grid-cols-[7rem_1fr_2fr]">
             <label className="flex flex-col gap-1">
-              <Label>Code</Label>
+              <Label>
+                Code<span className="text-rose-500"> *</span>
+              </Label>
               <input
                 className={`${FIELD} font-mono text-xs`}
                 placeholder="404, UNREACHABLE"
                 list={CODE_LIST_ID}
+                required
                 value={row.code}
                 onChange={(e) => setRow(i, { code: e.target.value })}
               />
@@ -84,10 +87,13 @@ export default function ErrorSlateEditor({ value, onChange }) {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <Label>Message shown to viewers</Label>
+              <Label>
+                Message shown to viewers<span className="text-rose-500"> *</span>
+              </Label>
               <input
                 className={`${FIELD} text-xs`}
                 placeholder="This channel doesn't exist anymore."
+                required
                 value={row.message}
                 onChange={(e) => setRow(i, { message: e.target.value })}
               />
