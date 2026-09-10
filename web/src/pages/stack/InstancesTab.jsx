@@ -142,7 +142,7 @@ function ConnectInfo({ instances }) {
             Internal: <span className="font-mono">{instance.url}</span>
             {instance.publicBaseUrl && (
               <>
-                {" · "}
+                <br />
                 Public: <span className="font-mono">{instance.publicBaseUrl}</span>
               </>
             )}
