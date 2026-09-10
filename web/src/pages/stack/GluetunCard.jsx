@@ -52,13 +52,6 @@ export default function GluetunCard({
           <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
             {component.description}
           </p>
-          {settings && (
-            <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-              {settings.vpnEnabled
-                ? "Instances share gluetun's network namespace and are published through it. Replacing gluetun briefly takes them with it."
-                : "Every container gets its own network and publishes its own port. Turning this back on rebuilds everything that would share the tunnel."}
-            </p>
-          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {settings && (
