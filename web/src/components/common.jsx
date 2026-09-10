@@ -155,6 +155,31 @@ export function Skeleton({ className = "" }) {
   return <div className={`animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800 ${className}`} />;
 }
 
+// The same two-pill on/off control SchemaForm renders for a select field
+// (see its renderControl) — pulled out here for toggles that live outside a
+// schema-driven form, like a stack-wide setting on a component's own card.
+export function OnOffToggle({ value, onChange, disabled }) {
+  return (
+    <div className="flex gap-2">
+      {[false, true].map((opt) => (
+        <button
+          key={String(opt)}
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange(opt)}
+          className={`rounded-lg px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+            !!value === opt
+              ? "bg-accent-600 text-white"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+          }`}
+        >
+          {opt ? "On" : "Off"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Select({ value, onChange, options }) {
   return (
     <select
