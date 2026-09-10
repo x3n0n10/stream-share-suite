@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote } from "../../components/common.jsx";
+import { Card, Button, ErrorNote, OnOffToggle } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 
@@ -63,15 +63,10 @@ export default function StepVpn({ onNext, onBack }) {
         </div>
       )}
 
-      <label className="mt-4 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-        <input
-          type="checkbox"
-          checked={vpnEnabled}
-          onChange={(e) => toggleVpn(e.target.checked)}
-          className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
-        />
-        Use a VPN
-      </label>
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="text-sm text-slate-700 dark:text-slate-300">Use a VPN</span>
+        <OnOffToggle value={vpnEnabled} onChange={toggleVpn} />
+      </div>
 
       {vpnEnabled ? (
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">

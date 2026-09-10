@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
+import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
@@ -30,8 +30,8 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
     api.watchdogSettings().then((s) => setCheckTimes(s.checkTimes));
   }, []);
 
-  function toggle(key) {
-    setSelected((prev) => ({ ...prev, [key]: !prev[key] }));
+  function toggle(key, value) {
+    setSelected((prev) => ({ ...prev, [key]: value }));
   }
 
   const loaded = selected !== null && checkTimes !== null;
@@ -91,15 +91,13 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
 
       <div className="mt-5 flex flex-col gap-2">
         {instances.map((instance) => (
-          <label key={instance.key} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={!!selected[instance.key]}
-              onChange={() => toggle(instance.key)}
-              className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+          <div key={instance.key} className="flex items-center justify-between gap-3">
+            <span className="text-sm text-slate-700 dark:text-slate-300">{instance.displayName}</span>
+            <OnOffToggle
+              value={!!selected[instance.key]}
+              onChange={(value) => toggle(instance.key, value)}
             />
-            {instance.displayName}
-          </label>
+          </div>
         ))}
       </div>
 
