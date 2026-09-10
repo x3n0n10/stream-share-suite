@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, ErrorNote, FIELD } from "./common.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
@@ -16,6 +16,15 @@ export default function SchemaForm({
   extraOptions,
 }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
+
+  // fields only changes reference when a caller hands in a fresh copy after
+  // its own server round-trip (initial load, or an action like "use provider
+  // credentials" that edits stored values out from under the open form) —
+  // never as a side effect of typing, which only touches draft. Re-sync then,
+  // so the inputs reflect what's actually stored instead of stale keystrokes.
+  useEffect(() => {
+    setDraft(initialDraft(fields));
+  }, [fields]);
 
   const groups = useMemo(() => groupFields(fields), [fields]);
 
@@ -172,6 +181,7 @@ function renderControl(field, value, onChange, extra) {
   if (field.type === "select") {
     return (
       <div className="flex flex-wrap gap-2">
+        {extra}
         {field.options.map((opt) => (
           <button
             key={opt}
@@ -186,7 +196,6 @@ function renderControl(field, value, onChange, extra) {
             {field.optionLabels?.[opt] || opt}
           </button>
         ))}
-        {extra}
       </div>
     );
   }
