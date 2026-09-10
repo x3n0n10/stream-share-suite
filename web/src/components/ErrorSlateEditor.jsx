@@ -36,6 +36,12 @@ function Label({ children }) {
   return <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{children}</span>;
 }
 
+// Alongside any numeric HTTP status code, stream-share also accepts these
+// synthetic codes for connection-level failures that never got a status code
+// in the first place.
+const SYNTHETIC_CODES = ["UNREACHABLE", "TIMEOUT", "DNS", "TLS"];
+const CODE_LIST_ID = "error-slate-synthetic-codes";
+
 export default function ErrorSlateEditor({ value, onChange }) {
   const [rows, setRows] = useState(() => parseRows(value));
 
@@ -63,6 +69,7 @@ export default function ErrorSlateEditor({ value, onChange }) {
               <input
                 className={`${FIELD} font-mono text-xs`}
                 placeholder="404, UNREACHABLE"
+                list={CODE_LIST_ID}
                 value={row.code}
                 onChange={(e) => setRow(i, { code: e.target.value })}
               />
@@ -104,6 +111,11 @@ export default function ErrorSlateEditor({ value, onChange }) {
       >
         + Add entry
       </button>
+      <datalist id={CODE_LIST_ID}>
+        {SYNTHETIC_CODES.map((code) => (
+          <option key={code} value={code} />
+        ))}
+      </datalist>
     </div>
   );
 }

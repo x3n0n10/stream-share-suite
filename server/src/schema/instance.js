@@ -341,7 +341,7 @@ export const INSTANCE_SCHEMA = {
       key: "errorSlateMessages",
       envVar: null,
       label: "Custom messages",
-      help: "Override the default message shown for a status code or connection failure. Leave a code out to keep its default.",
+      help: "Override the default message shown for a numeric HTTP status code, or for a connection-level failure with no status code of its own: UNREACHABLE, TIMEOUT, DNS, or TLS. Leave a code out to keep its default.",
       type: "errorSlates",
       json: true,
       group: "Error slates",
