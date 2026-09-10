@@ -342,7 +342,7 @@ test("Discord on computes DISCORD_API_URL from publicBaseUrl rather than asking 
   const { key } = provisionInstance({
     ...PROVIDER,
     publicBaseUrl: "https://tv.example.com/provider-1",
-    discordEnabled: true,
+    discordEnabled: "true",
     discordBotToken: "tok",
   });
 
@@ -515,11 +515,11 @@ test("discordBotToken is required only once discordEnabled is on", () => {
   const base = { ...PROVIDER, publicBaseUrl: "https://tv.example.com/p1" };
   assert.equal(validate(INSTANCE_SCHEMA, base).some((e) => e.key === "discordBotToken"), false);
   assert.equal(
-    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: true }).some((e) => e.key === "discordBotToken"),
+    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: "true" }).some((e) => e.key === "discordBotToken"),
     true
   );
   assert.equal(
-    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: true, discordBotToken: "tok" }).some(
+    validate(INSTANCE_SCHEMA, { ...base, discordEnabled: "true", discordBotToken: "tok" }).some(
       (e) => e.key === "discordBotToken"
     ),
     false
@@ -529,7 +529,7 @@ test("discordBotToken is required only once discordEnabled is on", () => {
 test("publicBaseUrl becomes required once discordEnabled is on, optional otherwise", () => {
   assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "publicBaseUrl"), false);
   assert.equal(
-    validate(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" }).some(
+    validate(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: "true", discordBotToken: "tok" }).some(
       (e) => e.key === "publicBaseUrl"
     ),
     true
@@ -543,7 +543,7 @@ test("renderEnv only emits DISCORD_BOT_TOKEN/DISCORD_ADMIN_ROLE_ID when discordE
 
   const on = renderEnv(INSTANCE_SCHEMA, {
     ...PROVIDER,
-    discordEnabled: true,
+    discordEnabled: "true",
     discordBotToken: "tok",
     discordAdminRoleId: "role-1",
   });
@@ -552,7 +552,7 @@ test("renderEnv only emits DISCORD_BOT_TOKEN/DISCORD_ADMIN_ROLE_ID when discordE
 });
 
 test("renderEnv omits DISCORD_ADMIN_ROLE_ID when left blank, even with Discord on", () => {
-  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: true, discordBotToken: "tok" });
+  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, discordEnabled: "true", discordBotToken: "tok" });
   assert.equal("DISCORD_ADMIN_ROLE_ID" in env, false);
 });
 
@@ -685,7 +685,7 @@ function configMountPath(spec) {
 test("error slates off means neither env var is set, regardless of leftover messages", () => {
   const env = renderEnv(INSTANCE_SCHEMA, {
     ...PROVIDER,
-    errorSlateEnabled: false,
+    errorSlateEnabled: "false",
     errorSlateMessages: '{"404":{"message":"stale"}}',
   });
   assert.equal(env.ERROR_SLATE_ENABLED, "false");
@@ -695,7 +695,7 @@ test("error slates off means neither env var is set, regardless of leftover mess
 test("error slates on with no custom messages: ERROR_SLATE_ENABLED only, leaning on the image's defaults", async () => {
   configureStack();
   vpn(false);
-  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: true });
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: "true" });
 
   const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
 
@@ -707,7 +707,7 @@ test("error slates on with custom messages: written into the config mount, path 
   configureStack();
   vpn(false);
   const messages = '{"404":{"message":"This channel doesn\'t exist anymore."}}';
-  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: true, errorSlateMessages: messages });
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: "true", errorSlateMessages: messages });
 
   const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
 
@@ -719,7 +719,7 @@ test("error slates on with custom messages: written into the config mount, path 
 test("error slates enabled but messages left blank writes no file", async () => {
   configureStack();
   vpn(false);
-  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: true, errorSlateMessages: "   " });
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: "true", errorSlateMessages: "   " });
 
   const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
 
@@ -727,14 +727,14 @@ test("error slates enabled but messages left blank writes no file", async () => 
 });
 
 test("errorSlateRetryMaxMinutes defaults to 10 and is omitted while error slates are off", () => {
-  const onEnv = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: true });
+  const onEnv = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: "true" });
   assert.equal(onEnv.ERROR_SLATE_RETRY_MAX_MINUTES, "10");
 
-  const offEnv = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: false });
+  const offEnv = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: "false" });
   assert.equal("ERROR_SLATE_RETRY_MAX_MINUTES" in offEnv, false);
 });
 
 test("errorSlateRetryMaxMinutes is overridable", () => {
-  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: true, errorSlateRetryMaxMinutes: "30" });
+  const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: "true", errorSlateRetryMaxMinutes: "30" });
   assert.equal(env.ERROR_SLATE_RETRY_MAX_MINUTES, "30");
 });

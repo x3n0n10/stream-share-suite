@@ -5,7 +5,7 @@ import SchemaForm from "../../components/SchemaForm.jsx";
 import UseProviderCredentialsButton from "../../components/UseProviderCredentialsButton.jsx";
 import { IconRefresh, IconEdit, IconTrash } from "../../components/Icons.jsx";
 import { api } from "../../lib/api.js";
-import { previewContainerName, previewContainerNameForKey } from "../../lib/containerName.js";
+import { previewContainerName } from "../../lib/containerName.js";
 import HistoryPanel from "./HistoryPanel.jsx";
 
 // The band an instance's port is allocated from — a fixed 20 slots starting
@@ -338,12 +338,6 @@ export default function InstancesTab({
                         saving={editSaving}
                         error={editError}
                         submitLabel="Save changes"
-                        preview={(draft) => (
-                          <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
-                            Container name:{" "}
-                            {previewContainerNameForKey(draft, { prefix: containerPrefix, key: instance.key })}
-                          </p>
-                        )}
                         extraOptions={
                           editFields.find((f) => f.key === "providerType")?.value === "xtream"
                             ? {

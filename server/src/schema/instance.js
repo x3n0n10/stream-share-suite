@@ -165,7 +165,7 @@ export const INSTANCE_SCHEMA = {
       help: "The address your users' players reach this instance at, e.g. https://tv.example.com/provider-1. Leave blank if it is not published externally.",
       group: "Addressing",
       required: true,
-      requiredWhen: { key: "discordEnabled", equals: true },
+      requiredWhen: { key: "discordEnabled", equals: "true" },
     },
     {
       key: "timezone",
@@ -186,8 +186,10 @@ export const INSTANCE_SCHEMA = {
       key: "discordEnabled",
       envVar: null,
       label: "Enable Discord bot",
-      type: "checkbox",
-      default: false,
+      type: "select",
+      options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "false",
       group: "Discord",
     },
     {
@@ -197,7 +199,7 @@ export const INSTANCE_SCHEMA = {
       group: "Discord",
       secret: true,
       required: true,
-      dependsOn: { key: "discordEnabled", equals: true },
+      dependsOn: { key: "discordEnabled", equals: "true" },
     },
     {
       key: "discordAdminRoleId",
@@ -206,7 +208,7 @@ export const INSTANCE_SCHEMA = {
       help: "Optional. A Discord role ID granted admin-level bot commands.",
       group: "Discord",
       advanced: true,
-      dependsOn: { key: "discordEnabled", equals: true },
+      dependsOn: { key: "discordEnabled", equals: "true" },
     },
 
     // --- caching ------------------------------------------------------------
@@ -268,8 +270,10 @@ export const INSTANCE_SCHEMA = {
       envVar: "HEALTHCHECK_ENABLED",
       label: "Watch this instance's provider",
       help: "Lets the VPN watchdog (see the VPN page) reconnect the tunnel when this instance's provider blocks the current exit IP.",
-      type: "checkbox",
-      default: false,
+      type: "select",
+      options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "false",
       group: "Health check",
     },
     {
@@ -279,7 +283,7 @@ export const INSTANCE_SCHEMA = {
       help: "A live channel id from your provider (as it appears in a stream URL) that the instance requests periodically to tell whether the provider is blocking this exit IP.",
       group: "Health check",
       required: true,
-      dependsOn: { key: "healthCheckEnabled", equals: true },
+      dependsOn: { key: "healthCheckEnabled", equals: "true" },
     },
     {
       key: "healthCheckBlockedCodes",
@@ -287,7 +291,7 @@ export const INSTANCE_SCHEMA = {
       label: "Blocked status codes",
       help: "Comma-separated HTTP status codes your provider returns when it's blocking this exit IP. Defaults to 456 (the common Xtream convention) when left blank.",
       group: "Health check",
-      dependsOn: { key: "healthCheckEnabled", equals: true },
+      dependsOn: { key: "healthCheckEnabled", equals: "true" },
     },
 
     // --- error slates --------------------------------------------------------
@@ -303,8 +307,10 @@ export const INSTANCE_SCHEMA = {
       envVar: "ERROR_SLATE_ENABLED",
       label: "Show error slates",
       help: "Streams a synthetic error slate to viewers instead of failing outright when the upstream provider errors.",
-      type: "checkbox",
-      default: false,
+      type: "select",
+      options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "false",
       group: "Error slates",
     },
     {
@@ -315,7 +321,7 @@ export const INSTANCE_SCHEMA = {
       type: "errorSlates",
       json: true,
       group: "Error slates",
-      dependsOn: { key: "errorSlateEnabled", equals: true },
+      dependsOn: { key: "errorSlateEnabled", equals: "true" },
     },
     {
       key: "errorSlateRetryMaxMinutes",
@@ -324,7 +330,7 @@ export const INSTANCE_SCHEMA = {
       help: "How long to keep retrying the upstream provider behind the slate before giving up on that request.",
       default: "10",
       group: "Error slates",
-      dependsOn: { key: "errorSlateEnabled", equals: true },
+      dependsOn: { key: "errorSlateEnabled", equals: "true" },
     },
     // --- the container itself -----------------------------------------------
     {
