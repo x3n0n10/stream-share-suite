@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, ErrorNote, FIELD } from "./common.jsx";
+import ErrorSlateEditor from "./ErrorSlateEditor.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
 // the point of the schema registry: a new field on the server is a new row
@@ -141,15 +142,17 @@ function FieldInput({ field, value, onChange, extra }) {
 
   // A <label> wraps a single control by convention — fine for a lone
   // input/textarea/checkbox, but a select field is really a row of several
-  // buttons, and some browsers (Safari) paint a hover highlight across a
-  // whole label's box when any of several wrapped controls is hovered. A
-  // plain <div> sidesteps that; it was never a real <label>/<input> pairing.
-  const Wrapper = field.type === "select" ? "div" : "label";
+  // buttons (and errorSlates a whole editor of its own inputs/buttons), and
+  // some browsers (Safari) paint a hover highlight across a whole label's box
+  // when any of several wrapped controls is hovered. A plain <div> sidesteps
+  // that; it was never a real <label>/<input> pairing for either.
+  const multiControl = field.type === "select" || field.type === "errorSlates";
+  const Wrapper = multiControl ? "div" : "label";
 
   return (
     <Wrapper
       className={`flex flex-col gap-1.5 ${
-        field.type === "textarea" || field.type === "checkbox" || field.type === "select" ? "sm:col-span-2" : ""
+        field.type === "textarea" || field.type === "checkbox" || multiControl ? "sm:col-span-2" : ""
       }`}
     >
       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
@@ -172,6 +175,10 @@ function renderControl(field, value, onChange, extra) {
         onChange={(e) => onChange(field.key, e.target.value)}
       />
     );
+  }
+
+  if (field.type === "errorSlates") {
+    return <ErrorSlateEditor value={value} onChange={(next) => onChange(field.key, next)} />;
   }
 
   if (field.type === "checkbox") {

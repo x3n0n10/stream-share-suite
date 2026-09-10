@@ -84,7 +84,7 @@ function managedInstances() {
       // Only a Suite-managed instance has these — an externally-added one
       // (store/instances.js, predating the schema system) has no equivalent
       // form and is simply never watched by the VPN watchdog.
-      healthCheckEnabled: !!values.healthCheckEnabled,
+      healthCheckEnabled: values.healthCheckEnabled === "true",
       healthCheckStreamId: values.healthCheckStreamId || "",
     };
   });

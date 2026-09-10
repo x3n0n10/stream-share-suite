@@ -17,7 +17,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       results.forEach((res, idx) => {
         const byFieldKey = Object.fromEntries(res.fields.map((f) => [f.key, f]));
         const key = instances[idx].key;
-        seededSelected[key] = !!byFieldKey.healthCheckEnabled?.value;
+        seededSelected[key] = byFieldKey.healthCheckEnabled?.value === "true";
         seededStreamIds[key] = byFieldKey.healthCheckStreamId?.value || "";
       });
       setSelected(seededSelected);
@@ -48,7 +48,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       const results = await Promise.allSettled(
         instances.map((i) =>
           api.updateStackInstance(i.key, {
-            healthCheckEnabled: !!selected[i.key],
+            healthCheckEnabled: selected[i.key] ? "true" : "false",
             ...(selected[i.key] ? { healthCheckStreamId: streamIds[i.key] } : {}),
           })
         )

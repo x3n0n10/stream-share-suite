@@ -104,6 +104,19 @@ export function validate(schema, values) {
     if (field.type === "select" && !field.options.includes(value)) {
       errors.push({ key: field.key, message: `${field.label} must be one of: ${field.options.join(", ")}.` });
     }
+
+    // A structured editor (see field.type "errorSlates") can't produce
+    // invalid JSON itself, but the value still arrives here as a plain
+    // string — the same one a direct API call or a future import path could
+    // set to anything. Caught here rather than left for the container to
+    // fail on at startup.
+    if (field.json) {
+      try {
+        JSON.parse(value);
+      } catch {
+        errors.push({ key: field.key, message: `${field.label} must be valid JSON.` });
+      }
+    }
   }
   return errors;
 }

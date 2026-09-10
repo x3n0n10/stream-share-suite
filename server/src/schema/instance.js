@@ -165,7 +165,7 @@ export const INSTANCE_SCHEMA = {
       help: "The address your users' players reach this instance at, e.g. https://tv.example.com/provider-1. Leave blank if it is not published externally.",
       group: "Addressing",
       required: true,
-      requiredWhen: { key: "discordEnabled", equals: true },
+      requiredWhen: { key: "discordEnabled", equals: "true" },
     },
     {
       key: "timezone",
@@ -186,8 +186,10 @@ export const INSTANCE_SCHEMA = {
       key: "discordEnabled",
       envVar: null,
       label: "Enable Discord bot",
-      type: "checkbox",
-      default: false,
+      type: "select",
+      options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "false",
       group: "Discord",
     },
     {
@@ -197,7 +199,7 @@ export const INSTANCE_SCHEMA = {
       group: "Discord",
       secret: true,
       required: true,
-      dependsOn: { key: "discordEnabled", equals: true },
+      dependsOn: { key: "discordEnabled", equals: "true" },
     },
     {
       key: "discordAdminRoleId",
@@ -206,7 +208,7 @@ export const INSTANCE_SCHEMA = {
       help: "Optional. A Discord role ID granted admin-level bot commands.",
       group: "Discord",
       advanced: true,
-      dependsOn: { key: "discordEnabled", equals: true },
+      dependsOn: { key: "discordEnabled", equals: "true" },
     },
 
     // --- caching ------------------------------------------------------------
@@ -219,7 +221,6 @@ export const INSTANCE_SCHEMA = {
       optionLabels: { true: "On", false: "Off" },
       default: "false",
       group: "Caching",
-      advanced: true,
     },
     {
       key: "catchupEnabled",
@@ -231,7 +232,6 @@ export const INSTANCE_SCHEMA = {
       optionLabels: { true: "On", false: "Off" },
       default: "false",
       group: "Caching",
-      advanced: true,
     },
     {
       key: "catchupDurationHours",
@@ -239,8 +239,21 @@ export const INSTANCE_SCHEMA = {
       label: "Hours of catchup to keep",
       group: "Caching",
       default: "4",
-      advanced: true,
       dependsOn: { key: "catchupEnabled", equals: "true" },
+    },
+    {
+      key: "cachePath",
+      envVar: null,
+      label: "Cache location on the host",
+      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above. The Suite does not create or check this path itself — it must already exist on the host and be writable by the same user the Suite's other components run as (see PUID/PGID in the Suite's own compose file), or the instance container will fail to write its cache.",
+      group: "Caching",
+      required: true,
+      dependsOn: {
+        any: [
+          { key: "vodCacheEnabled", equals: "true" },
+          { key: "catchupEnabled", equals: "true" },
+        ],
+      },
     },
 
     // --- health check ---------------------------------------------------------
@@ -257,8 +270,10 @@ export const INSTANCE_SCHEMA = {
       envVar: "HEALTHCHECK_ENABLED",
       label: "Watch this instance's provider",
       help: "Lets the VPN watchdog (see the VPN page) reconnect the tunnel when this instance's provider blocks the current exit IP.",
-      type: "checkbox",
-      default: false,
+      type: "select",
+      options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "false",
       group: "Health check",
     },
     {
@@ -268,7 +283,7 @@ export const INSTANCE_SCHEMA = {
       help: "A live channel id from your provider (as it appears in a stream URL) that the instance requests periodically to tell whether the provider is blocking this exit IP.",
       group: "Health check",
       required: true,
-      dependsOn: { key: "healthCheckEnabled", equals: true },
+      dependsOn: { key: "healthCheckEnabled", equals: "true" },
     },
     {
       key: "healthCheckBlockedCodes",
@@ -276,10 +291,47 @@ export const INSTANCE_SCHEMA = {
       label: "Blocked status codes",
       help: "Comma-separated HTTP status codes your provider returns when it's blocking this exit IP. Defaults to 456 (the common Xtream convention) when left blank.",
       group: "Health check",
-      advanced: true,
-      dependsOn: { key: "healthCheckEnabled", equals: true },
+      dependsOn: { key: "healthCheckEnabled", equals: "true" },
     },
 
+    // --- error slates --------------------------------------------------------
+    //
+    // ERROR_SLATE_MESSAGES_FILE is deliberately not a field of its own: it
+    // wants a path inside the container, not something an operator should
+    // type. errorSlateMessages holds the JSON itself (edited through a
+    // structured row editor on the frontend, see ErrorSlateEditor.jsx) and
+    // reconcile/instance.js writes it into the instance's own config mount,
+    // computing the path from there.
+    {
+      key: "errorSlateEnabled",
+      envVar: "ERROR_SLATE_ENABLED",
+      label: "Show error slates",
+      help: "Streams a synthetic error slate to viewers instead of failing outright when the upstream provider errors.",
+      type: "select",
+      options: ["false", "true"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "false",
+      group: "Error slates",
+    },
+    {
+      key: "errorSlateMessages",
+      envVar: null,
+      label: "Custom messages",
+      help: "Override the default message shown for a numeric HTTP status code, or for a connection-level failure with no status code of its own: UNREACHABLE, TIMEOUT, DNS, or TLS. Leave a code out to keep its default.",
+      type: "errorSlates",
+      json: true,
+      group: "Error slates",
+      dependsOn: { key: "errorSlateEnabled", equals: "true" },
+    },
+    {
+      key: "errorSlateRetryMaxMinutes",
+      envVar: "ERROR_SLATE_RETRY_MAX_MINUTES",
+      label: "Retry for (minutes)",
+      help: "How long to keep retrying the upstream provider behind the slate before giving up on that request.",
+      default: "10",
+      group: "Error slates",
+      dependsOn: { key: "errorSlateEnabled", equals: "true" },
+    },
     // --- the container itself -----------------------------------------------
     {
       key: "image",
@@ -305,20 +357,6 @@ export const INSTANCE_SCHEMA = {
       help: "Allocated automatically from the instance port range set under Stack. Change it only if something else on this host already uses the allocated one.",
       group: "Container",
       advanced: true,
-    },
-    {
-      key: "cachePath",
-      envVar: null,
-      label: "Cache location on the host",
-      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above. The Suite does not create or check this path itself — it must already exist on the host and be writable by the same user the Suite's other components run as (see PUID/PGID in the Suite's own compose file), or the instance container will fail to write its cache.",
-      group: "Container",
-      required: true,
-      dependsOn: {
-        any: [
-          { key: "vodCacheEnabled", equals: "true" },
-          { key: "catchupEnabled", equals: "true" },
-        ],
-      },
     },
     {
       key: "extraEnv",

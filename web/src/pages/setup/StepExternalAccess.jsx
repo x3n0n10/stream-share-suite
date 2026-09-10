@@ -18,7 +18,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
         const byFieldKey = Object.fromEntries(res.fields.map((f) => [f.key, f]));
         seeded[instances[idx].key] = {
           publicBaseUrl: byFieldKey.publicBaseUrl?.value || "",
-          discordEnabled: !!byFieldKey.discordEnabled?.value,
+          discordEnabled: byFieldKey.discordEnabled?.value === "true",
           discordBotToken: "",
           discordBotTokenSet: !!byFieldKey.discordBotToken?.valueSet,
           discordAdminRoleId: byFieldKey.discordAdminRoleId?.value || "",
@@ -61,7 +61,10 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
       const targets = instances.map((i) => ({ name: i.displayName }));
       const tasks = instances.map((i) => {
         const values = byKey[i.key];
-        const p = { publicBaseUrl: values.publicBaseUrl, discordEnabled: values.discordEnabled };
+        const p = {
+          publicBaseUrl: values.publicBaseUrl,
+          discordEnabled: values.discordEnabled ? "true" : "false",
+        };
         if (values.discordEnabled) {
           // Blank means "leave the stored token alone" — same write-only
           // convention every secret field in this app already follows.

@@ -6,6 +6,8 @@
 // binding host ports, so gluetun publishes on its behalf (see gluetun.js).
 // With it off the instance sits on an ordinary network and publishes its own.
 
+import { writeFileSync } from "node:fs";
+import path from "node:path";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { renderEnv } from "../schema/registry.js";
@@ -151,7 +153,16 @@ export async function renderInstanceSpec(values, key) {
   // Discord needs the same externally-reachable address stream-share's own
   // players already use — see schema/instance.js's Discord group header for
   // why this isn't a field asked for a second time.
-  if (values.discordEnabled) env.DISCORD_API_URL = values.publicBaseUrl;
+  if (values.discordEnabled === "true") env.DISCORD_API_URL = values.publicBaseUrl;
+
+  // Written into the config mount every instance already has, rather than a
+  // volume of its own — see the schema's "error slates" header for why the
+  // path itself isn't a field. Enabled with no custom messages just sends
+  // ERROR_SLATE_ENABLED, leaning on the image's own defaults.
+  if (values.errorSlateEnabled === "true" && String(values.errorSlateMessages || "").trim()) {
+    writeFileSync(path.join(configDir, "error-slate-messages.json"), values.errorSlateMessages);
+    env.ERROR_SLATE_MESSAGES_FILE = `${CONFIG_MOUNT}/error-slate-messages.json`;
+  }
 
   // Fixed rather than asked, once health checking is on: the VPN watchdog
   // schedules probes itself (see watchdog/vpnWatchdog.js), so a second
@@ -159,7 +170,7 @@ export async function renderInstanceSpec(values, key) {
   // information. HEALTHCHECK_MIN_INTERVAL_SECONDS still needs to be short —
   // not zero — so a forced probe during a heal actually gets a fresh read
   // rather than a stale cached one from before the last reconnect.
-  if (values.healthCheckEnabled) {
+  if (values.healthCheckEnabled === "true") {
     env.HEALTHCHECK_TIMES = "";
     env.HEALTHCHECK_MIN_INTERVAL_SECONDS = "10";
   }
