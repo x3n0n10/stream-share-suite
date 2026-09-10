@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
 import { IconEdit } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
+import UseProviderCredentialsButton from "../../components/UseProviderCredentialsButton.jsx";
 import { api } from "../../lib/api.js";
 
 const ACCESS_MODES = [
@@ -237,13 +238,21 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   {editFields === null ? (
                     <p className="text-sm text-slate-400">Loading…</p>
                   ) : (
-                    <SchemaForm
-                      fields={editFields}
-                      onSave={saveEdit}
-                      saving={editSaving}
-                      error={editError}
-                      submitLabel="Save changes"
-                    />
+                    <>
+                      {editFields.find((f) => f.key === "providerType")?.value === "xtream" && (
+                        <UseProviderCredentialsButton
+                          instanceKey={i.key}
+                          onDone={(fields) => setEditFields(fields)}
+                        />
+                      )}
+                      <SchemaForm
+                        fields={editFields}
+                        onSave={saveEdit}
+                        saving={editSaving}
+                        error={editError}
+                        submitLabel="Save changes"
+                      />
+                    </>
                   )}
                 </div>
               )}
