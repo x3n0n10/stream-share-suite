@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
+import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
@@ -138,25 +138,23 @@ export default function StepFeatures({ instances, onNext, onBack }) {
               className="border-t border-slate-200 pt-4 first:border-t-0 first:pt-0 dark:border-slate-800"
             >
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{instance.displayName}</h3>
-              <div className="mt-2 flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={values.vodCacheEnabled}
-                    onChange={(e) => patch(instance.key, { vodCacheEnabled: e.target.checked })}
-                    className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+              <div className="mt-2 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Cache VOD locally</span>
+                  <OnOffToggle
+                    value={values.vodCacheEnabled}
+                    onChange={(vodCacheEnabled) => patch(instance.key, { vodCacheEnabled })}
                   />
-                  Cache VOD locally
-                </label>
-                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={values.catchupEnabled}
-                    onChange={(e) => patch(instance.key, { catchupEnabled: e.target.checked })}
-                    className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">
+                    Buffer live channels for catchup
+                  </span>
+                  <OnOffToggle
+                    value={values.catchupEnabled}
+                    onChange={(catchupEnabled) => patch(instance.key, { catchupEnabled })}
                   />
-                  Buffer live channels for catchup
-                </label>
+                </div>
                 {values.catchupEnabled && (
                   <label className="ml-6 flex flex-col gap-1.5">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
