@@ -423,6 +423,44 @@ const PROVIDER = {
   authPassword: "secret",
 };
 
+test("using provider credentials copies the instance's own Xtream username/password into authUser/authPassword", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance({
+    ...PROVIDER,
+    providerType: "xtream",
+    authUser: "custom",
+    authPassword: "customsecret",
+  });
+
+  const res = await c.post(`/api/stack/instances/${key}/use-provider-credentials`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.fields.find((f) => f.key === "authMode").value, "basic");
+  assert.equal(res.body.fields.find((f) => f.key === "authUser").value, PROVIDER.xtreamUser);
+  assert.equal(res.body.fields.find((f) => f.key === "authPassword").valueSet, true);
+});
+
+test("using provider credentials on an M3U instance is rejected, unchanged", async () => {
+  const c = await signedInClient(base);
+  const { key } = provisionInstance({
+    displayName: "M3U 1",
+    providerType: "m3u",
+    m3uUrl: "http://provider.example/get.php",
+    authMode: "basic",
+    authUser: "viewer",
+    authPassword: "secret",
+  });
+
+  const res = await c.post(`/api/stack/instances/${key}/use-provider-credentials`);
+  assert.equal(res.status, 400);
+  assert.equal(getComponentValues("instance", key).authUser, "viewer");
+});
+
+test("using provider credentials on an unknown instance is a 404", async () => {
+  const c = await signedInClient(base);
+  const res = await c.post("/api/stack/instances/does-not-exist/use-provider-credentials");
+  assert.equal(res.status, 404);
+});
+
 // --- moving the port range with instances already deployed -----------------
 
 test("moving the range past an existing instance's port reassigns it, pending apply", async () => {

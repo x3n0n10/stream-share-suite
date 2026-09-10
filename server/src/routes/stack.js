@@ -398,6 +398,34 @@ export function createStackRouter() {
     res.json({ fields: toPublicFields(schema, next) });
   });
 
+  // Copies this instance's own Xtream username/password into its authUser/
+  // authPassword — the same one-time copy the add-instance wizard's "Use my
+  // provider credentials" option does at creation, made repeatable after the
+  // fact. Entirely server-side: authPassword is a secret field the browser
+  // never sees (see toPublicFields), so there is no other way to offer this
+  // once an instance already exists.
+  router.post("/instances/:key/use-provider-credentials", (req, res) => {
+    const key = req.params.key;
+    if (listComponents("instance").every((row) => row.key !== key)) {
+      return res.status(404).json({ error: `Unknown instance: ${key}` });
+    }
+
+    const { schema } = getCatalogEntry("instance");
+    const existing = getComponentValues("instance", key);
+    if (existing.providerType !== "xtream") {
+      return res.status(400).json({ error: "Only an Xtream instance has provider credentials to use." });
+    }
+
+    const next = {
+      ...existing,
+      authMode: "basic",
+      authUser: existing.xtreamUser,
+      authPassword: existing.xtreamPassword,
+    };
+    saveComponentValues("instance", next, key);
+    res.json({ fields: toPublicFields(schema, next) });
+  });
+
   // Removing an instance stops and removes its own container as part of the
   // same job — see deprovisionInstance for why that has to happen before the
   // database is touched. The database is a separate decision and is kept

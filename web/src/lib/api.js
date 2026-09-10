@@ -166,6 +166,7 @@ export const api = {
   createStackInstance: (payload) => post("/api/stack/instances", payload),
   updateStackInstance: (key, payload) => put(`/api/stack/instances/${key}`, payload),
   removeStackInstance: (key, payload) => post(`/api/stack/instances/${key}/remove`, payload),
+  useProviderCredentials: (key) => post(`/api/stack/instances/${key}/use-provider-credentials`),
   testDatabase: () => post("/api/stack/database/test", {}),
   applyStack: () => post("/api/stack/apply", {}),
   removeOrphan: (containerId) => post("/api/stack/orphans/remove", { containerId }),

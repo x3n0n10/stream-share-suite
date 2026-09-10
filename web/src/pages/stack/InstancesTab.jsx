@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, Button, FIELD } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
+import UseProviderCredentialsButton from "../../components/UseProviderCredentialsButton.jsx";
 import { IconRefresh, IconEdit, IconTrash } from "../../components/Icons.jsx";
 import { api } from "../../lib/api.js";
 import { previewContainerName, previewContainerNameForKey } from "../../lib/containerName.js";
@@ -331,19 +332,27 @@ export default function InstancesTab({
                     {editFields === null ? (
                       <p className="text-sm text-slate-400">Loading…</p>
                     ) : (
-                      <SchemaForm
-                        fields={editFields}
-                        onSave={saveEdit}
-                        saving={editSaving}
-                        error={editError}
-                        submitLabel="Save changes"
-                        preview={(draft) => (
-                          <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
-                            Container name:{" "}
-                            {previewContainerNameForKey(draft, { prefix: containerPrefix, key: instance.key })}
-                          </p>
+                      <>
+                        {editFields.find((f) => f.key === "providerType")?.value === "xtream" && (
+                          <UseProviderCredentialsButton
+                            instanceKey={instance.key}
+                            onDone={(fields) => setEditFields(fields)}
+                          />
                         )}
-                      />
+                        <SchemaForm
+                          fields={editFields}
+                          onSave={saveEdit}
+                          saving={editSaving}
+                          error={editError}
+                          submitLabel="Save changes"
+                          preview={(draft) => (
+                            <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
+                              Container name:{" "}
+                              {previewContainerNameForKey(draft, { prefix: containerPrefix, key: instance.key })}
+                            </p>
+                          )}
+                        />
+                      </>
                     )}
 
                     <HistoryPanel
