@@ -27,7 +27,7 @@ export default function UseProviderCredentialsButton({ instanceKey, onDone }) {
         type="button"
         onClick={() => setConfirming(true)}
         disabled={busy}
-        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-50 dark:bg-slate-800 dark:text-slate-300"
+        className="rounded-lg border border-dashed border-accent-400 px-3 py-1.5 text-xs font-medium text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:border-accent-700 dark:text-accent-400 dark:hover:bg-accent-900/20"
       >
         Use provider credentials
       </button>
