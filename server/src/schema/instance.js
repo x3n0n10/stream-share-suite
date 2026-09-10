@@ -219,7 +219,6 @@ export const INSTANCE_SCHEMA = {
       optionLabels: { true: "On", false: "Off" },
       default: "false",
       group: "Caching",
-      advanced: true,
     },
     {
       key: "catchupEnabled",
@@ -231,7 +230,6 @@ export const INSTANCE_SCHEMA = {
       optionLabels: { true: "On", false: "Off" },
       default: "false",
       group: "Caching",
-      advanced: true,
     },
     {
       key: "catchupDurationHours",
@@ -239,8 +237,21 @@ export const INSTANCE_SCHEMA = {
       label: "Hours of catchup to keep",
       group: "Caching",
       default: "4",
-      advanced: true,
       dependsOn: { key: "catchupEnabled", equals: "true" },
+    },
+    {
+      key: "cachePath",
+      envVar: null,
+      label: "Cache location on the host",
+      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above. The Suite does not create or check this path itself — it must already exist on the host and be writable by the same user the Suite's other components run as (see PUID/PGID in the Suite's own compose file), or the instance container will fail to write its cache.",
+      group: "Caching",
+      required: true,
+      dependsOn: {
+        any: [
+          { key: "vodCacheEnabled", equals: "true" },
+          { key: "catchupEnabled", equals: "true" },
+        ],
+      },
     },
 
     // --- health check ---------------------------------------------------------
@@ -276,50 +287,9 @@ export const INSTANCE_SCHEMA = {
       label: "Blocked status codes",
       help: "Comma-separated HTTP status codes your provider returns when it's blocking this exit IP. Defaults to 456 (the common Xtream convention) when left blank.",
       group: "Health check",
-      advanced: true,
       dependsOn: { key: "healthCheckEnabled", equals: true },
     },
 
-    // --- the container itself -----------------------------------------------
-    {
-      key: "image",
-      envVar: null,
-      label: "Image",
-      help: "Use \"Check for updates\" on this instance to pull this tag and recreate only if it actually changed.",
-      group: "Container",
-      default: "ghcr.io/x3n0n10/stream-share:latest",
-      advanced: true,
-    },
-    {
-      key: "containerName",
-      envVar: null,
-      label: "Container name",
-      help: "Defaults to the Suite's container prefix followed by this instance's slug — see the preview above the Create button. Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
-      group: "Container",
-      advanced: true,
-    },
-    {
-      key: "port",
-      envVar: null,
-      label: "Port",
-      help: "Allocated automatically from the instance port range set under Stack. Change it only if something else on this host already uses the allocated one.",
-      group: "Container",
-      advanced: true,
-    },
-    {
-      key: "cachePath",
-      envVar: null,
-      label: "Cache location on the host",
-      help: "Where this instance's VOD/catchup cache lives on the Docker host. Required once VOD caching or catchup is turned on above. The Suite does not create or check this path itself — it must already exist on the host and be writable by the same user the Suite's other components run as (see PUID/PGID in the Suite's own compose file), or the instance container will fail to write its cache.",
-      group: "Container",
-      required: true,
-      dependsOn: {
-        any: [
-          { key: "vodCacheEnabled", equals: "true" },
-          { key: "catchupEnabled", equals: "true" },
-        ],
-      },
-    },
     // --- error slates --------------------------------------------------------
     //
     // ERROR_SLATE_MESSAGES_FILE is deliberately not a field of its own: it
@@ -355,6 +325,32 @@ export const INSTANCE_SCHEMA = {
       default: "10",
       group: "Error slates",
       dependsOn: { key: "errorSlateEnabled", equals: true },
+    },
+    // --- the container itself -----------------------------------------------
+    {
+      key: "image",
+      envVar: null,
+      label: "Image",
+      help: "Use \"Check for updates\" on this instance to pull this tag and recreate only if it actually changed.",
+      group: "Container",
+      default: "ghcr.io/x3n0n10/stream-share:latest",
+      advanced: true,
+    },
+    {
+      key: "containerName",
+      envVar: null,
+      label: "Container name",
+      help: "Defaults to the Suite's container prefix followed by this instance's slug — see the preview above the Create button. Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
+      group: "Container",
+      advanced: true,
+    },
+    {
+      key: "port",
+      envVar: null,
+      label: "Port",
+      help: "Allocated automatically from the instance port range set under Stack. Change it only if something else on this host already uses the allocated one.",
+      group: "Container",
+      advanced: true,
     },
     {
       key: "extraEnv",
