@@ -1,6 +1,6 @@
 // web/src/pages/stack/GluetunCard.jsx
 import { useEffect, useState } from "react";
-import { Card, Badge, Button } from "../../components/common.jsx";
+import { Card, Badge, Button, OnOffToggle } from "../../components/common.jsx";
 import { IconRefresh } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
@@ -47,11 +47,20 @@ export default function GluetunCard({
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
-          <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            {component.description}
-          </p>
+        <div className="flex min-w-0 flex-col gap-2">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
+            <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
+              {component.description}
+            </p>
+          </div>
+          {settings && (
+            <OnOffToggle
+              value={settings.vpnEnabled}
+              disabled={busy}
+              onChange={(vpnEnabled) => onSaveSettings({ vpnEnabled })}
+            />
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {!component.active && <Badge tone="slate">Not in the stack</Badge>}
@@ -68,31 +77,6 @@ export default function GluetunCard({
           )}
         </div>
       </div>
-
-      {settings && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 pt-4 dark:border-slate-800">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Route traffic through a VPN
-            </h3>
-            <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-              {settings.vpnEnabled
-                ? "Instances share gluetun's network namespace and are published through it. Replacing gluetun briefly takes them with it."
-                : "Every container gets its own network and publishes its own port. Turning this back on rebuilds everything that would share the tunnel."}
-            </p>
-          </div>
-          <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <input
-              type="checkbox"
-              checked={settings.vpnEnabled}
-              disabled={busy}
-              onChange={(e) => onSaveSettings({ vpnEnabled: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
-            />
-            {settings.vpnEnabled ? "On" : "Off"}
-          </label>
-        </div>
-      )}
 
       <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
         {fields === null ? (

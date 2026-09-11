@@ -27,57 +27,15 @@ export const POSTGRES_SCHEMA = {
       required: true,
     },
 
-    // --- managed ------------------------------------------------------------
-    {
-      key: "containerName",
-      envVar: null,
-      label: "Container name",
-      help: "Defaults to the Suite's container prefix followed by postgres (streamshare-suite-postgres unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
-      group: "Database",
-      advanced: true,
-      dependsOn: { key: "mode", equals: "managed" },
-    },
-    {
-      key: "image",
-      envVar: null,
-      label: "Image",
-      help: "Any postgres tag. Changing this recreates the container; it does not migrate the data directory, so do not cross a major version this way.",
-      group: "Database",
-      default: "postgres:14-alpine",
-      advanced: true,
-      dependsOn: { key: "mode", equals: "managed" },
-    },
-    {
-      key: "networks",
-      envVar: null,
-      label: "Docker networks to join",
-      help: "Comma-separated. Must include the network your instances reach the database over. Defaults to the streamshare network the Suite's own compose file already declares — change this only if your instances need to reach it over a stack of your own instead.",
-      group: "Database",
-      required: true,
-      advanced: true,
-      default: "streamshare",
-      dependsOn: { key: "mode", equals: "managed" },
-    },
-
     // --- external -----------------------------------------------------------
     {
       key: "host",
       envVar: null,
       label: "Host",
-      help: "Hostname or address the instances (and the Suite) reach the server at.",
+      help: "Hostname or address the instances (and the Suite) reach the server at. Its port defaults to 5432 and is set in Advanced, below.",
       group: "Database",
       required: true,
       dependsOn: { key: "mode", equals: "external" },
-    },
-
-    // --- both ---------------------------------------------------------------
-    {
-      key: "port",
-      envVar: null,
-      label: "Port",
-      group: "Database",
-      default: "5432",
-      advanced: true,
     },
     {
       key: "adminUser",
@@ -97,6 +55,46 @@ export const POSTGRES_SCHEMA = {
       secret: true,
       required: true,
       requiredWhen: { key: "mode", equals: "managed" },
+    },
+
+    // --- advanced -------------------------------------------------------------
+    {
+      key: "containerName",
+      envVar: null,
+      label: "Container name",
+      help: "Defaults to the Suite's container prefix followed by postgres (streamshare-suite-postgres unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
+      group: "Advanced",
+      advanced: true,
+      dependsOn: { key: "mode", equals: "managed" },
+    },
+    {
+      key: "image",
+      envVar: null,
+      label: "Image",
+      help: "Any postgres tag. Changing this recreates the container; it does not migrate the data directory, so do not cross a major version this way.",
+      group: "Advanced",
+      default: "postgres:14-alpine",
+      advanced: true,
+      dependsOn: { key: "mode", equals: "managed" },
+    },
+    {
+      key: "networks",
+      envVar: null,
+      label: "Docker networks to join",
+      help: "Comma-separated. Must include the network your instances reach the database over. Defaults to the streamshare network the Suite's own compose file already declares — change this only if your instances need to reach it over a stack of your own instead.",
+      group: "Advanced",
+      required: true,
+      advanced: true,
+      default: "streamshare",
+      dependsOn: { key: "mode", equals: "managed" },
+    },
+    {
+      key: "port",
+      envVar: null,
+      label: "Port",
+      group: "Advanced",
+      default: "5432",
+      advanced: true,
     },
   ],
 };

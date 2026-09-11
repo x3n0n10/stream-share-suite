@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote, FIELD } from "../../components/common.jsx";
+import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
@@ -145,19 +145,19 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
                 />
               </label>
 
-              <label className="mt-3 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={values.discordEnabled}
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  Enable Discord bot
+                  {!values.publicBaseUrl.trim() && (
+                    <span className="ml-1 text-xs text-slate-400">(needs a public base URL first)</span>
+                  )}
+                </span>
+                <OnOffToggle
+                  value={values.discordEnabled}
                   disabled={!values.publicBaseUrl.trim()}
-                  onChange={(e) => patch(instance.key, { discordEnabled: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500 disabled:opacity-50"
+                  onChange={(discordEnabled) => patch(instance.key, { discordEnabled })}
                 />
-                Enable Discord bot
-                {!values.publicBaseUrl.trim() && (
-                  <span className="text-xs text-slate-400">(needs a public base URL first)</span>
-                )}
-              </label>
+              </div>
 
               {values.discordEnabled && (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -208,15 +208,10 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
           you set a public URL above. You're still responsible for pointing that URL's DNS at this
           host; Caddy then routes it to the right instance and port once it arrives here.
         </p>
-        <label className="mt-3 flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-          <input
-            type="checkbox"
-            checked={caddyEnabled}
-            onChange={(e) => toggleCaddy(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
-          />
-          Publish instances through Caddy
-        </label>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="text-sm text-slate-700 dark:text-slate-300">Publish instances through Caddy</span>
+          <OnOffToggle value={caddyEnabled} onChange={toggleCaddy} />
+        </div>
 
         {caddyEnabled && (
           <div className="mt-3">
