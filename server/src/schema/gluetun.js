@@ -18,6 +18,63 @@
 // Anything not modeled yet has an escape hatch: extraEnv passes raw
 // KEY=VALUE lines straight to the container, unvalidated, so an unlisted
 // provider is never blocked on us adding it as data.
+//
+// vpnServiceProvider itself is a "combobox" field (options + optionLabels,
+// same shape as an ordinary select, but the frontend renders it as a
+// searchable/free-text picker instead of a strict button row — see
+// PROVIDER_NOTES below and ProviderCombobox.jsx). optionNotes surfaces a
+// one-line gotcha for providers whose real setup differs from what's
+// otherwise modeled (a credential quirk, or a required field — like
+// wireguardAddresses above — that's only gated on for the one provider
+// that forced it in). Providers with no note need nothing beyond the
+// ordinary fields.
+
+// gluetun's own identifiers (VPN_SERVICE_PROVIDER values), from its wiki's
+// setup/providers/ directory. A provider not in this list still works —
+// vpnServiceProvider accepts free text — this only saves the common case
+// from having to know gluetun's exact spelling.
+const PROVIDER_LABELS = {
+  airvpn: "AirVPN",
+  custom: "Custom (OpenVPN/WireGuard config file)",
+  cyberghost: "CyberGhost",
+  expressvpn: "ExpressVPN",
+  fastestvpn: "FastestVPN",
+  giganews: "Giganews",
+  hidemyass: "HideMyAss",
+  ipvanish: "IPVanish",
+  ivpn: "IVPN",
+  mullvad: "Mullvad",
+  nordvpn: "NordVPN",
+  "perfect privacy": "Perfect Privacy",
+  privado: "Privado",
+  "private internet access": "Private Internet Access",
+  privatevpn: "PrivateVPN",
+  protonvpn: "ProtonVPN",
+  purevpn: "PureVPN",
+  slickvpn: "SlickVPN",
+  surfshark: "Surfshark",
+  torguard: "TorGuard",
+  vpnsecure: "VPNSecure",
+  "vpn unlimited": "VPN Unlimited",
+  vyprvpn: "VyprVPN",
+  windscribe: "Windscribe",
+};
+
+const NEEDS_WIREGUARD_ADDRESS =
+  "WireGuard needs an interface address from your config — set WIREGUARD_ADDRESSES under Extra environment variables.";
+
+// One-line gotchas for providers whose real setup differs from the ordinary
+// wireguard/openvpn fields above. Most providers need no entry here.
+const PROVIDER_NOTES = {
+  nordvpn: "Uses service credentials from the NordVPN dashboard, not your account login.",
+  vpnsecure: "Uses a key passphrase instead of a password — set OPENVPN_KEY_PASSPHRASE under Extra environment variables.",
+  custom: "Needs a bind-mounted OpenVPN/WireGuard config file — see gluetun's custom provider docs; most fields here won't apply.",
+  airvpn: NEEDS_WIREGUARD_ADDRESS,
+  fastestvpn: NEEDS_WIREGUARD_ADDRESS,
+  ivpn: NEEDS_WIREGUARD_ADDRESS,
+  surfshark: NEEDS_WIREGUARD_ADDRESS,
+  windscribe: NEEDS_WIREGUARD_ADDRESS,
+};
 
 export const GLUETUN_SCHEMA = {
   kind: "gluetun",
@@ -44,7 +101,7 @@ export const GLUETUN_SCHEMA = {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",
-      help: "Comma-separated names of existing Docker networks, e.g. nordvpn,ssbackend. The first one becomes the container's primary network. Defaults to the streamshare network the Suite's own compose file already declares — change this only to also join a stack of your own.",
+      help: "Comma-separated names of existing Docker networks, e.g. vpnnet,ssbackend. The first one becomes the container's primary network. Defaults to the streamshare network the Suite's own compose file already declares — change this only to also join a stack of your own.",
       group: "Image",
       required: true,
       advanced: true,
@@ -54,7 +111,11 @@ export const GLUETUN_SCHEMA = {
       key: "vpnServiceProvider",
       envVar: "VPN_SERVICE_PROVIDER",
       label: "VPN provider",
-      help: "gluetun's provider identifier, e.g. nordvpn, mullvad, protonvpn.",
+      help: "gluetun's identifier for your VPN service. Not listed? Type it anyway — gluetun recognizes more providers than this, and Extra environment variables (below) covers anything the form doesn't model yet.",
+      type: "combobox",
+      options: Object.keys(PROVIDER_LABELS),
+      optionLabels: PROVIDER_LABELS,
+      optionNotes: PROVIDER_NOTES,
       group: "VPN",
       required: true,
     },
