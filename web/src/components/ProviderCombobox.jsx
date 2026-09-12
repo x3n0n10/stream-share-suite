@@ -31,6 +31,7 @@ export default function ProviderCombobox({ field, value, onChange }) {
         value={value ?? ""}
         onChange={(e) => onChange(field.key, e.target.value)}
         onFocus={() => setOpen(true)}
+        onClick={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         autoComplete="off"
         placeholder="Start typing to search…"
