@@ -29,7 +29,7 @@ Wizard (StepHealthCheck.jsx)
       → instanceClient.searchChannels(instance, q)          (new)
           → stream-share: GET /api/internal/channels?q=...  (new)
               → SearchStreamNames(q, limit) against stream_names table
-              → [{stream_id, name}, ...], capped at 25
+              → []ChannelMatch{StreamID, Name}, capped at 25
   ← dropdown of "name — id" matches; picking one fills the field with that id
 ```
 
@@ -44,10 +44,14 @@ blocked by this feature.
 
 - `GET /api/internal/channels?q=<text>` in `pkg/server/api.go`, next to
   `/vod/search`, under the same internal-API auth.
-- `SearchStreamNames(query string, limit int) ([]StreamNameMatch, error)` in
+- `SearchStreamNames(query string, limit int) ([]ChannelMatch, error)` in
   `pkg/database/stream_names.go`: matches `name` (`ILIKE '%q%'`) or `stream_id`
   (exact or prefix), `LIMIT 25`, ordered by name. Empty `q` returns an empty
   result — never dumps the full table.
+- `ChannelMatch{ StreamID, Name string }` — plain Go struct, no JSON tags,
+  matching this codebase's existing convention (`types.VODResult`): fields
+  serialize PascalCase (`StreamID`, `Name`), the same shape the frontend
+  already reads off VOD results (`r.StreamID` in `Vod.jsx`).
 - Handler follows the existing `types.APIResponse` shape used by other
   `/api/internal` routes.
 
