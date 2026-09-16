@@ -149,6 +149,10 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       {chosen.length > 0 && (
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Probe channel per instance</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Type a channel name to search and pick a result, or enter a stream ID directly if you
+            already know it.
+          </p>
           <div className="mt-3 flex flex-col gap-3">
             {chosen.map((instance) => (
               <label key={instance.key} className="flex flex-col gap-1.5">

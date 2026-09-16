@@ -109,6 +109,21 @@ test("responds with an error status, not a crash, when the instance call fails",
   assert.equal(res.status, 502);
 });
 
+// Regression test for a real bug: an instance's own auth failure (wrong or
+// revoked API key for THAT instance) must never come back as a 401 on this
+// Suite's own response — the frontend treats any 401 from its own backend as
+// "your Suite session expired" and logs the whole UI out, which has nothing
+// to do with one instance's credentials.
+test("never relays a 401 from the instance as this Suite's own 401 (would log the operator out)", async () => {
+  const instance = addInstance();
+  nextResponse = { status: 401, body: { error: "invalid API key" } };
+
+  const client = await signedInClient(base);
+  const res = await client.get(`/api/instances/${instance.id}/health-check/channels?q=bbc`);
+  assert.equal(res.status, 502);
+  assert.notEqual(res.status, 401);
+});
+
 test("resolves a Suite-managed (stack component) instance, the path the wizard actually uses", async () => {
   const instance = addManagedInstance();
   nextResponse = {

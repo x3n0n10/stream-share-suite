@@ -53,7 +53,15 @@ function collect(config, results, onValue) {
 }
 
 function failure(res, err) {
-  res.status(err.status && err.status < 500 ? err.status : 502).json({ error: err.message });
+  // A downstream instance's own auth failure (401, or 403) must never reach
+  // the browser as this Suite's own 401/403 — the frontend's request()
+  // treats ANY 401 from its own backend as "your Suite session expired" and
+  // logs the whole UI out (see web/src/lib/api.js), which has nothing to do
+  // with one instance's API key being wrong or revoked. Falling back to 502
+  // (Bad Gateway) here is what correctly describes "the Suite couldn't
+  // authenticate to that instance," without tripping the logout handler.
+  const passthrough = err.status && err.status < 500 && err.status !== 401 && err.status !== 403;
+  res.status(passthrough ? err.status : 502).json({ error: err.message });
 }
 
 export function createOpsRouter() {
