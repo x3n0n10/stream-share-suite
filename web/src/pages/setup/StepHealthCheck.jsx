@@ -12,6 +12,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
   const [suggestions, setSuggestions] = useState({}); // key -> array of {StreamID, Name, Category}
   const [pickedNames, setPickedNames] = useState({}); // key -> caption string
   const debounceTimers = useRef({});
+  const latestRequest = useRef({}); // key -> sequence number of the most recent request
 
   useEffect(() => {
     // Cancel any in-flight debounce on unmount, e.g. navigating away mid-type.
@@ -25,14 +26,18 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
     clearTimeout(debounceTimers.current[key]);
     const query = value.trim();
     if (!query) {
+      latestRequest.current[key] = (latestRequest.current[key] || 0) + 1;
       setSuggestions((prev) => ({ ...prev, [key]: [] }));
       return;
     }
     debounceTimers.current[key] = setTimeout(async () => {
+      const seq = (latestRequest.current[key] = (latestRequest.current[key] || 0) + 1);
       try {
         const { results } = await api.healthCheckChannels(key, query);
+        if (latestRequest.current[key] !== seq) return; // a newer query already answered
         setSuggestions((prev) => ({ ...prev, [key]: results || [] }));
       } catch (err) {
+        if (latestRequest.current[key] !== seq) return;
         console.warn(`Channel search failed for ${key}:`, err.message);
         setSuggestions((prev) => ({ ...prev, [key]: [] }));
       }
@@ -41,6 +46,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
 
   function pickChannel(key, match) {
     clearTimeout(debounceTimers.current[key]);
+    latestRequest.current[key] = (latestRequest.current[key] || 0) + 1;
     setStreamIds((prev) => ({ ...prev, [key]: match.StreamID }));
     setPickedNames((prev) => ({
       ...prev,
@@ -154,13 +160,24 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
                     className={FIELD}
                     value={streamIds[instance.key] || ""}
                     onChange={(e) => onStreamIdChange(instance.key, e.target.value)}
+                    onBlur={() =>
+                      setTimeout(
+                        () => setSuggestions((prev) => ({ ...prev, [instance.key]: [] })),
+                        120
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setSuggestions((prev) => ({ ...prev, [instance.key]: [] }));
+                      }
+                    }}
                     placeholder="12345.ts"
                     autoComplete="off"
                   />
                   {suggestions[instance.key]?.length > 0 && (
                     <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                      {suggestions[instance.key].map((match) => (
-                        <li key={match.StreamID}>
+                      {suggestions[instance.key].map((match, i) => (
+                        <li key={`${match.StreamID}-${i}`}>
                           <button
                             type="button"
                             className="flex w-full flex-col items-start gap-0.5 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"

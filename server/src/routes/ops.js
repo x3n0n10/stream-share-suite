@@ -319,9 +319,7 @@ export function createOpsRouter() {
     if (!query) return res.json({ results: [] });
 
     try {
-      const results = await searchChannels(instance, query, {
-        timeoutMs: req.config.vodSearchTimeoutMs,
-      });
+      const results = await searchChannels(instance, query, timeouts(req));
       res.json({ results });
     } catch (err) {
       failure(res, err);

@@ -9,6 +9,10 @@ import { freshDatabase, signedInClient } from "./helpers.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
 import { createInstance } from "../src/store/instances.js";
+import { provisionInstance } from "../src/reconcile/provisioning.js";
+import { saveComponentValues, getComponentValues } from "../src/store/components.js";
+import { VPN_ENABLED_SETTING } from "../src/reconcile/catalog.js";
+import { setSetting } from "../src/store/settings.js";
 
 let appServer;
 let base;
@@ -46,6 +50,28 @@ function addInstance() {
   });
 }
 
+// Unlike addInstance() above (an externally-added instance, store/instances.js),
+// this seeds a Suite-managed ("stack component") instance the way provisioning
+// actually creates one — the code path the wizard exclusively deals with,
+// projected into config.instances by managedInstances() in config.js. VPN off
+// is required so instanceUrl() builds the host from the instance's own
+// containerName instead of gluetun's, which lets it be pointed at the local
+// instanceServer without a real Docker network.
+function addManagedInstance() {
+  setSetting(VPN_ENABLED_SETTING, "false");
+  const { key } = provisionInstance({ displayName: "Managed" });
+  saveComponentValues(
+    "instance",
+    {
+      ...getComponentValues("instance", key),
+      containerName: "127.0.0.1",
+      port: String(instanceServer.address().port),
+    },
+    key
+  );
+  return { id: key };
+}
+
 test("returns matches from the instance's own search", async () => {
   const instance = addInstance();
   nextResponse = {
@@ -81,4 +107,18 @@ test("responds with an error status, not a crash, when the instance call fails",
   const client = await signedInClient(base);
   const res = await client.get(`/api/instances/${instance.id}/health-check/channels?q=bbc`);
   assert.equal(res.status, 502);
+});
+
+test("resolves a Suite-managed (stack component) instance, the path the wizard actually uses", async () => {
+  const instance = addManagedInstance();
+  nextResponse = {
+    status: 200,
+    body: { success: true, data: [{ StreamID: "42", Name: "BBC One", Category: "UK" }] },
+  };
+
+  const client = await signedInClient(base);
+  const res = await client.get(`/api/instances/${instance.id}/health-check/channels?q=bbc`);
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body.results, [{ StreamID: "42", Name: "BBC One", Category: "UK" }]);
 });
