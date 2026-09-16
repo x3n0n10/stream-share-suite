@@ -140,6 +140,15 @@ export async function searchVOD(instance, query, { timeoutMs, username }) {
   });
 }
 
+// Suggests live channels by name for the health-check wizard step, so an
+// operator doesn't have to already know a raw Xtream stream ID.
+export async function searchChannels(instance, query, { timeoutMs }) {
+  return callInstance(instance, "/channels", {
+    timeoutMs,
+    query: { q: query },
+  });
+}
+
 export async function createVODDownload(instance, { username, streamId, title, type }, { timeoutMs }) {
   return callInstance(instance, "/vod/download", {
     timeoutMs,
