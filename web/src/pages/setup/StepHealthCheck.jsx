@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
@@ -9,6 +9,45 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
   const [checkTimes, setCheckTimes] = useState(null); // null until seeded
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [suggestions, setSuggestions] = useState({}); // key -> array of {StreamID, Name, Category}
+  const [pickedNames, setPickedNames] = useState({}); // key -> caption string
+  const debounceTimers = useRef({});
+
+  useEffect(() => {
+    // Cancel any in-flight debounce on unmount, e.g. navigating away mid-type.
+    return () => Object.values(debounceTimers.current).forEach(clearTimeout);
+  }, []);
+
+  function onStreamIdChange(key, value) {
+    setStreamIds((prev) => ({ ...prev, [key]: value }));
+    setPickedNames((prev) => ({ ...prev, [key]: "" }));
+
+    clearTimeout(debounceTimers.current[key]);
+    const query = value.trim();
+    if (!query) {
+      setSuggestions((prev) => ({ ...prev, [key]: [] }));
+      return;
+    }
+    debounceTimers.current[key] = setTimeout(async () => {
+      try {
+        const { results } = await api.healthCheckChannels(key, query);
+        setSuggestions((prev) => ({ ...prev, [key]: results || [] }));
+      } catch (err) {
+        console.warn(`Channel search failed for ${key}:`, err.message);
+        setSuggestions((prev) => ({ ...prev, [key]: [] }));
+      }
+    }, 300);
+  }
+
+  function pickChannel(key, match) {
+    clearTimeout(debounceTimers.current[key]);
+    setStreamIds((prev) => ({ ...prev, [key]: match.StreamID }));
+    setPickedNames((prev) => ({
+      ...prev,
+      [key]: match.Category ? `${match.Category} — ${match.Name}` : match.Name,
+    }));
+    setSuggestions((prev) => ({ ...prev, [key]: [] }));
+  }
 
   useEffect(() => {
     Promise.all(instances.map((i) => api.componentFields("instance", i.key))).then((results) => {
@@ -110,12 +149,39 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {instance.displayName} — Stream ID
                 </span>
-                <input
-                  className={FIELD}
-                  value={streamIds[instance.key] || ""}
-                  onChange={(e) => setStreamIds((prev) => ({ ...prev, [instance.key]: e.target.value }))}
-                  placeholder="12345.ts"
-                />
+                <div className="relative">
+                  <input
+                    className={FIELD}
+                    value={streamIds[instance.key] || ""}
+                    onChange={(e) => onStreamIdChange(instance.key, e.target.value)}
+                    placeholder="12345.ts"
+                    autoComplete="off"
+                  />
+                  {suggestions[instance.key]?.length > 0 && (
+                    <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                      {suggestions[instance.key].map((match) => (
+                        <li key={match.StreamID}>
+                          <button
+                            type="button"
+                            className="flex w-full flex-col items-start gap-0.5 px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-slate-800"
+                            onClick={() => pickChannel(instance.key, match)}
+                          >
+                            <span className="text-slate-900 dark:text-white">
+                              {match.Category ? `${match.Category} — ` : ""}
+                              {match.Name}
+                            </span>
+                            <span className="text-xs text-slate-400">{match.StreamID}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {pickedNames[instance.key] && (
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Selected: {pickedNames[instance.key]}
+                  </span>
+                )}
               </label>
             ))}
           </div>
