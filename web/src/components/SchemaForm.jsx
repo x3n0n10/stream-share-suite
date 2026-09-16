@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, ErrorNote, FIELD } from "./common.jsx";
 import ErrorSlateEditor from "./ErrorSlateEditor.jsx";
 import ProviderCombobox from "./ProviderCombobox.jsx";
+import ChannelSearchInput from "./ChannelSearchInput.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
 // the point of the schema registry: a new field on the server is a new row
@@ -16,6 +17,7 @@ export default function SchemaForm({
   preview,
   secondaryAction,
   extraOptions,
+  componentKey,
 }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
 
@@ -91,6 +93,7 @@ export default function SchemaForm({
                   value={draft[field.key]}
                   onChange={set}
                   extra={extraOptions?.[field.key]}
+                  componentKey={componentKey}
                 />
               ))}
             </div>
@@ -101,7 +104,13 @@ export default function SchemaForm({
                 </summary>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {advanced.map((field) => (
-                    <FieldInput key={field.key} field={field} value={draft[field.key]} onChange={set} />
+                    <FieldInput
+                      key={field.key}
+                      field={field}
+                      value={draft[field.key]}
+                      onChange={set}
+                      componentKey={componentKey}
+                    />
                   ))}
                 </div>
               </details>
@@ -134,7 +143,7 @@ export default function SchemaForm({
   );
 }
 
-function FieldInput({ field, value, onChange, extra }) {
+function FieldInput({ field, value, onChange, extra, componentKey }) {
   const hint = field.secret
     ? field.valueSet
       ? "Set. Leave blank to keep it."
@@ -147,7 +156,11 @@ function FieldInput({ field, value, onChange, extra }) {
   // some browsers (Safari) paint a hover highlight across a whole label's box
   // when any of several wrapped controls is hovered. A plain <div> sidesteps
   // that; it was never a real <label>/<input> pairing for either.
-  const multiControl = field.type === "select" || field.type === "errorSlates" || field.type === "combobox";
+  const multiControl =
+    field.type === "select" ||
+    field.type === "errorSlates" ||
+    field.type === "combobox" ||
+    field.type === "channelSearch";
   const Wrapper = multiControl ? "div" : "label";
 
   return (
@@ -160,13 +173,13 @@ function FieldInput({ field, value, onChange, extra }) {
         {field.label}
         {field.required && <span className="text-rose-500"> *</span>}
       </span>
-      {renderControl(field, value, onChange, extra)}
+      {renderControl(field, value, onChange, extra, componentKey)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
     </Wrapper>
   );
 }
 
-function renderControl(field, value, onChange, extra) {
+function renderControl(field, value, onChange, extra, componentKey) {
   if (field.type === "textarea") {
     return (
       <textarea
@@ -195,6 +208,17 @@ function renderControl(field, value, onChange, extra) {
 
   if (field.type === "combobox") {
     return <ProviderCombobox field={field} value={value} onChange={onChange} />;
+  }
+
+  if (field.type === "channelSearch") {
+    return (
+      <ChannelSearchInput
+        instanceKey={componentKey}
+        value={value}
+        onChange={(next) => onChange(field.key, next)}
+        placeholder="12345.ts"
+      />
+    );
   }
 
   if (field.type === "select") {

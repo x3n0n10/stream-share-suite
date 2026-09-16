@@ -338,6 +338,7 @@ export default function InstancesTab({
                         saving={editSaving}
                         error={editError}
                         submitLabel="Save changes"
+                        componentKey={instance.key}
                         extraOptions={
                           editFields.find((f) => f.key === "providerType")?.value === "xtream"
                             ? {
