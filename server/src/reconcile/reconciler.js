@@ -309,6 +309,19 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
     await plan.prepare(key, getComponentValues(kind, key), { log });
   }
 
+  // Pull whenever the image value itself is new to this container — a first
+  // create (no runtime to compare against) or an edit that changed the image
+  // field. A mutable tag like ":dev" would otherwise reuse whatever content
+  // happens to already be cached locally under that tag name, which is not
+  // what typing a new image value means. Every other config-only change
+  // (name, port, env, ...) still applies with no network call, same as
+  // before — this only fires when spec.image itself differs from what was
+  // last actually running.
+  if (action === "create" || spec.image !== plan.runtime?.image) {
+    log(`Pulling ${spec.image}...`);
+    await pullImage(spec.image);
+  }
+
   log(`Creating "${spec.name}"...`);
   const labels = managedLabels(kind, desiredHash, key);
   const created = await createContainer(spec.name, toCreatePayload(spec, { labels }));

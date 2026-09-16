@@ -254,6 +254,50 @@ test("plans 'recreate' when a managed container's spec hash has changed", async 
   assert.equal(plan.previousHash, "stale-hash");
 });
 
+test("applying a 'create' plan pulls the image first", async () => {
+  const plan = await planComponent(NODE, SPEC);
+  await applyPlan(plan, { log: () => {} });
+
+  assert.ok(requests.some((r) => r.method === "POST" && r.path === "/v1.43/images/create"));
+});
+
+test("applying a 'recreate' plan pulls when the image field itself changed", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "old-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "stale-hash") },
+    running: true,
+    image: "qmcgaw/gluetun:v3.39", // differs from SPEC.image ("...:latest")
+  });
+
+  const plan = await planComponent(NODE, SPEC);
+  await applyPlan(plan, { log: () => {} });
+
+  assert.ok(
+    requests.some((r) => r.method === "POST" && r.path === "/v1.43/images/create"),
+    "expected a pull when the running container's image differs from the desired one"
+  );
+});
+
+test("applying a 'recreate' plan skips the pull when the image field is unchanged", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "old-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "stale-hash") },
+    running: true,
+    image: SPEC.image, // same tag — only some other field (env, etc.) changed
+  });
+
+  const plan = await planComponent(NODE, SPEC);
+  await applyPlan(plan, { log: () => {} });
+
+  assert.equal(
+    requests.some((r) => r.method === "POST" && r.path === "/v1.43/images/create"),
+    false,
+    "a config change that leaves the image tag untouched must not trigger a network pull"
+  );
+});
+
 test("applying a 'recreate' plan stops and removes the old container before creating the new one", async () => {
   containers.set("stream-share-gluetun", {
     Id: "old-id",
