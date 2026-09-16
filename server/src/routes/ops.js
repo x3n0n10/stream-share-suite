@@ -18,6 +18,7 @@ import {
   deleteIPAlias,
   searchVOD,
   createVODDownload,
+  searchChannels,
 } from "../instanceClient.js";
 import { getVpnStatus, setVpnStatus, getPublicIP, reconnectVpn } from "../gluetunClient.js";
 
@@ -52,7 +53,15 @@ function collect(config, results, onValue) {
 }
 
 function failure(res, err) {
-  res.status(err.status && err.status < 500 ? err.status : 502).json({ error: err.message });
+  // A downstream instance's own auth failure (401, or 403) must never reach
+  // the browser as this Suite's own 401/403 — the frontend's request()
+  // treats ANY 401 from its own backend as "your Suite session expired" and
+  // logs the whole UI out (see web/src/lib/api.js), which has nothing to do
+  // with one instance's API key being wrong or revoked. Falling back to 502
+  // (Bad Gateway) here is what correctly describes "the Suite couldn't
+  // authenticate to that instance," without tripping the logout handler.
+  const passthrough = err.status && err.status < 500 && err.status !== 401 && err.status !== 403;
+  res.status(passthrough ? err.status : 502).json({ error: err.message });
 }
 
 export function createOpsRouter() {
@@ -301,6 +310,25 @@ export function createOpsRouter() {
         timeouts(req)
       );
       res.json(data);
+    } catch (err) {
+      failure(res, err);
+    }
+  });
+
+  // Suggests live channels by name for the health-check wizard step, so an
+  // operator doesn't have to already know a raw Xtream stream ID. A failure
+  // here is the picker's problem, not the wizard's — the field still works
+  // as free text either way, so this is never surfaced as an ErrorNote.
+  router.get("/instances/:id/health-check/channels", async (req, res) => {
+    const instance = findInstance(req.config, req.params.id);
+    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+
+    const query = (req.query.q || "").toString().trim();
+    if (!query) return res.json({ results: [] });
+
+    try {
+      const results = await searchChannels(instance, query, timeouts(req));
+      res.json({ results });
     } catch (err) {
       failure(res, err);
     }

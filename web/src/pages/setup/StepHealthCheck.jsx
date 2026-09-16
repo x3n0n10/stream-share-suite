@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
+import ChannelSearchInput from "../../components/ChannelSearchInput.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
@@ -9,6 +10,10 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
   const [checkTimes, setCheckTimes] = useState(null); // null until seeded
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  function setStreamId(key, value) {
+    setStreamIds((prev) => ({ ...prev, [key]: value }));
+  }
 
   useEffect(() => {
     Promise.all(instances.map((i) => api.componentFields("instance", i.key))).then((results) => {
@@ -104,19 +109,28 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       {chosen.length > 0 && (
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Probe channel per instance</h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Type a channel name to search and pick a result, or enter a stream ID directly if you
+            already know it.
+          </p>
           <div className="mt-3 flex flex-col gap-3">
             {chosen.map((instance) => (
-              <label key={instance.key} className="flex flex-col gap-1.5">
+              // A <div>, not <label> — ChannelSearchInput is more than one
+              // control (input + dropdown + caption), and some browsers
+              // (Safari) paint a hover highlight across a whole label's box
+              // when any wrapped control is hovered (same reasoning as
+              // SchemaForm.jsx's FieldInput).
+              <div key={instance.key} className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {instance.displayName} — Stream ID
                 </span>
-                <input
-                  className={FIELD}
+                <ChannelSearchInput
+                  instanceKey={instance.key}
                   value={streamIds[instance.key] || ""}
-                  onChange={(e) => setStreamIds((prev) => ({ ...prev, [instance.key]: e.target.value }))}
+                  onChange={(value) => setStreamId(instance.key, value)}
                   placeholder="12345.ts"
                 />
-              </label>
+              </div>
             ))}
           </div>
 
