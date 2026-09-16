@@ -18,6 +18,7 @@ import {
   deleteIPAlias,
   searchVOD,
   createVODDownload,
+  searchChannels,
 } from "../instanceClient.js";
 import { getVpnStatus, setVpnStatus, getPublicIP, reconnectVpn } from "../gluetunClient.js";
 
@@ -301,6 +302,27 @@ export function createOpsRouter() {
         timeouts(req)
       );
       res.json(data);
+    } catch (err) {
+      failure(res, err);
+    }
+  });
+
+  // Suggests live channels by name for the health-check wizard step, so an
+  // operator doesn't have to already know a raw Xtream stream ID. A failure
+  // here is the picker's problem, not the wizard's — the field still works
+  // as free text either way, so this is never surfaced as an ErrorNote.
+  router.get("/instances/:id/health-check/channels", async (req, res) => {
+    const instance = findInstance(req.config, req.params.id);
+    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+
+    const query = (req.query.q || "").toString().trim();
+    if (!query) return res.json({ results: [] });
+
+    try {
+      const results = await searchChannels(instance, query, {
+        timeoutMs: req.config.vodSearchTimeoutMs,
+      });
+      res.json({ results });
     } catch (err) {
       failure(res, err);
     }

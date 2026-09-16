@@ -141,6 +141,8 @@ export const api = {
   watchdogLastJob: () => get("/api/watchdog/last-job"),
   watchdogJob: (jobId) => get(`/api/watchdog/jobs/${jobId}`),
   vodSearch: (q) => get("/api/vod/search", { q }),
+  healthCheckChannels: (instanceKey, q) =>
+    get(`/api/instances/${instanceKey}/health-check/channels`, { q }),
   vodDownload: (instanceId, streamId, title, type) =>
     post(`/api/instances/${instanceId}/vod/download`, { streamId, title, type }),
   aliases: () => get("/api/aliases"),
