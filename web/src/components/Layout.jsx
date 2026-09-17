@@ -27,14 +27,14 @@ import { api } from "../lib/api.js";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: IconOverview, end: true },
-  { to: "/users", label: "Users", icon: IconUsers },
-  { to: "/history", label: "History", icon: IconHistory },
-  { to: "/leaderboard", label: "Leaderboard", icon: IconTrophy },
+  { to: "/users", label: "Users", icon: IconUsers, requiresInstances: true },
+  { to: "/history", label: "History", icon: IconHistory, requiresInstances: true },
+  { to: "/leaderboard", label: "Leaderboard", icon: IconTrophy, requiresInstances: true },
   { to: "/instances", label: "Instances", icon: IconServer },
-  { to: "/vod", label: "VOD search", icon: IconSearch },
+  { to: "/vod", label: "VOD search", icon: IconSearch, requiresInstances: true },
   { separator: true },
-  { to: "/aliases", label: "Aliases", icon: IconTag },
-  { to: "/vpn", label: "VPN", icon: IconShield },
+  { to: "/aliases", label: "Aliases", icon: IconTag, requiresInstances: true },
+  { to: "/vpn", label: "VPN", icon: IconShield, requiresVpn: true },
   { to: "/setup", label: "Setup wizard", icon: IconWand },
   { to: "/stack", label: "Stack", icon: IconStack },
   { to: "/settings", label: "Settings", icon: IconSettings },
@@ -44,12 +44,21 @@ const NAV_ITEMS = [
 // reachable through the hamburger drawer. Filtering (rather than a fixed
 // slice) keeps this list in sync if NAV_ITEMS is ever reordered.
 const MOBILE_NAV_PATHS = ["/", "/history", "/vpn", "/vod"];
-const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => MOBILE_NAV_PATHS.includes(item.to));
 
-function NavList({ onNavigate, collapsed = false }) {
+// An item with no gating flag is always visible. requiresInstances/requiresVpn
+// hide it until config confirms the condition holds — see Layout()'s
+// hasInstances/vpnAvailable, sourced from GET /api/config's instances[] and
+// gluetun.enabled (server/src/routes/index.js).
+function isNavItemVisible(item, { hasInstances, vpnAvailable }) {
+  if (item.requiresInstances && !hasInstances) return false;
+  if (item.requiresVpn && !vpnAvailable) return false;
+  return true;
+}
+
+function NavList({ items, onNavigate, collapsed = false }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {NAV_ITEMS.map((item, index) =>
+      {items.map((item, index) =>
         item.separator ? (
           <hr key={`separator-${index}`} className="my-2 border-slate-200 dark:border-slate-800" />
         ) : (
@@ -86,6 +95,14 @@ export default function Layout({ title, children, headerExtra }) {
   const [signOutOpen, setSignOutOpen] = useState(false);
   const config = useConfig();
   const siteTitle = config?.title || "StreamShare Suite";
+  const hasInstances = (config?.instances?.length ?? 0) > 0;
+  const vpnAvailable = !!config?.gluetun?.enabled;
+  const visibleNavItems = NAV_ITEMS.filter(
+    (item) => item.separator || isNavItemVisible(item, { hasInstances, vpnAvailable })
+  );
+  const mobileNavItems = visibleNavItems.filter(
+    (item) => !item.separator && MOBILE_NAV_PATHS.includes(item.to)
+  );
 
   useEffect(() => {
     localStorage.setItem("layout.sidebarCollapsed", collapsed ? "1" : "0");
@@ -116,7 +133,7 @@ export default function Layout({ title, children, headerExtra }) {
             {siteTitle}
           </span>
         </div>
-        <NavList collapsed={collapsed} />
+        <NavList items={visibleNavItems} collapsed={collapsed} />
         <div className="px-3 pt-4">
           <button
             onClick={() => setSignOutOpen(true)}
@@ -170,7 +187,7 @@ export default function Layout({ title, children, headerExtra }) {
                 <IconClose className="h-5 w-5" />
               </button>
             </div>
-            <NavList onNavigate={() => setDrawerOpen(false)} />
+            <NavList items={visibleNavItems} onNavigate={() => setDrawerOpen(false)} />
             <div className="px-3 pt-4">
               <button
                 onClick={() => {
@@ -215,7 +232,7 @@ export default function Layout({ title, children, headerExtra }) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
-        {MOBILE_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+        {mobileNavItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
