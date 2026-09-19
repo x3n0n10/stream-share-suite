@@ -290,7 +290,7 @@ export const INSTANCE_SCHEMA = {
     {
       key: "healthCheckBlockedCodes",
       envVar: "HEALTHCHECK_BLOCKED_CODES",
-      label: "Blocked status codes",
+      label: "Status codes indicating a block",
       help: "Comma-separated HTTP status codes your provider returns when it's blocking this exit IP. Defaults to 456 (the common Xtream convention) when left blank.",
       group: "Health check",
       dependsOn: { key: "healthCheckEnabled", equals: "true" },

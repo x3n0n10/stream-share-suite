@@ -104,7 +104,7 @@ export const CADDY_SCHEMA = {
       label: "Extra Caddyfile",
       help:
         "Raw Caddyfile text appended after every generated site block — for anything the Suite doesn't render " +
-        "for you, such as a route to something it doesn't manage.",
+        "for you, such as a route to something it doesn't manage. In JSON format.",
       type: "textarea",
       group: "Container",
       advanced: true,
