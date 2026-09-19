@@ -114,8 +114,9 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">External access</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Optional, per instance. You're responsible for the DNS/routing that actually gets traffic
-        to this host — this just tells each instance what its own externally-reachable address is.
+        Completely optional. Allows you to reach the instances from outside your local network.
+        You're responsible for the DNS/routing part — this just tells each instance what 
+        its own externally-reachable address is.
       </p>
 
       <div className="mt-5 flex flex-col gap-6">
@@ -201,12 +202,12 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
 
       <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-          Also reach it from your local network?
+          Reach these URLs from your local network?
         </h3>
         <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-          This is what Caddy is for, and only for this — it's independent of Discord and of whether
-          you set a public URL above. You're still responsible for pointing that URL's DNS at this
-          host; Caddy then routes it to the right instance and port once it arrives here.
+          This is what Caddy is for. It redirects the URL you enter above to the right instance and port. 
+          Beware: you're still responsible for pointing that URL's DNS at this
+          host; you will most likely need your own DNS server for this (like AdGuard Home or Pi-hole).
         </p>
         <div className="mt-3 flex items-center justify-between gap-3">
           <span className="text-sm text-slate-700 dark:text-slate-300">Publish instances through Caddy</span>

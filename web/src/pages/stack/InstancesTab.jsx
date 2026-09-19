@@ -128,18 +128,18 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
 function ConnectInfo({ instances }) {
   return (
     <div className="rounded-xl border border-accent-200 bg-accent-50 px-4 py-3 text-xs text-accent-800 dark:border-accent-900/50 dark:bg-accent-900/20 dark:text-accent-300">
-      <p className="text-sm font-medium">Point your IPTV client at one of these</p>
+      <p className="text-sm font-medium">Point your IPTV client at these</p>
       <p className="mt-1 max-w-prose text-accent-700 dark:text-accent-400">
-        The internal URL only works from this host or your local network. The public URL — set per
-        instance in the setup wizard's External access step — is the one to hand to anyone
-        connecting from outside it.
+        The internal URL only works from this host or if you have access to your local network. 
+        The public URL is the one you use to set up on your mobile devices to be able to connect elsewhere.
+        If you have Caddy set up, then you can use the public URL within your local network as well.
       </p>
       <ul className="mt-2.5 flex flex-col gap-1.5">
         {instances.map((instance) => (
           <li key={instance.key}>
             <span className="font-medium">{instance.displayName}</span>
             <br />
-            Internal: <span className="font-mono">{instance.url}</span>
+            Internal: <span className="font-mono">&lt;Your Docker host's IP address or hostname&gt;:{instance.port}</span>
             {instance.publicBaseUrl && (
               <>
                 <br />
@@ -257,8 +257,7 @@ export default function InstancesTab({
           <div>
             <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Instances</h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              One per IPTV provider. Ports are allocated from {portBand?.first}–{portBand?.last}; the
-              address and API key are worked out for you.
+              Create one per IPTV provider. Ports are allocated from {portBand?.first}–{portBand?.last}.
             </p>
           </div>
           <Button tone="accent" onClick={toggleAdding} disabled={busy}>
@@ -268,7 +267,7 @@ export default function InstancesTab({
 
         {instances.length === 0 && !adding && (
           <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
-            No instances yet. Adding one creates its container, its database and its API key.
+            No instances yet. Adding one creates its container and its database automagically.
           </p>
         )}
 
@@ -297,7 +296,7 @@ export default function InstancesTab({
                       onClick={() => onPull(instance.key)}
                       disabled={busy}
                       aria-label="Check for updates"
-                      title="Pull this instance's own configured image tag and recreate only if it actually changed"
+                      title="Check and pull the latest version of this instance's configured image tag and recreate if it actually changed"
                       className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                     >
                       <IconRefresh className="h-4 w-4" />

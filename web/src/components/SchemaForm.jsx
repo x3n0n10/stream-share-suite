@@ -185,7 +185,6 @@ function renderControl(field, value, onChange, extra, componentKey) {
       <textarea
         className={`${FIELD} min-h-[88px] font-mono text-xs`}
         value={value ?? ""}
-        placeholder="KEY=VALUE"
         onChange={(e) => onChange(field.key, e.target.value)}
       />
     );
