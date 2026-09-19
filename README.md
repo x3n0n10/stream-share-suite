@@ -1,12 +1,43 @@
+<p align="center"><img src="web/public/logo.svg" alt="" width="96" height="96"></p>
+
 # StreamShare Suite
 
-One place to run a StreamShare stack: the instances, the VPN, the database, the
-reverse proxy and the recorder. This repository is being built in phases —
-see the phase plan below for what exists today and what is coming.
+One place to run a [StreamShare](https://github.com/x3n0n10/stream-share)
+stack: the instances, the VPN, the database and the reverse proxy — created,
+configured, monitored and updated from a single web UI instead of a
+hand-maintained compose file.
 
-## What works today (phase 0)
+[StreamShare](https://github.com/x3n0n10/stream-share) is the IPTV access
+management proxy this Suite deploys: it shares one provider account between
+many users. The Suite is the operations layer around it. See
+[Credits](#credits) for where StreamShare itself comes from.
 
-The operations dashboard, with three changes that everything later depends on:
+## Dashboard
+
+Everything is a page in the sidebar (collapsible to icons on wide screens; a
+drawer and bottom bar on phones):
+
+| Page | What it does |
+| --- | --- |
+| **Overview** | Live status of every instance: active streams and users, subscription status |
+| **Users** | Known sessions: who is connected, and what they are playing |
+| **History** | Searchable watch history across instances |
+| **Leaderboard** | Top users and titles by watch time |
+| **Instances** | Per-instance status and provider subscription detail |
+| **VOD search** | Search movies and series across every Xtream instance; copy the URL or start a download |
+| **Aliases** | Give a viewer that shows up as a bare IP address a friendly name |
+| **VPN** | gluetun status, reconnect, and the [VPN watchdog](#vpn-watchdog) |
+| **Setup wizard** | Guided first-time configuration, see [Setup wizard](#setup-wizard) |
+| **Stack** | Configure components and instances, review the plan, apply it |
+| **Settings** | Poll interval, admin password, and [backup and restore](#data-and-backups) |
+
+Pages with nothing to show are hidden until they are useful: History, Users,
+Leaderboard, VOD search and Aliases appear once an instance exists, and VPN
+appears once the VPN is switched on.
+
+## Security and configuration model
+
+Three decisions that everything else depends on:
 
 - **Configuration lives in a database, not environment variables.** Adding or
   editing an instance takes effect on the next poll. No compose edit, no
@@ -121,6 +152,11 @@ networks:
 ```
 
 ## Stack management
+
+The **Stack** page is two panes: tabs on the left — **Instances**,
+**Components** (gluetun, PostgreSQL, Caddy) and **Import** — and a persistent
+**Plan** panel on the right that always shows what applying would do. The
+divider between them is draggable, and its position is remembered.
 
 The Suite reconciles a component's desired configuration against what's
 actually running: save a configuration under **Stack**, and it renders a
@@ -257,6 +293,35 @@ succeeding against one that's already gone. The database itself is **kept**
 unless you tick the box and type the instance's name back, because a
 container is trivially rebuilt and watch history is not.
 
+### Instance settings
+
+An instance's form is grouped, and every group maps onto something
+stream-share itself can do:
+
+- **Provider** — **Xtream API** (unlocks VOD, series, EPG and subscription
+  status) or a plain **M3U playlist** for providers with no Xtream API. Picked
+  once per instance; the fields for the other kind are hidden.
+- **Access** — how your users sign in: a username and password, or **LDAP**
+  (server, base DN, bind DN and password, optional required group). The add
+  form also offers **Use my provider credentials**, which copies the Xtream
+  login as the instance's sign-in; the same action is available on an existing
+  instance to reset it back, since the Xtream password is never shown again.
+- **Addressing** — the public base URL Caddy publishes, and the timezone.
+- **Discord** — an optional bot per instance: token and admin role ID. Its API
+  address is computed from the public base URL, not typed twice.
+- **Caching** — VOD caching, live **catchup** buffering (how many hours to
+  keep), and the **cache location** on the host.
+- **Health check** — whether the [VPN watchdog](#vpn-watchdog) probes this
+  instance's provider, and with which channel. The channel is chosen by
+  searching provider channel names (with their category, since names repeat),
+  or by entering a stream ID directly.
+- **Error slates** — instead of a frozen picture or a dropped connection,
+  viewers see the reason on screen when the provider fails. Messages can be
+  overridden per HTTP status code or per connection failure (`UNREACHABLE`,
+  `TIMEOUT`, `DNS`, `TLS`), and the retry window is adjustable.
+- **Container** — image, container name, port and extra environment
+  variables (under Advanced).
+
 ### Caddy (reverse proxy)
 
 An optional reverse proxy that publishes an instance under a real hostname
@@ -283,16 +348,29 @@ network, not a shared one.
 
 ### Setup wizard
 
-A guided path through gluetun, PostgreSQL and your first instance, in that
-order, for a fresh install — reachable from the sidebar or linked from an
-empty stack plan. It doesn't do anything those components' own cards on the
-Stack page couldn't already do; it only sequences the three forms that
-matter most before anything else works and explains each one as it comes.
-Leaving it partway through and finishing configuration from Stack instead
-works exactly the same way — nothing about it is one-way, and it saves
-through the same API the rest of the page uses. The last step hands off to
-the stack plan to actually create the containers; nothing is created while
-you're still in the wizard.
+A guided path through a fresh install, built around your instances first and
+the infrastructure they need second — reachable from the sidebar, and where a
+freshly signed-in user with no instances lands. Steps, in order:
+
+1. **Port range** — the band instance ports are allocated from.
+2. **Instances** — one card per provider: Xtream API or M3U playlist, how
+   users sign in (including "use my provider credentials"), name and address.
+3. **Features** — VOD caching and live catchup buffering, with a cache
+   location per instance.
+4. **Database** — PostgreSQL run by the Suite, or an external server.
+5. **External access** — Caddy for a public hostname, and the Discord bot.
+6. **VPN** — gluetun on or off, with a searchable provider picker.
+7. **Health check** — a probe channel per instance for the VPN watchdog,
+   picked by searching channel names. Skipped when the VPN is off.
+8. **Done** — hands off to the Stack page's plan.
+
+Every step starts from what the server already has, so re-running the wizard
+edits existing configuration rather than creating new. It doesn't do anything
+the Stack page couldn't already do; it only sequences the forms that matter
+most and explains each one as it comes. Leaving partway through and finishing
+from Stack works exactly the same way — nothing about it is one-way, and it
+saves through the same API the rest of the page uses. Nothing is created in
+Docker while you're still in the wizard.
 
 ### Where component data lives
 
@@ -448,7 +526,7 @@ expect the plan to show the whole stack recreating when it flips.
 
 Reconnecting the tunnel when a provider blocks the current exit IP used to be
 the job of an external script, run as its own container alongside gluetun
-(see `examples/vpn-watchdog` in the `stream-share` repo). From this phase the
+(see `examples/vpn-watchdog` in the [`stream-share`](https://github.com/x3n0n10/stream-share) repo). From this phase the
 Suite absorbs that behaviour itself.
 
 Turn it on under the **VPN** page. It probes every instance with **Watch this
@@ -473,23 +551,22 @@ there's no "server reputation" tracked anywhere. A run's only trace is a job
 log, the same as a Stack apply's — useful to see what just happened, gone on
 its own after a while, never a record.
 
-Only Suite-managed instances have these fields — an instance added the old
-way (typed into Settings, from before phase 2b) has no schema-driven form at
-all and is simply never watched.
+Only Suite-managed instances have these fields — an instance that predates
+phase 2b, imported once from `INSTANCE_N_*` variables and never edited through
+the Stack page, has no schema-driven form at all and is simply never watched.
 
-One more thing this needed: the VPN page's own gluetun connection (Settings'
-URL/API key fields) and the Stack page's reconciler-managed gluetun container
-were, until now, two disconnected configurations — creating gluetun via the
-Stack page didn't make the VPN page (or a watchdog) able to reach it without
-also typing a matching URL into Settings by hand. Settings' URL/API key now
-only need to be set at all for an adopted/external gluetun with its own real
-authentication; left blank, it falls back to the Suite's own gluetun
+The VPN page's own gluetun connection and the Stack page's
+reconciler-managed gluetun container used to be two disconnected
+configurations. Now the VPN page falls back to the Suite's own gluetun
 container, using the API key the reconciler generated for it — gluetun's
 control server rejects every route without one configured. That key is
 generated once, the first time gluetun's form is saved with real values, and
 kept stable afterwards, same as an instance's own generated API key; a
 gluetun configured before this shipped needs one resave (open the Stack
-page's gluetun card and hit Save) to pick it up.
+page's gluetun card and hit Save) to pick it up. A gluetun the Suite did not
+create (adopted or external, with its own real authentication) is reached
+through `GLUETUN_URL` / `GLUETUN_API_KEY`, imported at first boot like the
+other legacy variables; the VPN page says so when neither is available.
 
 ## Data and backups
 
@@ -538,7 +615,8 @@ A component's `image` field is always a specific tag — `qmcgaw/gluetun:latest`
 `postgres:14-alpine`, whatever you've set. Most of those tags are mutable: the
 same tag can point at different content over time as the upstream project
 publishes new builds under it. Editing the field to a new tag already
-triggers a recreate on its own; what didn't exist before is a way to notice
+triggers a recreate on its own, and Apply pulls the new image first when the
+`image` value itself changed; what didn't exist before is a way to notice
 that the *same* tag now points at something newer.
 
 Each component's card (and each instance row) has a **Check for updates**
@@ -599,3 +677,19 @@ grant.
 ## Licence
 
 See [LICENSE](LICENSE).
+
+## Credits
+
+The Suite deploys and monitors [StreamShare](https://github.com/x3n0n10/stream-share),
+maintained by [x3n0n10](https://github.com/x3n0n10). StreamShare is a fork of
+[lucasduport/stream-share](https://github.com/lucasduport/stream-share) by
+**Lucas Duport**, whose hard work on the original project everything here
+builds on. Thank you, Lucas.
+
+---
+
+## Support
+
+If you find StreamShare Suite useful, consider supporting its development:
+
+[![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=7EL3L7PAWZCVW)
