@@ -130,7 +130,7 @@ function ConnectInfo({ instances }) {
     <div className="rounded-xl border border-accent-200 bg-accent-50 px-4 py-3 text-xs text-accent-800 dark:border-accent-900/50 dark:bg-accent-900/20 dark:text-accent-300">
       <p className="text-sm font-medium">Point your IPTV client at these</p>
       <p className="mt-1 max-w-prose text-accent-700 dark:text-accent-400">
-        The internal URL only works from this host or if you have acces to your local network. 
+        The internal URL only works from this host or if you have access to your local network. 
         The public URL is the one you use to set up on your mobile devices to be able to connect elsewhere.
         If you have Caddy set up, then you can use the public URL within your local network as well.
       </p>
