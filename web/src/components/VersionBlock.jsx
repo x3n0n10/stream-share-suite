@@ -18,6 +18,7 @@ function Row({ label, text, muted, running }) {
       <span className="flex min-w-0 items-center gap-1.5">
         {running !== undefined && (
           <span
+            title={running ? "running" : "not running"}
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${
               running ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-600"
             }`}

@@ -52,7 +52,7 @@ import { provisionInstance, deprovisionInstance } from "../reconcile/provisionin
 import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
-import { getVersions } from "../reconcile/versions.js";
+import { getVersions, invalidateVersions } from "../reconcile/versions.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -100,6 +100,10 @@ function startJob(res, label, work) {
     } catch (err) {
       appendLog(job, `Error: ${err.message}`);
       finishJob(job, err);
+    } finally {
+      // Whatever the job did, what is running may have changed: the sidebar's
+      // versions should reflect it on the next poll, not a minute later.
+      invalidateVersions();
     }
   })();
 }

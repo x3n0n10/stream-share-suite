@@ -125,12 +125,16 @@ every other stack route. Response:
   `instanceClient.js`, same shape as `fetchHealth`. Expects
   `{"version": "<string>"}`; anything else (404, non-JSON, timeout) is a miss
   and falls through to the image chain.
-- **Never throws and never blocks on one bad component.** Every lookup runs in
-  parallel with a 3 second timeout (`Promise.allSettled`); a failure only
-  degrades that row to its fallback.
+- **Never throws and never blocks on one bad component.** Rows are collected
+  in parallel. Within a row the lookups (container inspect, image inspect, the
+  component's own report) run one after another, each with its own 3 second
+  timeout, so a row is bounded by a few seconds. A failure only degrades that
+  row to its fallback.
 - **Cache:** the whole response is cached in memory for 60 seconds, with
   concurrent requests sharing one in-flight computation, so N browser tabs
-  polling do not multiply Docker and instance calls.
+  polling do not multiply Docker and instance calls. The cache is invalidated
+  when a background job (an apply) finishes, so the sidebar confirms new
+  versions on its next poll.
 
 ### stream-share endpoint contract (piece 1)
 

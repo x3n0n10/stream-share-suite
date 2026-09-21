@@ -8,6 +8,7 @@ import {
   imageVersion,
   collectVersions,
   getVersions,
+  invalidateVersions,
   _resetVersionsCache,
 } from "../src/reconcile/versions.js";
 
@@ -260,4 +261,59 @@ test("concurrent getVersions calls share one in-flight collection", async () => 
   await Promise.all([a, b]);
 
   assert.equal(calls, 1);
+});
+
+test("invalidateVersions makes the next call collect again inside the TTL", async () => {
+  let calls = 0;
+  const collect = async () => ({ suite: { version: `v${++calls}` }, components: [] });
+  const opts = { collect, now: () => 1_000 };
+
+  await getVersions({}, opts);
+  invalidateVersions();
+  const again = await getVersions({}, opts);
+
+  assert.equal(calls, 2);
+  assert.equal(again.suite.version, "v2");
+});
+
+test("a collection that started before an invalidation does not cache its stale result", async () => {
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  let calls = 0;
+  const collect = async () => {
+    calls += 1;
+    if (calls === 1) await gate;
+    return { suite: { version: `v${calls}` }, components: [] };
+  };
+  const opts = { collect, now: () => 1_000 };
+
+  const stale = getVersions({}, opts);
+  invalidateVersions();
+  release();
+  await stale;
+
+  const fresh = await getVersions({}, opts);
+  assert.equal(calls, 2, "the stale result must not have been served from the cache");
+  assert.equal(fresh.suite.version, "v2");
+});
+
+test("a stopped container is not asked for its image", async () => {
+  let imageCalls = 0;
+  const lookups = {
+    inspectContainer: async () => ({ State: { Running: false }, Config: { Image: "x:1" }, Image: "sha256:aa" }),
+    inspectImage: async () => {
+      imageCalls += 1;
+      return null;
+    },
+    instanceVersion: async () => "1",
+    gluetunVersion: async () => "1",
+    postgresVersion: async () => "1",
+  };
+  const inst = { id: "p1", name: "P1", url: "http://x", apiKey: "k", containerName: "c" };
+  const out = await collectVersions(
+    { instances: [inst], components: [], gluetun: null, postgres: null, suiteVersion: "1" },
+    lookups
+  );
+  assert.equal(out.components[0].status, "stopped");
+  assert.equal(imageCalls, 0);
 });

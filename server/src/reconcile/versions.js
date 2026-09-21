@@ -84,6 +84,8 @@ async function containerFacts(lookups, containerName, timeoutMs) {
   if (!info) return { status: "unknown", fallback: NO_VERSION };
 
   const status = info.State?.Running ? "running" : "stopped";
+  if (status === "stopped") return { status, fallback: NO_VERSION };
+
   const image = await attempt(() => withTimeout(lookups.inspectImage(info.Image), timeoutMs));
   const fallback = imageVersion({
     labels: image?.Config?.Labels,
@@ -172,11 +174,19 @@ export function versionsInput(config) {
 
 let cached = null;
 let inflight = null;
+let generation = 0;
 
-export function _resetVersionsCache() {
+// Called when something that changes what is running finishes (an apply), so
+// the sidebar confirms the new versions instead of serving the last minute's.
+// The generation stops a collection that started before the change from
+// caching its now-stale result.
+export function invalidateVersions() {
+  generation += 1;
   cached = null;
   inflight = null;
 }
+
+export { invalidateVersions as _resetVersionsCache };
 
 // One collection per minute however many tabs are polling; concurrent callers
 // share the one already in flight.
@@ -184,15 +194,17 @@ export function getVersions(config, { collect = () => collectVersions(versionsIn
   if (cached && now() - cached.at < CACHE_TTL_MS) return Promise.resolve(cached.value);
 
   if (!inflight) {
-    inflight = Promise.resolve()
+    const started = generation;
+    const run = Promise.resolve()
       .then(() => collect())
       .then((value) => {
-        cached = { at: now(), value };
+        if (generation === started) cached = { at: now(), value };
         return value;
       })
       .finally(() => {
-        inflight = null;
+        if (inflight === run) inflight = null;
       });
+    inflight = run;
   }
   return inflight;
 }
