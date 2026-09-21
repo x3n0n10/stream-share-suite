@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
 
+# Least privilege by default. The test job runs npm lifecycle scripts from the
+# whole dependency tree and needs no write scope; publish opts in below.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test
@@ -46,7 +51,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          # GITHUB_TOKEN is minted per run and never expires. The job's
+          # GITHUB_TOKEN is minted per job; no PAT is needed. The job's
           # packages: write permission is what lets it push to GHCR.
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,6 +84,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # A re-run after a partial failure finds the Release already made.
+          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; nothing to do."
+            exit 0
+          fi
           flags=""
           case "$GITHUB_REF_NAME" in
             *-*) flags="--prerelease" ;;
