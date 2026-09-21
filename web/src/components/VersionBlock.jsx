@@ -43,14 +43,17 @@ export default function VersionBlock() {
   if (!data) return null;
 
   return (
-    <div className="px-4 pt-4">
-      <div className="rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/50">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+    // The nav above never shrinks below its content, so this block is what
+    // gives up height on a short screen (min-h-0 + a scrolling list) rather
+    // than pushing Sign out off the bottom.
+    <div className="flex min-h-0 shrink flex-col px-3 pt-4">
+      <div className="flex min-h-0 flex-col rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/50">
+        <p className="mb-2 shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
           Versions
         </p>
-        <ul className="max-h-40 space-y-1 overflow-y-auto">
-          <Row label="Suite" text={data.suite.version} muted={false} />
-          {data.components.map((row) => {
+        <ul className="min-h-0 max-h-40 space-y-1 overflow-y-auto">
+          <Row label="Suite" text={data.suite.version || "unknown"} muted={!data.suite.version} />
+          {(data.components ?? []).map((row) => {
             const { text, muted } = versionText(row);
             return (
               <Row
