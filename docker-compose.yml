@@ -1,8 +1,9 @@
 services:
   suite:
-    build: .
-    # Or use a published image once one exists:
-    #   image: ghcr.io/x3n0n10/stream-share-suite:latest
+    image: ghcr.io/x3n0n10/stream-share-suite:latest
+    # To build from source instead of pulling the published image, replace the
+    # line above with:
+    #   build: .
     container_name: stream-share-suite
     restart: unless-stopped
 

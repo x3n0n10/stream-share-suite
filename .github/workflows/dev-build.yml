@@ -1,0 +1,54 @@
+name: Dev Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: 'Push image to GHCR (untick to only verify the build)'
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        if: inputs.push_image
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # :dev always points at the latest dev build; :dev-<shortsha> pins one.
+      - name: Compute tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/x3n0n10/stream-share-suite
+          tags: |
+            type=raw,value=dev
+            type=sha,prefix=dev-,format=short
+
+      # With push_image off a multi-arch build cannot be loaded into the local
+      # daemon, so it just builds (proving the Dockerfile works on both
+      # platforms) and discards the result.
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ inputs.push_image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

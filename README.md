@@ -58,6 +58,12 @@ status/reconnect through gluetun's control server.
 docker compose up -d
 ```
 
+Compose pulls the published image, `ghcr.io/x3n0n10/stream-share-suite:latest`
+(amd64 and arm64). To stay on a release line instead of following `latest`, pin
+the tag in the compose file: `:1.0.0` for one exact release, `:1.0` for patch
+updates only, `:1` for any 1.x. To build from source instead, swap in the
+commented `build: .` line.
+
 Then open `http://localhost:3000` and create the admin account. Nothing else
 in the app answers until that account exists.
 
