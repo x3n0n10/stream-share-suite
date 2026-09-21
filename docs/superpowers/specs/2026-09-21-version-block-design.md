@@ -69,9 +69,9 @@ image chain.
 - `.github/workflows/cd.yml`, the `Build and push` step: add
   `build-args: APP_VERSION=${{ steps.meta.outputs.version }}` (for `v1.0.0`
   metadata-action's `version` output is `1.0.0`).
-- `.github/workflows/dev-build.yml`: add a step that writes
+- `.github/workflows/dev-build.yml`: add a step with `id: sha` that writes
   `short=${GITHUB_SHA::7}` to `$GITHUB_OUTPUT`, and pass
-  `build-args: APP_VERSION=dev-${{ steps.<id>.outputs.short }}`.
+  `build-args: APP_VERSION=dev-${{ steps.sha.outputs.short }}`.
 - A local `docker build` or `docker compose build` with no argument reports
   `dev`.
 - The server reads `process.env.SUITE_VERSION` and reports `dev` if unset (plain
