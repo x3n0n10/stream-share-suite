@@ -52,6 +52,7 @@ import { provisionInstance, deprovisionInstance } from "../reconcile/provisionin
 import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
+import { getVersions } from "../reconcile/versions.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -115,6 +116,17 @@ export function createStackRouter() {
       reachable = false;
     }
     res.json({ reachable });
+  });
+
+  // What each active component is running, for the sidebar's version block. A
+  // lookup that fails only degrades its own row, so this answers even with
+  // Docker down; the guard is because Express 4 does not catch async throws.
+  router.get("/versions", async (req, res) => {
+    try {
+      res.json(await getVersions(req.config));
+    } catch (err) {
+      res.status(500).json({ error: `Could not read versions: ${err.message}` });
+    }
   });
 
   // Stack-wide settings. The VPN toggle and the instance port range start are
