@@ -29,6 +29,10 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Short commit SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       # :dev always points at the latest dev build; :dev-<shortsha> pins one.
       - name: Compute tags and labels
         id: meta
@@ -52,3 +56,4 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: APP_VERSION=dev-${{ steps.sha.outputs.short }}
