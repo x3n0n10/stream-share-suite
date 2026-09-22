@@ -241,7 +241,7 @@ export async function fetchVersion(instance, { timeoutMs }) {
       throw new InstanceError(`Non-JSON response (HTTP ${res.status})`, res.status);
     }
 
-    const version = typeof body?.version === "string" ? body.version.trim() : "";
+    const version = typeof body?.data?.version === "string" ? body.data.version.trim() : "";
     if (!version) throw new InstanceError("Response carried no version", 502);
     return version;
   } catch (err) {

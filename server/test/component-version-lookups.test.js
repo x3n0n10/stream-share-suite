@@ -27,7 +27,7 @@ after(() => server.close());
 const base = () => `http://127.0.0.1:${server.address().port}`;
 
 test("fetchVersion returns the trimmed version and sends the API key to the right path", async () => {
-  next = { status: 200, body: { version: " 1.4.2 " } };
+  next = { status: 200, body: { success: true, data: { version: " 1.4.2 " } } };
   const version = await fetchVersion({ url: base(), apiKey: "secret" }, { timeoutMs: 2000 });
   assert.equal(version, "1.4.2");
   assert.equal(seen.url, "/api/internal/version");
@@ -42,11 +42,14 @@ test("fetchVersion throws an InstanceError carrying the status on a 404", async 
   );
 });
 
-test("fetchVersion throws when the body has no usable version", async () => {
-  next = { status: 200, body: { version: "   " } };
+test("fetchVersion throws when the response carries no usable version", async () => {
+  next = { status: 200, body: { success: true, data: { version: "   " } } };
   await assert.rejects(() => fetchVersion({ url: base(), apiKey: "k" }, { timeoutMs: 2000 }), InstanceError);
 
-  next = { status: 200, body: { other: 1 } };
+  next = { status: 200, body: { success: true, data: {} } };
+  await assert.rejects(() => fetchVersion({ url: base(), apiKey: "k" }, { timeoutMs: 2000 }), InstanceError);
+
+  next = { status: 200, body: { success: true } };
   await assert.rejects(() => fetchVersion({ url: base(), apiKey: "k" }, { timeoutMs: 2000 }), InstanceError);
 });
 
