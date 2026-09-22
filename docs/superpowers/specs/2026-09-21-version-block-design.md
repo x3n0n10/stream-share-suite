@@ -123,8 +123,10 @@ every other stack route. Response:
   and auth headers.
 - Instances: a new `fetchVersion(instance, { timeoutMs })` in
   `instanceClient.js`, same shape as `fetchHealth`. Expects
-  `{"version": "<string>"}`; anything else (404, non-JSON, timeout) is a miss
-  and falls through to the image chain.
+  `{"success": true, "data": {"version": "<string>"}}` — the same envelope
+  every `/api/internal/*` route uses — and reads `data.version`; anything
+  else (404, non-JSON, no usable version, timeout) is a miss and falls
+  through to the image chain.
 - **Never throws and never blocks on one bad component.** Rows are collected
   in parallel. Within a row the lookups (container inspect, image inspect, the
   component's own report) run one after another, each with its own 3 second
@@ -139,10 +141,13 @@ every other stack route. Response:
 ### stream-share endpoint contract (piece 1)
 
 `GET /api/internal/version`, authenticated like every other `/api/internal/*`
-route (`X-API-Key`), returning `{"version": "<string>"}`. The version is set
-at build time via `-ldflags "-X main.version=..."` from the GoReleaser
+route (`X-API-Key`), returning the house envelope
+`{"success": true, "data": {"version": "<string>"}}` (shipped as
+x3n0n10/stream-share#58, `pkg/version.Version`). The version is set at build
+time via `-ldflags "-X .../pkg/version.Version=..."` from the GoReleaser
 `{{.Version}}`; unstamped builds report `dev`. The Suite treats a missing
-endpoint as a miss, so the two pieces can ship in either order.
+endpoint, or a response with no usable `data.version`, as a miss, so the two
+pieces can ship in either order.
 
 ## Frontend
 
