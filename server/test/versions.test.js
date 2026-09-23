@@ -10,6 +10,7 @@ import {
   getVersions,
   invalidateVersions,
   _resetVersionsCache,
+  resolveSuiteVersion,
 } from "../src/reconcile/versions.js";
 
 const LABEL = "org.opencontainers.image.version";
@@ -316,4 +317,29 @@ test("a stopped container is not asked for its image", async () => {
   );
   assert.equal(out.components[0].status, "stopped");
   assert.equal(imageCalls, 0);
+});
+
+// ---- resolveSuiteVersion -------------------------------------------------
+
+test("resolveSuiteVersion uses SUITE_VERSION when set, without asking git", () => {
+  let called = false;
+  const version = resolveSuiteVersion({
+    env: { SUITE_VERSION: "1.2.3" },
+    describe: () => {
+      called = true;
+      return "should not matter";
+    },
+  });
+  assert.equal(version, "1.2.3");
+  assert.equal(called, false);
+});
+
+test("resolveSuiteVersion falls back to the nearest git tag when SUITE_VERSION is unset", () => {
+  const version = resolveSuiteVersion({ env: {}, describe: () => "v1.0.0-3-gabc1234" });
+  assert.equal(version, "v1.0.0-3-gabc1234");
+});
+
+test("resolveSuiteVersion falls back to dev when SUITE_VERSION is unset and there is no git repo", () => {
+  const version = resolveSuiteVersion({ env: {}, describe: () => null });
+  assert.equal(version, "dev");
 });

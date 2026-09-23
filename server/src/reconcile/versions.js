@@ -5,6 +5,9 @@
 // Nothing here may fail the request or hold it up: every lookup is bounded by
 // its own timeout and a miss only degrades that one row.
 
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { activeComponents } from "./catalog.js";
 import { getComponentValues } from "../store/components.js";
 import { connectionTarget, isManaged } from "./postgres.js";
@@ -12,6 +15,33 @@ import { inspectContainer, inspectImage } from "../docker/client.js";
 import { fetchVersion } from "../instanceClient.js";
 import { getVersion as getGluetunVersion } from "../gluetunClient.js";
 import { serverVersion } from "./database.js";
+
+// server/src/reconcile/ -> repo root. A released image has no .git (it isn't
+// copied into the build) and always carries SUITE_VERSION anyway, so this
+// only ever runs for a checkout the operator is actually building or running
+// from directly — where "dev" alone says nothing a commit doesn't already.
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+
+function localGitVersion() {
+  try {
+    const out = execFileSync("git", ["-C", REPO_ROOT, "describe", "--tags", "--always", "--dirty"], {
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: 2000,
+    })
+      .toString()
+      .trim();
+    return out || null;
+  } catch {
+    return null;
+  }
+}
+
+// SUITE_VERSION wins when it's set (every built image carries it). Otherwise
+// this is a source checkout without it — fall back to the nearest git tag
+// rather than the uninformative literal "dev".
+export function resolveSuiteVersion({ env = process.env, describe = localGitVersion } = {}) {
+  return env.SUITE_VERSION || describe() || "dev";
+}
 
 const LOOKUP_TIMEOUT_MS = 3000;
 const CACHE_TTL_MS = 60_000;
@@ -168,7 +198,7 @@ export function versionsInput(config) {
     components,
     gluetun: config.gluetun || null,
     postgres,
-    suiteVersion: process.env.SUITE_VERSION || "dev",
+    suiteVersion: resolveSuiteVersion(),
   };
 }
 
