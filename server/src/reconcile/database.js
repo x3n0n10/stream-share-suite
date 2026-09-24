@@ -50,6 +50,20 @@ async function withAdminClient(target, fn) {
   }
 }
 
+// SHOW server_version returns e.g. "16.4 (Debian 16.4-1.pgdg120+1)"; the
+// distro suffix is noise in a sidebar.
+export function parseServerVersion(raw) {
+  const match = /^\d+(?:\.\d+)*/.exec(String(raw ?? "").trim());
+  return match ? match[0] : null;
+}
+
+export async function serverVersion(target) {
+  return withAdminClient(target, async (client) => {
+    const result = await client.query("SHOW server_version");
+    return parseServerVersion(result.rows[0]?.server_version);
+  });
+}
+
 // Identifiers cannot be parameterised in Postgres, so they are quoted rather
 // than interpolated raw. Everything here is derived from a slug we generated,
 // but quoting is what makes that a property of the code rather than of the
