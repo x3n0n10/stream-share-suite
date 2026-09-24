@@ -426,6 +426,26 @@ export async function applyStack(plans, { log = () => {} } = {}) {
     await stopContainer(orphanedGluetun.containerId, { timeoutSeconds: 30 });
   }
 
+  // The mirror image of the case above: turning the VPN back ON brings
+  // gluetun back (see planComponent's stoppedOutsideSuite branch, or a plain
+  // config change), and once up it re-takes every instance's port for itself
+  // (see gluetun.js's instancePorts()). An instance still running from while
+  // the VPN was off is bound directly to that same port — graph.js's
+  // applyCascade already marked it to recreate in this same apply, but
+  // gluetun is ordered first, so gluetun's own create fails with "port is
+  // already allocated" until that instance lets go. Stopping it here, before
+  // gluetun is applied, is what makes turning the VPN back on work in one
+  // apply too.
+  const gluetunPlan = plans.find((plan) => plan.kind === "gluetun" && APPLIES.has(plan.action));
+  if (gluetunPlan) {
+    for (const plan of plans) {
+      if (plan.cascadedFrom === gluetunPlan.id && plan.runtime?.status === "running") {
+        log(`${plan.label} is still running and holding its own port — stopping it before ${gluetunPlan.label} comes back.`);
+        await stopContainer(plan.containerId, { timeoutSeconds: 30 });
+      }
+    }
+  }
+
   let done = 0;
   for (const plan of actionable) {
     done += 1;
