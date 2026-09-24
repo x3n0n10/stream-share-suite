@@ -606,3 +606,128 @@ test("applyStack does nothing extra when there is no orphaned gluetun in the pla
 
   assert.ok(containers.get("streamshare-suite-tivi-3"), "the instance should still have been created normally");
 });
+
+// --- applyStack: freeing an instance's own port when the VPN is switched back on ------
+//
+// The mirror image of the pass above. Turning the VPN back on makes gluetun
+// itself come back (recreate), and once up it re-takes every instance's port
+// for itself (see reconcile/gluetun.js's instancePorts()). An instance still
+// running from while the VPN was off is bound directly to that same port —
+// even though graph.js's applyCascade already marked it to recreate in this
+// same apply — and gluetun is ordered first, so gluetun's own create fails
+// with "port is already allocated" until that instance lets go. Stopping the
+// cascaded instance's old container before gluetun is applied is what makes
+// turning the VPN back on work in one apply too.
+
+test("applyStack stops a still-running instance cascading from gluetun before gluetun is recreated", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "gluetun-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "whatever-hash") },
+    running: false,
+  });
+  containers.set("streamshare-suite-tivi", {
+    Id: "tivi-id",
+    name: "streamshare-suite-tivi",
+    Config: { Labels: managedLabels("instance", "whatever-hash", "tivi") },
+    running: true,
+  });
+
+  const gluetunPlan = {
+    id: "gluetun",
+    kind: "gluetun",
+    key: "",
+    label: "Gluetun (VPN)",
+    action: "recreate",
+    containerId: "gluetun-id",
+    spec: SPEC,
+    desiredHash: computeSpecHash(SPEC),
+    stoppedOutsideSuite: true,
+    runtime: { status: "exited", health: null, restartCount: null, image: null },
+  };
+  const instancePlan = {
+    id: "instance:tivi",
+    kind: "instance",
+    key: "tivi",
+    label: "Tivi",
+    action: "recreate",
+    cascadedFrom: "gluetun",
+    containerId: "tivi-id",
+    spec: TIVI_SPEC,
+    desiredHash: computeSpecHash(TIVI_SPEC),
+    runtime: { status: "running", health: null, restartCount: null, image: null },
+  };
+
+  const { log, lines } = collectLog();
+  await applyStack([gluetunPlan, instancePlan], { log });
+
+  const order = requests.map((r) => `${r.method} ${r.path}`);
+  const tiviStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/tivi-id/stop");
+  const gluetunCreateIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
+  assert.ok(tiviStopIdx >= 0, "expected the still-running instance to be stopped");
+  assert.ok(gluetunCreateIdx > tiviStopIdx, "the instance must let go of its port before gluetun is created");
+  assert.ok(lines.some((l) => /tivi/i.test(l) && /stop/i.test(l)));
+});
+
+test("applyStack does not try to stop a cascaded instance that is already stopped", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "gluetun-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "whatever-hash") },
+    running: false,
+  });
+  containers.set("streamshare-suite-tivi", {
+    Id: "tivi-id",
+    name: "streamshare-suite-tivi",
+    Config: { Labels: managedLabels("instance", "whatever-hash", "tivi") },
+    running: false,
+  });
+
+  const gluetunPlan = {
+    id: "gluetun",
+    kind: "gluetun",
+    key: "",
+    label: "Gluetun (VPN)",
+    action: "recreate",
+    containerId: "gluetun-id",
+    spec: SPEC,
+    desiredHash: computeSpecHash(SPEC),
+    stoppedOutsideSuite: true,
+    runtime: { status: "exited", health: null, restartCount: null, image: null },
+  };
+  const instancePlan = {
+    id: "instance:tivi",
+    kind: "instance",
+    key: "tivi",
+    label: "Tivi",
+    action: "recreate",
+    cascadedFrom: "gluetun",
+    containerId: "tivi-id",
+    spec: TIVI_SPEC,
+    desiredHash: computeSpecHash(TIVI_SPEC),
+    runtime: { status: "exited", health: null, restartCount: null, image: null },
+  };
+
+  const { log } = collectLog();
+  await applyStack([gluetunPlan, instancePlan], { log });
+
+  // The instance's own recreate step still stops it in its normal turn — the
+  // point is that nothing stops it early, before gluetun even gets a chance
+  // to create.
+  const order = requests.map((r) => `${r.method} ${r.path}`);
+  const tiviStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/tivi-id/stop");
+  const gluetunCreateIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
+  assert.ok(gluetunCreateIdx < tiviStopIdx, "an already-stopped instance must not be stopped again before gluetun");
+});
+
+test("applyStack does nothing extra when gluetun is not create/recreate", async () => {
+  const instancePlan = await planComponent(
+    { id: "instance:tivi", kind: "instance", key: "tivi", label: "Tivi", namespaceHost: null },
+    { ...TIVI_SPEC, name: "streamshare-suite-tivi-4" }
+  );
+
+  const { log } = collectLog();
+  await applyStack([instancePlan], { log });
+
+  assert.ok(containers.get("streamshare-suite-tivi-4"), "the instance should still have been created normally");
+});
