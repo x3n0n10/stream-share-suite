@@ -98,6 +98,21 @@ export async function planComponent(node, spec) {
   }
 
   if (labels[LABEL_SPEC_HASH] === desiredHash) {
+    // A hash match alone isn't "fine" if the container isn't actually
+    // running — stopped outside the Suite (or, see applyStack, by the Suite
+    // itself freeing a port an orphaned gluetun was holding). Recreating
+    // reuses the exact same stop/remove/create/start sequence a real config
+    // change already goes through, rather than a separate "start" action.
+    if (existing.State?.Status && existing.State.Status !== "running") {
+      return {
+        ...base,
+        action: "recreate",
+        reason: "Stopped outside the Suite — starting it back up",
+        containerId: existing.Id,
+        previousHash: labels[LABEL_SPEC_HASH],
+        stoppedOutsideSuite: true,
+      };
+    }
     return {
       ...base,
       action: "noop",
@@ -297,6 +312,8 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   if (action === "recreate") {
     const why = plan.cascadedFrom
       ? `${plan.cascadedFrom} was replaced, taking its network namespace with it`
+      : plan.stoppedOutsideSuite
+      ? "it was stopped outside the Suite"
       : `configuration changed (${(plan.previousHash || "").slice(0, 12)} -> ${desiredHash.slice(0, 12)})`;
     log(`Recreating "${spec.name}" — ${why}.`);
     log("Stopping the current container...");
@@ -392,6 +409,21 @@ export async function applyStack(plans, { log = () => {} } = {}) {
   if (actionable.length === 0) {
     log("Nothing to apply — the stack already matches its configuration.");
     return;
+  }
+
+  // Gluetun publishes every instance's port on their behalf while the VPN is
+  // on (see reconcile/gluetun.js's instancePorts()). Switching the VPN off
+  // makes gluetun orphaned rather than removed — orphans are never removed
+  // automatically — but an instance recreating in the same apply to
+  // self-publish that same port would fail with "port is already allocated"
+  // as long as the orphaned container is still holding it. Stopping it here
+  // (never removing it) is what lets that instance bind the port it needs;
+  // the orphan row itself is untouched, still there for the operator to
+  // remove explicitly whenever they choose to.
+  const orphanedGluetun = plans.find((plan) => plan.kind === "gluetun" && plan.action === "orphaned");
+  if (orphanedGluetun?.runtime?.status === "running") {
+    log("Gluetun was just switched off but is still running and holding every instance's port — stopping it first.");
+    await stopContainer(orphanedGluetun.containerId, { timeoutSeconds: 30 });
   }
 
   let done = 0;
