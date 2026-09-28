@@ -373,7 +373,7 @@ environment; the Caddyfile only ever contains an `{env.NAME}` placeholder.
 
 DNS providers are Caddy plugins, and the stock `caddy:2-alpine` image has none,
 so the Suite adds the plugin for you with Caddy's own `caddy add-package`, for
-the provider's module (Hetzner `github.com/caddy-dns/hetzner/v2`, Cloudflare
+the provider's module (Hetzner `github.com/caddy-dns/hetzner`, Cloudflare
 `github.com/caddy-dns/cloudflare`, or the **Caddy module** you enter for a
 Custom provider, e.g. `github.com/caddy-dns/porkbun`). The build is downloaded
 when a Caddy container first starts, and again after an image upgrade or a

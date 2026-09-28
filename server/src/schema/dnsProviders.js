@@ -15,7 +15,13 @@ export const DNS_PROVIDERS = {
     label: "Hetzner",
     directive: "hetzner {env.HETZNER_API_TOKEN}",
     tokenEnv: "HETZNER_API_TOKEN",
-    module: "github.com/caddy-dns/hetzner/v2",
+    // Not /v2, even though that's the module's real go.mod path (and what
+    // xcaddy build --with wants): Caddy's add-package download service keys
+    // its package registry on the base repo path and resolves the version —
+    // including this major bump — through @version instead. Confirmed
+    // against the registry (caddyserver.com/api/packages): the hetzner entry
+    // is registered at this exact path, and add-package 400s on ".../v2".
+    module: "github.com/caddy-dns/hetzner",
   },
   cloudflare: {
     label: "Cloudflare",

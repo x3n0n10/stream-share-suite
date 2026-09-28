@@ -10,7 +10,8 @@ Let the Caddy component obtain HTTPS certificates with the ACME **DNS challenge*
 - Providers come from a **small data table plus a "Custom" entry**. The table is a convenience: a custom entry (module path, directive, environment variables) covers every provider in Caddy's download list.
 - The provider token reaches Caddy **only through the container's environment**. The Caddyfile on disk contains the `{env.NAME}` placeholder, never the token.
 - Per-site `tls { dns ... }`, not the global `acme_dns` option: the per-site block also carries `propagation_delay`, which Hetzner's own README recommends.
-- Verified against the `caddy-dns/hetzner` README: the current module is `github.com/caddy-dns/hetzner/v2`, the directive is `dns hetzner <token>` (a literal token or `{env.NAME}`), and `propagation_delay` sits beside `dns` inside `tls { }`.
+- Verified against the `caddy-dns/hetzner` README: the directive is `dns hetzner <token>` (a literal token or `{env.NAME}`), and `propagation_delay` sits beside `dns` inside `tls { }`.
+- The plugin's real go.mod module path is `github.com/caddy-dns/hetzner/v2` (what `xcaddy build --with` wants), but `caddy add-package`'s download service registers it under the base path `github.com/caddy-dns/hetzner` with no `/v2` and resolves the version via `@version` instead — confirmed against the live registry (`caddyserver.com/api/packages`) after `add-package` 400'd on the `/v2` form in a real deployment. The provider table uses the registry path.
 - Verified against Caddy's documentation: `caddy add-package <packages...>` replaces the current binary with one that has the same modules plus the listed packages, backs the binary up first and restores it on failure, needs write permission on the binary (the official image runs as root), and is marked **experimental**.
 
 ## Design
@@ -21,7 +22,7 @@ Let the Caddy component obtain HTTPS certificates with the ACME **DNS challenge*
 
 ```js
 export const DNS_PROVIDERS = {
-  hetzner:    { label: "Hetzner",    directive: "hetzner {env.HETZNER_API_TOKEN}",       tokenEnv: "HETZNER_API_TOKEN",    module: "github.com/caddy-dns/hetzner/v2" },
+  hetzner:    { label: "Hetzner",    directive: "hetzner {env.HETZNER_API_TOKEN}",       tokenEnv: "HETZNER_API_TOKEN",    module: "github.com/caddy-dns/hetzner" },
   cloudflare: { label: "Cloudflare", directive: "cloudflare {env.CLOUDFLARE_API_TOKEN}", tokenEnv: "CLOUDFLARE_API_TOKEN", module: "github.com/caddy-dns/cloudflare" },
 };
 ```
