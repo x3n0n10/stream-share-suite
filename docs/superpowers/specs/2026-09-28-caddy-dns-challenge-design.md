@@ -2,21 +2,22 @@
 
 ## Goal
 
-Let the Caddy component obtain HTTPS certificates with the ACME **DNS challenge**, so hostnames can be certified without ports 80/443 being reachable from the internet, for a table of known DNS providers (starting with Hetzner and Cloudflare) and for any other provider through a custom entry.
+Let the Caddy component obtain HTTPS certificates with the ACME **DNS challenge**, so hostnames can be certified without ports 80/443 being reachable from the internet, for a table of known DNS providers (starting with Hetzner and Cloudflare) and for any other provider Caddy can download a plugin for, through a custom entry. The Suite takes care of getting the plugin into Caddy; the operator never builds or pushes an image.
 
 ## Decisions
 
-- The Caddy image stays **operator-supplied**. DNS providers are Caddy plugins that the stock `caddy:2-alpine` image (the default) does not contain, and the Suite can pull images but not build them (the socket proxy has no build permission). The existing `Image` field remains the one place to say which Caddy build to run. The Suite does not publish or default to any plugin image.
-- Providers come from a **small data table plus a "Custom" entry**. Adding a provider later is one table row.
+- **The Suite adds the plugin when Caddy starts**, using Caddy's own `caddy add-package` (which replaces the running binary on disk with a build from Caddy's official download service that includes the extra packages). The stock `caddy:2-alpine` image stays the default and works in DNS mode. Publishing or building a plugin image is out of scope. (An earlier revision of this design made the image operator-supplied; that did not fit the Suite's "I'll take care of it" character, and a fixed published image could not cover every provider.)
+- Providers come from a **small data table plus a "Custom" entry**. The table is a convenience: a custom entry (module path, directive, environment variables) covers every provider in Caddy's download list.
 - The provider token reaches Caddy **only through the container's environment**. The Caddyfile on disk contains the `{env.NAME}` placeholder, never the token.
 - Per-site `tls { dns ... }`, not the global `acme_dns` option: the per-site block also carries `propagation_delay`, which Hetzner's own README recommends.
 - Verified against the `caddy-dns/hetzner` README: the current module is `github.com/caddy-dns/hetzner/v2`, the directive is `dns hetzner <token>` (a literal token or `{env.NAME}`), and `propagation_delay` sits beside `dns` inside `tls { }`.
+- Verified against Caddy's documentation: `caddy add-package <packages...>` replaces the current binary with one that has the same modules plus the listed packages, backs the binary up first and restores it on failure, needs write permission on the binary (the official image runs as root), and is marked **experimental**.
 
 ## Design
 
 ### Provider table
 
-New data file `server/src/schema/dnsProviders.js`:
+`server/src/schema/dnsProviders.js`:
 
 ```js
 export const DNS_PROVIDERS = {
@@ -25,67 +26,54 @@ export const DNS_PROVIDERS = {
 };
 ```
 
-`directive` is the text after `dns`; `tokenEnv` is the environment variable the directive references; `module` is the xcaddy module path (documentation only).
+`module` is now functional, not documentation: it is what gets added to Caddy. The file also exports `MODULE_PATH`, a strict pattern for a Go package path with an optional `@version` suffix (letters, digits, `.`, `_`, `~`, `-`, `/` separators, `@` version). Anything with a space, quote, `;`, `$` or backtick fails it.
 
 ### Schema (`schema/caddy.js`)
 
-- `tlsMode` gains a third option, `dns`, labelled "Automatic (DNS challenge)". Its help text gains one sentence saying the DNS challenge needs no inbound ports and needs a Caddy image with the provider's plugin.
-- `acmeEmail` is required for both `acme` and `dns` (`dependsOn: { key: "tlsMode", oneOf: ["acme", "dns"] }`).
-- New group "DNS challenge", every field visible only when `tlsMode` is `dns`:
-  - `dnsProvider`: `select` over the table's ids plus `custom`, required, default `hetzner`. Help text lists each table provider's module path.
-  - `dnsApiToken`: secret, required, only when `dnsProvider` is a table id.
-  - `dnsDirective`: required, only when `dnsProvider` is `custom`. The text after `dns`, for example `porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}`.
-  - `dnsEnv`: secret textarea, optional, only when `dnsProvider` is `custom`. `KEY=VALUE` per line, parsed with the existing `parseExtraEnv`.
-  - `dnsPropagationDelay`: advanced, optional. A Go duration such as `30s`. Blank means omitted.
+As already implemented for the DNS mode (`tlsMode` option `dns`, ACME email required for `acme` and `dns`, the provider select, secret token, custom directive, secret env lines, propagation delay), plus:
+
+- New field `dnsModule`, visible and required only when `tlsMode` is `dns` and `dnsProvider` is `custom`: "Caddy module", the Go package of the provider's Caddy plugin, e.g. `github.com/caddy-dns/porkbun` (an `@version` suffix is allowed).
+- Help texts no longer say the image must contain the plugin. `tlsMode`'s and `dnsProvider`'s help say Caddy adds the provider's plugin itself when it starts. The `image` help notes that an image that already includes the plugin skips the download.
+- The token-switching warning stays on the provider field (a secret field's own help is never rendered by the form).
+
+### Start command
+
+Container specs gain an optional `command` (array of strings), rendered as Docker's `Cmd`. It is part of the spec hash only when set, so no existing spec's hash changes.
+
+In DNS mode the Caddy spec's `command` is `["sh", "-c", CADDY_START_SCRIPT, "sh", ...modules]`. The modules are positional arguments, so validated module text is never interpolated into shell source. The script:
+
+1. For each module argument, checks whether the running binary already has it (`caddy list-modules --packages`, matching the package path without any `@version`).
+2. Runs `caddy add-package` once for the modules that are missing. A restart (the container filesystem keeps the replaced binary) and an image that already has the plugin therefore skip the download.
+3. If `add-package` fails, logs that the download service may be unreachable and exits non-zero, so Docker's restart policy retries and the reason is in the container log. It never starts Caddy without the plugin.
+4. `exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile`, the official image's own command.
+
+Outside DNS mode the spec has no `command`, and the container runs the image's default exactly as before.
 
 ### Rendering (`reconcile/caddy.js`)
 
-A helper `dnsChallenge(values)` returns `{ directive, env, propagationDelay }` or `null` when `tlsMode` is not `dns` or the provider is incomplete:
-
-- Table provider: `directive` from the table, `env` is `{ [tokenEnv]: values.dnsApiToken }`.
-- Custom: `directive` is `values.dnsDirective` with any newline replaced by a space so it stays one directive line; `env` is `parseExtraEnv(values.dnsEnv)`.
-- `propagationDelay` is used only when it matches a simple Go-duration pattern; anything else is ignored, like an unparseable URL elsewhere in this file.
-
-`renderCaddyfile`: in `dns` mode the global block gets the `email` line (as in `acme` mode) and every site block gets
-
-```
-	tls {
-		dns <directive>
-		propagation_delay <delay>   # only when set
-	}
-```
-
-in place of `tls internal`. `acme` mode is unchanged.
-
-`renderCaddySpec`: `spec.env` gains the challenge's `env`, after `CADDY_CONFIG_HASH` (which already covers the Caddyfile text). Env values are part of the spec hash, so changing the token recreates Caddy.
+`dnsChallenge(values)` additionally returns `modules`: the table provider's `module`, or the trimmed `dnsModule` for a custom provider. A custom provider whose `dnsModule` is empty or fails `MODULE_PATH` yields `null`, like a missing directive. `renderCaddyfile` is unchanged from the DNS-mode work. `renderCaddySpec` adds `command` when there is a challenge.
 
 ### Guard
 
-The Caddy catalog entry gets a `ready(values)` hook. When `tlsMode` is `dns` and the image is blank or still the stock default `caddy:2-alpine`, it returns "DNS challenge needs a Caddy image that includes your provider's plugin — set the Image field." The plan then shows the Caddy row as incomplete instead of applying a Caddy that cannot start.
+The `ready` hook on the Caddy catalog entry no longer checks the image. For a custom provider it reports "A custom DNS provider needs a directive." for a blank directive, and "A custom DNS provider needs a Caddy module such as github.com/caddy-dns/porkbun." for a missing or malformed module. Table providers and other modes are always ready.
 
 ### Docs
 
-README, in the Caddy section: the new HTTPS mode, the fields, and the standard xcaddy recipe for an image with a plugin:
-
-```dockerfile
-FROM caddy:builder AS builder
-RUN xcaddy build --with github.com/caddy-dns/hetzner/v2
-FROM caddy:2-alpine
-COPY --from=builder /usr/bin/caddy /usr/bin/caddy
-```
-
-with the module path per table provider, and a note that the token is stored write-only and is never written into the Caddyfile.
+README, in the Caddy section: the DNS challenge mode and its fields; how Caddy gets the plugin (added on start with `add-package`, skipped when already present); and the caveats: Caddy marks the command experimental, the Caddy container needs internet access and Caddy's download service to be reachable when a new container first starts (if not, it exits, logs why and retries), the module builds are not version-pinned unless you add `@version`, and the token is stored write-only and never written into the Caddyfile. The xcaddy Dockerfile recipe is removed, replaced by a sentence that a custom image with the plugin baked in also works.
 
 ## Testing
 
-- `dnsChallenge`: Hetzner and Cloudflare directives and env; custom directive with a newline collapsed; custom env parsed; `null` when not in `dns` mode; `null` when the token or custom directive is missing; a bad propagation delay ignored, a good one kept.
-- `renderCaddyfile`: `dns` mode has the global `email`, `tls { dns ... }` in every site block and no `tls internal`; `propagation_delay` appears only when set; `acme` and `internal` output unchanged; the Caddyfile text never contains the token.
-- `renderCaddySpec`: `env` carries the token variable; the spec hash changes when the token changes.
-- Schema: `acmeEmail` required in `dns` mode; the DNS fields are hidden outside `dns` mode; `dnsApiToken` required only for table providers, `dnsDirective` only for custom.
-- Catalog `ready`: incomplete for `dns` mode on the default or blank image; ready with a custom image; unaffected in other modes.
+- Spec: the hash is unchanged for a spec with no `command` and changes when `command` is set; `toCreatePayload` emits `Cmd` only when `command` is set.
+- Provider table: `MODULE_PATH` accepts `github.com/caddy-dns/hetzner/v2`, `github.com/caddy-dns/porkbun`, a path with `@v1.2.3`; rejects spaces, `;`, `$(...)`, backticks, quotes, an empty string and a bare word.
+- `dnsChallenge`: `modules` for table providers; a custom provider needs a valid module; existing behaviour (directive, env, delay) unchanged.
+- Schema: `dnsModule` required only for the custom provider in DNS mode.
+- `renderCaddySpec`: `command` is set in DNS mode with the module as an argument and absent otherwise; the hash changes when the module changes.
+- Start script, run for real with `sh` and a stub `caddy` on `PATH`: module already present means no `add-package` and Caddy starts; module missing means `add-package` with exactly that module, then Caddy starts; several modules where one is present adds only the missing one; `@version` is stripped for the presence check but passed to `add-package`; `add-package` failing means a non-zero exit and Caddy not started.
+- Catalog `ready`: the custom-provider messages, and no image message any more.
 
 ## Out of scope
 
-- Publishing, building or defaulting to a Caddy image with plugins (including third-party "modular" images).
+- Publishing, building or defaulting to a Caddy image with plugins.
+- Pinning module versions automatically, mirroring the download service, or verifying `add-package`'s output.
 - Wildcard certificates, other ACME CAs or staging endpoints, and global-level Caddy options.
-- Multi-line provider configuration blocks beyond a single directive line.
+- Multi-line provider configuration blocks beyond a single directive line, and more than one module per provider.
