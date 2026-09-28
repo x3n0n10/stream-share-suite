@@ -154,3 +154,71 @@ test("the image falls back to the schema default when unset", async () => {
   const spec = await renderCaddySpec({});
   assert.equal(spec.image, "caddy:2-alpine");
 });
+
+// --- dashboard route -------------------------------------------------------
+
+const SUITE_TARGET = "http://stream-share-suite:3000";
+
+test("a dashboard URL alone becomes a site block proxying to the Suite, with no placeholder", () => {
+  const file = renderCaddyfile({ dashboardUrl: "https://suite.example.com" }, SUITE_TARGET);
+  assert.match(file, /suite\.example\.com \{/);
+  assert.match(file, /\treverse_proxy http:\/\/stream-share-suite:3000\n/);
+  assert.equal(file.includes("handle"), false);
+  assert.equal(file.includes("StreamShare's Caddy is running"), false);
+});
+
+test("the dashboard and an instance on different hostnames get separate site blocks", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/provider-1"));
+  const file = renderCaddyfile({ dashboardUrl: "https://suite.example.com" }, SUITE_TARGET);
+  assert.match(file, /tv\.example\.com \{/);
+  assert.match(file, /suite\.example\.com \{/);
+});
+
+test("a dashboard sharing a hostname with path-based instances is the fallback handle, after the handle_path blocks", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/provider-1"));
+  const file = renderCaddyfile({ dashboardUrl: "https://tv.example.com" }, SUITE_TARGET);
+  const blocks = file.split("\n\n").filter((b) => b.includes("tv.example.com {"));
+  assert.equal(blocks.length, 1);
+  const block = blocks[0];
+  assert.ok(block.indexOf("handle_path /provider-1*") < block.indexOf("handle {"));
+  assert.match(block, /handle \{\n\t\treverse_proxy http:\/\/stream-share-suite:3000\n\t\}/);
+});
+
+test("only the host of the dashboard URL is used; a path on it is ignored", () => {
+  const file = renderCaddyfile({ dashboardUrl: "https://suite.example.com/some/path" }, SUITE_TARGET);
+  assert.match(file, /suite\.example\.com \{/);
+  assert.equal(file.includes("handle"), false);
+  assert.equal(file.includes("/some/path"), false);
+});
+
+test("a blank, unparseable, or targetless dashboard URL adds no dashboard block", () => {
+  for (const [values, target] of [
+    [{}, SUITE_TARGET],
+    [{ dashboardUrl: "" }, SUITE_TARGET],
+    [{ dashboardUrl: "not a url" }, SUITE_TARGET],
+    [{ dashboardUrl: "https://suite.example.com" }, undefined],
+  ]) {
+    assert.match(renderCaddyfile(values, target), /StreamShare's Caddy is running/);
+  }
+});
+
+test("the dashboard block follows the TLS mode like any other site block", () => {
+  const file = renderCaddyfile({ dashboardUrl: "https://suite.example.com", tlsMode: "internal" }, SUITE_TARGET);
+  assert.match(file, /suite\.example\.com \{\n\ttls internal\n/);
+});
+
+test("the spec hash changes when the dashboard URL changes, and the Suite's address comes from self-inspection", async () => {
+  const original = process.env.DOCKER_PROXY_URL;
+  process.env.DOCKER_PROXY_URL = "http://127.0.0.1:1"; // unreachable: getSelfContainerName falls back
+  try {
+    const before = computeSpecHash(await renderCaddySpec({}));
+    const spec = await renderCaddySpec({ dashboardUrl: "https://suite.example.com" });
+    assert.notEqual(before, computeSpecHash(spec));
+
+    const caddyfilePath = spec.volumes.find((v) => v.includes("Caddyfile")).split(":")[0];
+    assert.match(readFileSync(caddyfilePath, "utf8"), /reverse_proxy http:\/\/stream-share-suite:\d+/);
+  } finally {
+    if (original === undefined) delete process.env.DOCKER_PROXY_URL;
+    else process.env.DOCKER_PROXY_URL = original;
+  }
+});

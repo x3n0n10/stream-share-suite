@@ -352,6 +352,11 @@ shared network rather than gluetun's namespace — it only needs to *reach*
 gluetun or an instance by name over Docker's own DNS, which needs the same
 network, not a shared one.
 
+The dashboard itself can be published the same way: set **Dashboard public URL**
+on the Caddy component (a hostname of its own, e.g. `https://suite.example.com`)
+and Caddy proxies it to the Suite over the shared network. It needs a hostname
+rather than a path, and it puts the sign-in page on the internet.
+
 ### Setup wizard
 
 A guided path through a fresh install, built around your instances first and

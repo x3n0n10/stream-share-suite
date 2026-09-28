@@ -50,6 +50,18 @@ export const CADDY_SCHEMA = {
       dependsOn: { key: "tlsMode", equals: "acme" },
     },
     {
+      key: "dashboardUrl",
+      envVar: null,
+      label: "Dashboard public URL",
+      help:
+        "Optional. The address this dashboard is reached at from outside, e.g. https://suite.example.com. " +
+        "Only the hostname (and port, if any) is used — give it a hostname of its own rather than a path. " +
+        "Leave blank to keep the dashboard unpublished. The Suite must be on a Docker network Caddy joins " +
+        "(the default streamshare network covers this). Publishing it puts the sign-in page on the internet: " +
+        "it has a real login, CSRF protection and a throttled sign-in, but that is now your exposure.",
+      group: "Dashboard",
+    },
+    {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",
