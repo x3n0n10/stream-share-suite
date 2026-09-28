@@ -33,6 +33,10 @@ Two Suites on one Docker host (for example a stable and a dev build) see each ot
 
 Changing `SUITE_CONTAINER_PREFIX` on an existing Suite already changes every default container name (the old containers become orphans). With this change those old containers carry the old prefix as their label, so they read as another Suite's and are no longer listed or removable from the Suite's UI. They can be removed with Docker directly. Documented in the README.
 
+### Known limitation: containers that exist before the upgrade
+
+Every existing container has no instance label, so both Suites of an existing two-Suite host still treat them all as their own, and each keeps listing the other's older containers as orphans until they are recreated. The label is deliberately not in the spec hash, so nothing recreates them on its own. Documented in the README: after upgrading, stop each container and click Apply on its own Suite (a stopped, hash-matching container plans a recreate), and until then do not remove "orphans" that belong to the other Suite. A name-based fallback for unlabeled containers was rejected as ambiguous (nested prefixes such as `streamshare-suite-` and `streamshare-suite-dev-`, plus `containerName` overrides).
+
 ## Testing
 
 - `labels`: `managedLabels` carries the prefix (default and an env override); `belongsToAnotherSuite` for another Suite's label, this Suite's label, a legacy managed container, and an unmanaged one.

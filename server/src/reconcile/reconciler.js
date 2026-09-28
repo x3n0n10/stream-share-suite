@@ -108,7 +108,7 @@ export async function planComponent(node, spec) {
       reason: `Created by another Suite (${labels[LABEL_SUITE]}) — never touched without a takeover`,
       containerId: existing.Id,
       warnings: [
-        "This container belongs to another Suite on this host. Give each Suite its own SUITE_CONTAINER_PREFIX so their container names don't collide.",
+        "This container belongs to another Suite on this host. Give each Suite its own SUITE_CONTAINER_PREFIX (and make sure no containerName override points at the same name) so their container names don't collide.",
       ],
     };
   }
@@ -204,8 +204,9 @@ async function findDisabled(nodes) {
     const existing = await inspectContainer(node.containerName);
     if (!existing) continue;
 
-    // A managed one is already reported as an orphan by the pass above;
-    // reporting it twice would be worse than not reporting it at all.
+    // A managed one is already reported as an orphan by the pass above (or,
+    // if another Suite's, deliberately not shown at all); reporting it twice
+    // would be worse than not reporting it at all.
     if (isManaged(existing.Config?.Labels || {})) continue;
 
     rows.push({
@@ -312,7 +313,7 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   }
 
   if (action === "adopt" && !takeover) {
-    log(`Found an existing container named "${spec.name}" without the Suite's labels — adopting without recreating.`);
+    log(`Found an existing container named "${spec.name}" that this Suite did not create — adopting without recreating.`);
     log("It stays exactly as it is until you explicitly ask the Suite to take over.");
     for (const warning of plan.warnings || []) log(`Warning: ${warning}`);
     setAdoptedContainer(kind, plan.containerId, key);
