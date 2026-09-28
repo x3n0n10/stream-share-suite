@@ -361,9 +361,9 @@ rather than a path, and it puts the sign-in page on the internet.
 HTTPS setting has **Automatic (DNS challenge)**, which proves you own a domain
 through your DNS provider's API instead of over ports 80/443 — so nothing has
 to be reachable from the internet. Pick a provider (Hetzner and Cloudflare are
-built in; **Custom** takes any Caddy DNS module's directive and its environment
-variables), enter its API token, and Caddy gets a `tls { dns ... }` block per
-site. An optional **Propagation delay** (e.g. `30s`) makes Caddy wait after
+built in; **Custom** takes any Caddy DNS module: its Caddy module path, its
+directive and its environment variables), enter its API token, and Caddy gets
+a `tls { dns ... }` block per site. An optional **Propagation delay** (e.g. `30s`) makes Caddy wait after
 creating the DNS record, which slow providers need; it must be a Go duration
 such as `30s` or `1m30s`, and anything else is ignored.
 
@@ -371,19 +371,22 @@ The token is stored write-only and passed to the Caddy container through its
 environment; the Caddyfile only ever contains an `{env.NAME}` placeholder.
 
 DNS providers are Caddy plugins, and the stock `caddy:2-alpine` image has none,
-so this mode needs a Caddy image that includes yours — set it in the **Image**
-field. The Caddy row shows as incomplete until you do. A minimal image:
+so the Suite adds the plugin for you: in this mode the Caddy container starts
+with a small script that runs Caddy's own `caddy add-package` for the
+provider's module (Hetzner `github.com/caddy-dns/hetzner/v2`, Cloudflare
+`github.com/caddy-dns/cloudflare`, or the **Caddy module** you enter for a
+Custom provider, e.g. `github.com/caddy-dns/porkbun`) and then starts Caddy.
+Modules the binary already has are skipped, so a restart, or an image that
+already includes the plugin, downloads nothing.
 
-```dockerfile
-FROM caddy:builder AS builder
-RUN xcaddy build --with github.com/caddy-dns/hetzner/v2
+Worth knowing:
 
-FROM caddy:2-alpine
-COPY --from=builder /usr/bin/caddy /usr/bin/caddy
-```
-
-Module paths for the built-in providers: Hetzner
-`github.com/caddy-dns/hetzner/v2`, Cloudflare `github.com/caddy-dns/cloudflare`.
+- Caddy marks `add-package` as experimental.
+- A new Caddy container needs internet access and Caddy's download service to
+  be reachable the first time it starts. If it isn't, the container exits,
+  logs why, and Docker retries; Caddy never runs without the plugin.
+- The downloaded build is not version-pinned unless you add `@version` to a
+  custom module.
 
 ### Setup wizard
 

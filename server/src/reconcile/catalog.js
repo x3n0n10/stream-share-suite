@@ -15,6 +15,7 @@ import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { CADDY_SCHEMA } from "../schema/caddy.js";
+import { MODULE_PATH } from "../schema/dnsProviders.js";
 import { renderGluetunSpec, gluetunContainerName } from "./gluetun.js";
 import {
   renderPostgresSpec,
@@ -28,8 +29,6 @@ import { prepareInstance } from "./provisioning.js";
 import { getBoolean } from "../store/settings.js";
 import { getDataPath, validatePath } from "../store/paths.js";
 import { componentId, listComponents, getComponentValues } from "../store/components.js";
-
-const CADDY_IMAGE_DEFAULT = CADDY_SCHEMA.fields.find((f) => f.key === "image").default;
 
 // Whether the stack routes its traffic through a VPN at all. This is one
 // stack-wide setting rather than a per-instance choice: a StreamShare
@@ -138,16 +137,14 @@ const CATALOG = {
     singleton: true,
     containerName: () => caddyContainerName(getComponentValues("caddy")),
     present: () => isCaddyEnabled(),
-    // The DNS challenge needs a Caddy build that includes the provider's
-    // plugin, and the stock image never does — better an incomplete row that
-    // says so than a Caddy container that applies cleanly and then cannot start.
+    // A custom DNS provider is only usable with a directive to write and a
+    // Caddy module to add. Table providers carry their own, and the stock
+    // image is fine either way: the module is added when Caddy starts.
     ready: (values) => {
-      if (values.tlsMode !== "dns") return null;
-      if (!values.image || values.image === CADDY_IMAGE_DEFAULT) {
-        return "DNS challenge needs a Caddy image that includes your provider's plugin — set the Image field.";
-      }
-      if (values.dnsProvider === "custom" && !String(values.dnsDirective || "").trim()) {
-        return "A custom DNS provider needs a directive.";
+      if (values.tlsMode !== "dns" || values.dnsProvider !== "custom") return null;
+      if (!String(values.dnsDirective || "").trim()) return "A custom DNS provider needs a directive.";
+      if (!MODULE_PATH.test(String(values.dnsModule || "").trim())) {
+        return "A custom DNS provider needs a Caddy module such as github.com/caddy-dns/porkbun.";
       }
       return null;
     },

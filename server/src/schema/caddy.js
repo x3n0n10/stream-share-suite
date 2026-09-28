@@ -31,7 +31,6 @@ const DNS_PROVIDER_LABELS = {
   ...Object.fromEntries(TABLE_IDS.map((id) => [id, DNS_PROVIDERS[id].label])),
   custom: "Custom",
 };
-const DNS_MODULES = TABLE_IDS.map((id) => `${DNS_PROVIDERS[id].label}: ${DNS_PROVIDERS[id].module}`).join("; ");
 
 export const CADDY_SCHEMA = {
   kind: "caddy",
@@ -46,8 +45,7 @@ export const CADDY_SCHEMA = {
         "private network. \"Automatic (ACME)\" gets a real, trusted certificate per hostname, but needs ports " +
         "80 and 443 reachable from the internet and each hostname's DNS already pointed here. \"Automatic (DNS " +
         "challenge)\" gets the same kind of certificate by proving domain ownership through your DNS provider's " +
-        "API instead, so no inbound ports are needed — but it needs a Caddy image that includes your provider's " +
-        "plugin (see Image, below).",
+        "API instead, so no inbound ports are needed. Caddy adds your provider's plugin itself when it starts.",
       type: "select",
       options: ["internal", "acme", "dns"],
       optionLabels: { internal: "Self-signed", acme: "Automatic (ACME)", dns: "Automatic (DNS challenge)" },
@@ -69,8 +67,8 @@ export const CADDY_SCHEMA = {
       envVar: null,
       label: "DNS provider",
       help:
-        "The DNS service your domain is hosted on. Your Caddy image must include this provider's plugin, " +
-        `built with — ${DNS_MODULES}. Not listed? Pick Custom. The API token below is stored write-only and ` +
+        "The DNS service your domain is hosted on. Caddy adds the provider's plugin itself when it starts. " +
+        "Not listed? Pick Custom and give its Caddy module. The API token below is stored write-only and " +
         "never written into the Caddyfile. Switching provider? Enter that provider's token again.",
       type: "select",
       options: DNS_PROVIDER_OPTIONS,
@@ -92,6 +90,20 @@ export const CADDY_SCHEMA = {
       dependsOn: [
         { key: "tlsMode", equals: "dns" },
         { key: "dnsProvider", oneOf: TABLE_IDS },
+      ],
+    },
+    {
+      key: "dnsModule",
+      envVar: null,
+      label: "Caddy module",
+      help:
+        "The Go package of your provider's Caddy plugin, e.g. github.com/caddy-dns/porkbun (an @version suffix " +
+        "such as @v1.2.3 is allowed). Caddy downloads it when it starts; see caddyserver.com/download for the list.",
+      group: "DNS challenge",
+      required: true,
+      dependsOn: [
+        { key: "tlsMode", equals: "dns" },
+        { key: "dnsProvider", equals: "custom" },
       ],
     },
     {
@@ -177,7 +189,7 @@ export const CADDY_SCHEMA = {
       key: "image",
       envVar: null,
       label: "Image",
-      help: "Any Caddy 2 tag. For the DNS challenge, an image built with your DNS provider's plugin (see the README).",
+      help: "Any Caddy 2 tag. In DNS-challenge mode Caddy adds your provider's plugin itself on start; an image that already includes it skips the download.",
       group: "Container",
       default: "caddy:2-alpine",
       advanced: true,

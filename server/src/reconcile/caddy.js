@@ -9,8 +9,9 @@
 // render is exactly as safe as those: idempotent, and re-run on every plan.
 // The dashboard itself is one more route of the same kind, from the Caddy
 // component's own `dashboardUrl` field. In DNS-challenge mode each site block
-// also carries a `tls { dns ... }` block, and the provider's credentials
-// travel in the container's environment rather than the file.
+// also carries a `tls { dns ... }` block, the provider's credentials travel in
+// the container's environment rather than the file, and the container's start
+// command adds the provider's plugin to Caddy.
 //
 // The one thing that needs extra care is the spec hash (see docker/spec.js):
 // it's computed over the spec object, never over what ends up on disk, so a
@@ -22,7 +23,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { CADDY_SCHEMA } from "../schema/caddy.js";
-import { DNS_PROVIDERS } from "../schema/dnsProviders.js";
+import { DNS_PROVIDERS, MODULE_PATH } from "../schema/dnsProviders.js";
 import { listComponents, getComponentValues } from "../store/components.js";
 import { componentDataDir, ensureDirectory } from "../store/paths.js";
 import { instanceUrl } from "./instance.js";
@@ -99,7 +100,8 @@ function groupByHost(routes) {
 
 // What the DNS challenge needs, resolved from the stored values: the directive
 // that goes after `dns` in each site's tls block, the environment variables
-// that directive references, and an optional propagation delay. Null when DNS
+// that directive references, the Caddy packages to add (`modules`), and an
+// optional propagation delay. Null when DNS
 // mode is off or the provider is not fully configured.
 //
 // The token only ever travels in `env` (the container's environment); the
@@ -116,20 +118,50 @@ export function dnsChallenge(values) {
 
   let directive;
   let env;
+  let modules;
   if (provider) {
     if (!values.dnsApiToken) return null;
     directive = provider.directive;
     env = { [provider.tokenEnv]: values.dnsApiToken };
+    modules = [provider.module];
   } else if (providerId === "custom") {
     directive = String(values.dnsDirective || "").replace(/\s*\n\s*/g, " ").trim();
     if (!directive) return null;
+    const module = String(values.dnsModule || "").trim();
+    if (!MODULE_PATH.test(module)) return null;
     env = parseExtraEnv(values.dnsEnv);
+    modules = [module];
   } else {
     return null;
   }
 
   const delay = String(values.dnsPropagationDelay || "").trim();
-  return { directive, env, propagationDelay: GO_DURATION.test(delay) ? delay : null };
+  return { directive, env, modules, propagationDelay: GO_DURATION.test(delay) ? delay : null };
+}
+
+// What runs as the Caddy container's command in DNS-challenge mode. The stock
+// image has no DNS provider plugins, so this adds the missing ones with
+// Caddy's own `add-package` (which swaps the binary on disk for a build from
+// Caddy's download service that has them) and then starts Caddy exactly as the
+// image would. Modules are positional arguments, never interpolated into the
+// script, and are skipped when the binary already has them — so a restart, or
+// an image that ships the plugin, does not download anything. If adding fails
+// the container exits with the reason in its log rather than starting Caddy
+// without the plugin; Docker's restart policy retries.
+export const CADDY_START_SCRIPT = `missing=""
+for m in "$@"; do
+  pkg="\${m%@*}"
+  caddy list-modules --packages | awk -v p="$pkg" '{ for (i = 1; i <= NF; i++) if ($i == p) found = 1 } END { exit !found }' || missing="$missing $m"
+done
+if [ -n "$missing" ]; then
+  echo "Adding Caddy packages:$missing"
+  caddy add-package $missing || { echo "caddy add-package failed - is Caddy's download service reachable?" >&2; exit 1; }
+fi
+exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+`;
+
+function caddyStartCommand(modules) {
+  return ["sh", "-c", CADDY_START_SCRIPT, "sh", ...modules];
 }
 
 // Builds the actual Caddyfile text. One site block per distinct hostname —
@@ -219,5 +251,6 @@ export async function renderCaddySpec(values) {
       { host: Number(values.httpsPort || 443), container: 443, protocol: "tcp" },
     ],
     restartPolicy: "unless-stopped",
+    ...(challenge ? { command: caddyStartCommand(challenge.modules) } : {}),
   };
 }
