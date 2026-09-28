@@ -1,7 +1,9 @@
 // The Caddy component: an optional reverse proxy that publishes instances
 // under a real hostname instead of a raw port, with HTTPS handled for you.
 //
-// Deliberately no routing fields here. Each instance already has its own
+// Deliberately no per-instance routing fields here (the one exception is the
+// dashboard's own address, below — the Suite has no other place to say where
+// it is reached from outside). Each instance already has its own
 // "Public base URL" (see schema/instance.js) — the address stream-share tells
 // its own players to use — and that is the one place an operator should have
 // to say "this is how the outside world reaches this instance." Rather than
