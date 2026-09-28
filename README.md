@@ -363,30 +363,37 @@ through your DNS provider's API instead of over ports 80/443 — so nothing has
 to be reachable from the internet. Pick a provider (Hetzner and Cloudflare are
 built in; **Custom** takes any Caddy DNS module: its Caddy module path, its
 directive and its environment variables), enter its API token, and Caddy gets
-a `tls { dns ... }` block per site. An optional **Propagation delay** (e.g. `30s`) makes Caddy wait after
-creating the DNS record, which slow providers need; it must be a Go duration
-such as `30s` or `1m30s`, and anything else is ignored.
+a `tls { dns ... }` block per site. An optional **Propagation delay**
+(e.g. `30s`) makes Caddy wait after creating the DNS record, which slow
+providers need; it must be a Go duration such as `30s` or `1m30s`, and
+anything else is ignored.
 
 The token is stored write-only and passed to the Caddy container through its
 environment; the Caddyfile only ever contains an `{env.NAME}` placeholder.
 
 DNS providers are Caddy plugins, and the stock `caddy:2-alpine` image has none,
-so the Suite adds the plugin for you: in this mode the Caddy container starts
-with a small script that runs Caddy's own `caddy add-package` for the
-provider's module (Hetzner `github.com/caddy-dns/hetzner/v2`, Cloudflare
+so the Suite adds the plugin for you with Caddy's own `caddy add-package`, for
+the provider's module (Hetzner `github.com/caddy-dns/hetzner/v2`, Cloudflare
 `github.com/caddy-dns/cloudflare`, or the **Caddy module** you enter for a
-Custom provider, e.g. `github.com/caddy-dns/porkbun`) and then starts Caddy.
-Modules the binary already has are skipped, so a restart, or an image that
-already includes the plugin, downloads nothing.
+Custom provider, e.g. `github.com/caddy-dns/porkbun`). The build is downloaded
+when a Caddy container first starts, and again after an image upgrade or a
+module change; it is then kept in Caddy's config folder (mounted from the
+Suite's data directory), so later recreates (route changes and the like) and
+restarts reuse it and download nothing. An image that already includes the
+plugin skips the download entirely.
 
 Worth knowing:
 
 - Caddy marks `add-package` as experimental.
-- A new Caddy container needs internet access and Caddy's download service to
-  be reachable the first time it starts. If it isn't, the container exits,
-  logs why, and Docker retries; Caddy never runs without the plugin.
-- The downloaded build is not version-pinned unless you add `@version` to a
-  custom module.
+- The download needs internet access and Caddy's download service. If it
+  fails, the container exits, logs why, and Docker retries; Caddy never runs
+  without the plugin. So if HTTPS doesn't come up, check the Caddy container's
+  log: Apply reports success once the container has started, not once the
+  download has finished.
+- The download always installs the latest Caddy release, whatever the image tag
+  says (`add-package` does not send a version). `@version` on a custom module
+  pins only that plugin, not Caddy, and the built-in providers can't be pinned.
+- The image must not set its own ENTRYPOINT in this mode.
 
 ### Setup wizard
 

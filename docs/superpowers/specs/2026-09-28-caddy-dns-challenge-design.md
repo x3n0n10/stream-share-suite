@@ -42,10 +42,14 @@ Container specs gain an optional `command` (array of strings), rendered as Docke
 
 In DNS mode the Caddy spec's `command` is `["sh", "-c", CADDY_START_SCRIPT, "sh", ...modules]`. The modules are positional arguments, so validated module text is never interpolated into shell source. The script:
 
-1. For each module argument, checks whether the running binary already has it (`caddy list-modules --packages`, matching the package path without any `@version`).
-2. Runs `caddy add-package` once for the modules that are missing. A restart (the container filesystem keeps the replaced binary) and an image that already has the plugin therefore skip the download.
-3. If `add-package` fails, logs that the download service may be unreachable and exits non-zero, so Docker's restart policy retries and the reason is in the container log. It never starts Caddy without the plugin.
-4. `exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile`, the official image's own command.
+1. Computes a cache key: `cksum` of the image's own `caddy version` output plus the module arguments, before anything is added. The build is cached as `/config/caddy-dns-<key>` (`/config` is the mounted config folder). If that file exists and is executable, the script `exec`s it (`run --config /etc/caddy/Caddyfile --adapter caddyfile`) and nothing is downloaded. This matters because any Caddyfile change recreates the container with a fresh filesystem; a route edit must not depend on the download service being up.
+2. Otherwise, for each module argument, checks whether the running binary already has it (`caddy list-modules --packages`, matching the package path without any `@version`).
+3. Runs `caddy add-package` once for the modules that are missing.
+4. If `add-package` fails, logs that the download service may be unreachable and exits non-zero without caching, so Docker's restart policy retries and the reason is in the container log. It never starts Caddy without the plugin.
+5. After a successful `add-package`, copies the new binary to the cache (removing any older `caddy-dns-*` first, so one build is kept; written under a temporary name and moved into place). A failed copy only warns; Caddy still starts. When nothing was missing (the image already has the plugin), nothing is cached.
+6. `exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile`, the official image's own command.
+
+An image upgrade or a module change changes the key, so it downloads again and the old build is dropped. `add-package` sends no Caddy version, so it always installs the latest Caddy release regardless of the image tag; `@version` on a module pins only that plugin. The command is passed as Docker `Cmd`, so the image must not set its own ENTRYPOINT in this mode.
 
 Outside DNS mode the spec has no `command`, and the container runs the image's default exactly as before.
 
@@ -59,7 +63,7 @@ The `ready` hook on the Caddy catalog entry no longer checks the image. For a cu
 
 ### Docs
 
-README, in the Caddy section: the DNS challenge mode and its fields; how Caddy gets the plugin (added on start with `add-package`, skipped when already present); and the caveats: Caddy marks the command experimental, the Caddy container needs internet access and Caddy's download service to be reachable when a new container first starts (if not, it exits, logs why and retries), the module builds are not version-pinned unless you add `@version`, and the token is stored write-only and never written into the Caddyfile. The xcaddy Dockerfile recipe is removed, replaced by a sentence that a custom image with the plugin baked in also works.
+README, in the Caddy section: the DNS challenge mode and its fields; how Caddy gets the plugin (added with `add-package`, cached in the config folder and reused across recreates and restarts, skipped when the image already has it); and the caveats: Caddy marks the command experimental, the download needs internet access and Caddy's download service (if it fails the container exits, logs why and retries, so check the container log when HTTPS does not come up), the download always installs the latest Caddy release whatever the image tag says and `@version` pins only a custom plugin, the image must not set its own ENTRYPOINT, and the token is stored write-only and never written into the Caddyfile. The xcaddy Dockerfile recipe is removed, replaced by a sentence that a custom image with the plugin baked in also works.
 
 ## Testing
 
@@ -68,12 +72,12 @@ README, in the Caddy section: the DNS challenge mode and its fields; how Caddy g
 - `dnsChallenge`: `modules` for table providers; a custom provider needs a valid module; existing behaviour (directive, env, delay) unchanged.
 - Schema: `dnsModule` required only for the custom provider in DNS mode.
 - `renderCaddySpec`: `command` is set in DNS mode with the module as an argument and absent otherwise; the hash changes when the module changes.
-- Start script, run for real with `sh` and a stub `caddy` on `PATH`: module already present means no `add-package` and Caddy starts; module missing means `add-package` with exactly that module, then Caddy starts; several modules where one is present adds only the missing one; `@version` is stripped for the presence check but passed to `add-package`; `add-package` failing means a non-zero exit and Caddy not started.
+- Start script, run for real with `sh` and a stub `caddy` on `PATH`: module already present means no `add-package` and Caddy starts; module missing means `add-package` with exactly that module, then Caddy starts; several modules where one is present adds only the missing one; `@version` is stripped for the presence check but passed to `add-package`; `add-package` failing means a non-zero exit, nothing cached and Caddy not started. Binary cache: the first start caches exactly one `caddy-dns-*` file; a second start with the same modules and version, even with `add-package` failing, does not download and starts Caddy from the cache; a different `caddy version` or different modules miss the cache, download again and leave exactly one (new) cache file; nothing is cached when no module was missing.
 - Catalog `ready`: the custom-provider messages, and no image message any more.
 
 ## Out of scope
 
 - Publishing, building or defaulting to a Caddy image with plugins.
-- Pinning module versions automatically, mirroring the download service, or verifying `add-package`'s output.
+- Pinning module versions or the Caddy version automatically (`add-package` always fetches the latest Caddy release), mirroring the download service, verifying `add-package`'s output, or keeping more than one cached build.
 - Wildcard certificates, other ACME CAs or staging endpoints, and global-level Caddy options.
 - Multi-line provider configuration blocks beyond a single directive line, and more than one module per provider.

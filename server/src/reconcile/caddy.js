@@ -101,8 +101,8 @@ function groupByHost(routes) {
 // What the DNS challenge needs, resolved from the stored values: the directive
 // that goes after `dns` in each site's tls block, the environment variables
 // that directive references, the Caddy packages to add (`modules`), and an
-// optional propagation delay. Null when DNS
-// mode is off or the provider is not fully configured.
+// optional propagation delay. Null when DNS mode is off or the provider is not
+// fully configured.
 //
 // The token only ever travels in `env` (the container's environment); the
 // directive refers to it as {env.NAME}, so the Caddyfile on disk never holds
@@ -144,11 +144,25 @@ export function dnsChallenge(values) {
 // Caddy's own `add-package` (which swaps the binary on disk for a build from
 // Caddy's download service that has them) and then starts Caddy exactly as the
 // image would. Modules are positional arguments, never interpolated into the
-// script, and are skipped when the binary already has them — so a restart, or
-// an image that ships the plugin, does not download anything. If adding fails
+// script, and are skipped when the binary already has them. If adding fails
 // the container exits with the reason in its log rather than starting Caddy
 // without the plugin; Docker's restart policy retries.
-export const CADDY_START_SCRIPT = `missing=""
+//
+// The build is cached in /config (the mounted config folder), keyed on the
+// image's own Caddy version plus the modules and computed before anything is
+// added. Any Caddyfile change recreates the container with a fresh filesystem,
+// and the download must not stand between a route edit and a working proxy;
+// an image upgrade or a module change misses the cache, downloads again and
+// drops the old build. A failed copy into the cache only warns. Note that
+// `add-package` sends no Caddy version, so it always installs the latest.
+// `cache=/config` stays on one line so tests can point it at a temp dir.
+export const CADDY_START_SCRIPT = `cache=/config
+key=$( { caddy version; printf '%s\\n' "$@"; } | cksum | cut -d' ' -f1)
+bin="$cache/caddy-dns-$key"
+if [ -x "$bin" ]; then
+  exec "$bin" run --config /etc/caddy/Caddyfile --adapter caddyfile
+fi
+missing=""
 for m in "$@"; do
   pkg="\${m%@*}"
   caddy list-modules --packages | awk -v p="$pkg" '{ for (i = 1; i <= NF; i++) if ($i == p) found = 1 } END { exit !found }' || missing="$missing $m"
@@ -156,6 +170,7 @@ done
 if [ -n "$missing" ]; then
   echo "Adding Caddy packages:$missing"
   caddy add-package $missing || { echo "caddy add-package failed - is Caddy's download service reachable?" >&2; exit 1; }
+  { rm -f "$cache"/caddy-dns-* && cp "$(command -v caddy)" "$bin.tmp" && mv "$bin.tmp" "$bin"; } || echo "could not cache the Caddy build in $cache" >&2
 fi
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 `;

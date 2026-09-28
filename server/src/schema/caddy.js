@@ -189,7 +189,7 @@ export const CADDY_SCHEMA = {
       key: "image",
       envVar: null,
       label: "Image",
-      help: "Any Caddy 2 tag. In DNS-challenge mode Caddy adds your provider's plugin itself on start; an image that already includes it skips the download.",
+      help: "Any Caddy 2 tag. In DNS-challenge mode Caddy adds your provider's plugin itself on start (an image that already includes it skips the download); the image must not set its own ENTRYPOINT then.",
       group: "Container",
       default: "caddy:2-alpine",
       advanced: true,
