@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, Button, FIELD } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
-import UseProviderCredentialsButton from "../../components/UseProviderCredentialsButton.jsx";
+import UseProviderCredentialsButton, { CopyProviderCredentialsButton } from "../../components/UseProviderCredentialsButton.jsx";
 import { IconRefresh, IconEdit, IconTrash } from "../../components/Icons.jsx";
 import { api } from "../../lib/api.js";
 import { previewContainerName } from "../../lib/containerName.js";
@@ -380,6 +380,9 @@ export default function InstancesTab({
                 saving={saving}
                 error={error}
                 submitLabel="Create instance"
+                extraOptions={{
+                  authMode: (draft, set) => <CopyProviderCredentialsButton draft={draft} set={set} />,
+                }}
                 preview={(draft) => (
                   <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
                     Container name:{" "}
