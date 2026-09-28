@@ -7,13 +7,15 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { renderCaddyfile, renderCaddySpec, caddyContainerName } from "../src/reconcile/caddy.js";
+import { renderCaddyfile, renderCaddySpec, caddyContainerName, dnsChallenge } from "../src/reconcile/caddy.js";
 import { computeSpecHash } from "../src/docker/spec.js";
 import { getCatalogEntry, isCaddyEnabled, CADDY_ENABLED_SETTING } from "../src/reconcile/catalog.js";
 import { setSetting } from "../src/store/settings.js";
 import { saveComponentValues } from "../src/store/components.js";
 import { provisionInstance } from "../src/reconcile/provisioning.js";
 import { freshDatabase } from "./helpers.js";
+import { validate } from "../src/schema/registry.js";
+import { CADDY_SCHEMA } from "../src/schema/caddy.js";
 
 let root;
 
@@ -227,4 +229,76 @@ test("the spec hash changes when the dashboard URL changes, and the Suite's addr
     if (original === undefined) delete process.env.DOCKER_PROXY_URL;
     else process.env.DOCKER_PROXY_URL = original;
   }
+});
+
+// --- DNS challenge ---------------------------------------------------------
+
+test("dnsChallenge is null outside DNS mode", () => {
+  assert.equal(dnsChallenge({ tlsMode: "internal", dnsApiToken: "t" }), null);
+  assert.equal(dnsChallenge({ tlsMode: "acme", dnsApiToken: "t" }), null);
+  assert.equal(dnsChallenge({}), null);
+});
+
+test("a table provider yields its directive and its token env var", () => {
+  assert.deepEqual(dnsChallenge({ tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "tok" }), {
+    directive: "hetzner {env.HETZNER_API_TOKEN}",
+    env: { HETZNER_API_TOKEN: "tok" },
+    propagationDelay: null,
+  });
+
+  const cloudflare = dnsChallenge({ tlsMode: "dns", dnsProvider: "cloudflare", dnsApiToken: "tok" });
+  assert.equal(cloudflare.directive, "cloudflare {env.CLOUDFLARE_API_TOKEN}");
+  assert.deepEqual(cloudflare.env, { CLOUDFLARE_API_TOKEN: "tok" });
+});
+
+test("the provider defaults to Hetzner when unset", () => {
+  assert.equal(dnsChallenge({ tlsMode: "dns", dnsApiToken: "tok" }).directive, "hetzner {env.HETZNER_API_TOKEN}");
+});
+
+test("a custom provider uses the typed directive on one line and the parsed env", () => {
+  const challenge = dnsChallenge({
+    tlsMode: "dns",
+    dnsProvider: "custom",
+    dnsDirective: "porkbun {env.PORKBUN_API_KEY}\n {env.PORKBUN_API_SECRET_KEY}",
+    dnsEnv: "PORKBUN_API_KEY=k\nPORKBUN_API_SECRET_KEY=s\n# a comment\n",
+  });
+  assert.equal(challenge.directive, "porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}");
+  assert.deepEqual(challenge.env, { PORKBUN_API_KEY: "k", PORKBUN_API_SECRET_KEY: "s" });
+});
+
+test("dnsChallenge is null when the token or custom directive is missing, or the provider is unknown", () => {
+  assert.equal(dnsChallenge({ tlsMode: "dns", dnsProvider: "hetzner" }), null);
+  assert.equal(dnsChallenge({ tlsMode: "dns", dnsProvider: "custom", dnsDirective: "  " }), null);
+  assert.equal(dnsChallenge({ tlsMode: "dns", dnsProvider: "nope", dnsApiToken: "t" }), null);
+});
+
+test("a propagation delay is kept when it is a Go duration and ignored otherwise", () => {
+  const base = { tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "t" };
+  assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "30s" }).propagationDelay, "30s");
+  assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "1m30s" }).propagationDelay, "1m30s");
+  assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "soon" }).propagationDelay, null);
+  assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "" }).propagationDelay, null);
+});
+
+test("DNS mode requires the ACME email, and the DNS fields only matter in DNS mode", () => {
+  const dns = { tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "t" };
+  assert.ok(validate(CADDY_SCHEMA, dns).some((e) => e.key === "acmeEmail"));
+  assert.deepEqual(validate(CADDY_SCHEMA, { ...dns, acmeEmail: "a@example.com" }), []);
+
+  // Nothing DNS-related is required, or even visible, in the other modes.
+  assert.deepEqual(validate(CADDY_SCHEMA, { tlsMode: "internal" }), []);
+  assert.deepEqual(validate(CADDY_SCHEMA, { tlsMode: "acme", acmeEmail: "a@example.com" }), []);
+});
+
+test("a table provider needs its token; a custom provider needs its directive but not a token", () => {
+  const email = { tlsMode: "dns", acmeEmail: "a@example.com" };
+  assert.ok(validate(CADDY_SCHEMA, { ...email, dnsProvider: "hetzner" }).some((e) => e.key === "dnsApiToken"));
+
+  const custom = validate(CADDY_SCHEMA, { ...email, dnsProvider: "custom" });
+  assert.ok(custom.some((e) => e.key === "dnsDirective"));
+  assert.equal(custom.some((e) => e.key === "dnsApiToken"), false);
+  assert.deepEqual(
+    validate(CADDY_SCHEMA, { ...email, dnsProvider: "custom", dnsDirective: "porkbun {env.K}" }),
+    []
+  );
 });

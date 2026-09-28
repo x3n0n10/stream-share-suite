@@ -23,6 +23,16 @@
 // out of the plan entirely until switched on under Stack (see
 // CADDY_ENABLED_SETTING in reconcile/catalog.js).
 
+import { DNS_PROVIDERS } from "./dnsProviders.js";
+
+const TABLE_IDS = Object.keys(DNS_PROVIDERS);
+const DNS_PROVIDER_OPTIONS = [...TABLE_IDS, "custom"];
+const DNS_PROVIDER_LABELS = {
+  ...Object.fromEntries(TABLE_IDS.map((id) => [id, DNS_PROVIDERS[id].label])),
+  custom: "Custom",
+};
+const DNS_MODULES = TABLE_IDS.map((id) => `${DNS_PROVIDERS[id].label}: ${DNS_PROVIDERS[id].module}`).join("; ");
+
 export const CADDY_SCHEMA = {
   kind: "caddy",
   label: "Caddy (reverse proxy)",
@@ -34,10 +44,13 @@ export const CADDY_SCHEMA = {
       help:
         "\"Self-signed\" issues a certificate from Caddy's own internal CA — browsers warn once, fine on a " +
         "private network. \"Automatic (ACME)\" gets a real, trusted certificate per hostname, but needs ports " +
-        "80 and 443 reachable from the internet and each hostname's DNS already pointed here.",
+        "80 and 443 reachable from the internet and each hostname's DNS already pointed here. \"Automatic (DNS " +
+        "challenge)\" gets the same kind of certificate by proving domain ownership through your DNS provider's " +
+        "API instead, so no inbound ports are needed — but it needs a Caddy image that includes your provider's " +
+        "plugin (see Image, below).",
       type: "select",
-      options: ["internal", "acme"],
-      optionLabels: { internal: "Self-signed", acme: "Automatic (ACME)" },
+      options: ["internal", "acme", "dns"],
+      optionLabels: { internal: "Self-signed", acme: "Automatic (ACME)", dns: "Automatic (DNS challenge)" },
       default: "internal",
       group: "HTTPS",
       required: true,
@@ -49,7 +62,74 @@ export const CADDY_SCHEMA = {
       help: "Sent to your certificate authority for expiry notices only — never published anywhere.",
       group: "HTTPS",
       required: true,
-      dependsOn: { key: "tlsMode", equals: "acme" },
+      dependsOn: { key: "tlsMode", oneOf: ["acme", "dns"] },
+    },
+    {
+      key: "dnsProvider",
+      envVar: null,
+      label: "DNS provider",
+      help:
+        "The DNS service your domain is hosted on. Your Caddy image must include this provider's plugin, " +
+        `built with — ${DNS_MODULES}. Not listed? Pick Custom.`,
+      type: "select",
+      options: DNS_PROVIDER_OPTIONS,
+      optionLabels: DNS_PROVIDER_LABELS,
+      default: TABLE_IDS[0],
+      group: "DNS challenge",
+      required: true,
+      dependsOn: { key: "tlsMode", equals: "dns" },
+    },
+    {
+      key: "dnsApiToken",
+      envVar: null,
+      label: "API token",
+      help:
+        "Stored write-only and passed to Caddy through its environment; it is never written into the Caddyfile.",
+      secret: true,
+      group: "DNS challenge",
+      required: true,
+      dependsOn: [
+        { key: "tlsMode", equals: "dns" },
+        { key: "dnsProvider", oneOf: TABLE_IDS },
+      ],
+    },
+    {
+      key: "dnsDirective",
+      envVar: null,
+      label: "Directive",
+      help:
+        "Everything after `dns` in the site's tls block, e.g. `porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}`. " +
+        "Reference credentials as {env.NAME} and define them below.",
+      group: "DNS challenge",
+      required: true,
+      dependsOn: [
+        { key: "tlsMode", equals: "dns" },
+        { key: "dnsProvider", equals: "custom" },
+      ],
+    },
+    {
+      key: "dnsEnv",
+      envVar: null,
+      label: "Provider environment variables",
+      help: "One KEY=VALUE per line, passed to the Caddy container. Stored write-only.",
+      type: "textarea",
+      secret: true,
+      group: "DNS challenge",
+      dependsOn: [
+        { key: "tlsMode", equals: "dns" },
+        { key: "dnsProvider", equals: "custom" },
+      ],
+    },
+    {
+      key: "dnsPropagationDelay",
+      envVar: null,
+      label: "Propagation delay",
+      help:
+        "Optional. How long to wait after creating the DNS record before asking the CA to check it, e.g. 30s. " +
+        "Slow DNS providers sometimes need this. Leave blank to use Caddy's default.",
+      group: "DNS challenge",
+      advanced: true,
+      dependsOn: { key: "tlsMode", equals: "dns" },
     },
     {
       key: "dashboardUrl",
