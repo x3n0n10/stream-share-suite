@@ -196,10 +196,16 @@ test("a blank, unparseable, or targetless dashboard URL adds no dashboard block"
     [{}, SUITE_TARGET],
     [{ dashboardUrl: "" }, SUITE_TARGET],
     [{ dashboardUrl: "not a url" }, SUITE_TARGET],
+    [{ dashboardUrl: "suite.example.com:8443" }, SUITE_TARGET],
     [{ dashboardUrl: "https://suite.example.com" }, undefined],
   ]) {
     assert.match(renderCaddyfile(values, target), /StreamShare's Caddy is running/);
   }
+});
+
+test("an instance whose public base URL has no scheme is not routed", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "tv.example.com:8443"));
+  assert.match(renderCaddyfile({}), /StreamShare's Caddy is running/);
 });
 
 test("the dashboard block follows the TLS mode like any other site block", () => {

@@ -50,6 +50,7 @@ function instanceRoutes() {
     } catch {
       continue; // Not a full URL — nothing to route on, same as leaving it blank.
     }
+    if (!url.host) continue; // "host:port" parses with an empty host — same as unparseable.
 
     const target = instanceUrl(row.key, values);
     if (!target) continue;
@@ -75,6 +76,7 @@ function dashboardRoute(values, suiteTarget) {
   } catch {
     return null;
   }
+  if (!url.host) return null; // "host:port" parses with an empty host — same as unparseable.
 
   return { host: url.host, path: "", target: suiteTarget, dashboard: true };
 }
