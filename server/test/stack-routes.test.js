@@ -11,6 +11,7 @@ import { _resetLoginThrottle } from "../src/auth/middleware.js";
 import { _clearJobsForTests } from "../src/reconcile/jobs.js";
 import { saveComponentValues, getComponentValues } from "../src/store/components.js";
 import { provisionInstance } from "../src/reconcile/provisioning.js";
+import { managedLabels, LABEL_SUITE } from "../src/docker/labels.js";
 
 let appServer;
 let base;
@@ -653,6 +654,24 @@ test("a container left behind by switching the VPN off is reported and then remo
 test("removing an orphan without a container id is a 400", async () => {
   const c = await signedInClient(base);
   assert.equal((await c.post("/api/stack/orphans/remove", {})).status, 400);
+});
+
+test("removing a container that belongs to another Suite is refused and leaves it running", async () => {
+  const c = await signedInClient(base);
+  containers.set("other-gluetun", {
+    Id: "other-id",
+    name: "other-gluetun",
+    Labels: { ...managedLabels("gluetun", "h", ""), [LABEL_SUITE]: "other-suite-" },
+    running: true,
+  });
+
+  const removal = await c.post("/api/stack/orphans/remove", { containerId: "other-id" });
+  assert.equal(removal.status, 202);
+  const job = await waitForJob(c, removal.body.jobId);
+
+  assert.equal(job.status, "failed");
+  assert.ok(containers.get("other-gluetun"), "must not be removed");
+  assert.equal(containers.get("other-gluetun").running, true, "must not be stopped");
 });
 
 test("the stack-level routes are behind the auth gate like everything else", async () => {

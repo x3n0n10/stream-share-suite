@@ -84,7 +84,7 @@ every component the reconciler manages — is configured in the UI.
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on |
 | `SUITE_DATA_DIR` | `/data` | Where `suite.db` lives. From phase 2b, also the default location for every component's own configuration — see **Where component data lives** below. |
-| `SUITE_CONTAINER_PREFIX` | `streamshare-suite-` | Prefix for the default name of every container the Suite creates (gluetun, PostgreSQL, each instance). Change it only to run more than one Suite on the same Docker host — each needs a different prefix so their default names don't collide. Any component's `containerName` field, if set, always wins over the prefixed default. |
+| `SUITE_CONTAINER_PREFIX` | `streamshare-suite-` | Prefix for the default name of every container the Suite creates (gluetun, PostgreSQL, each instance). Change it only to run more than one Suite on the same Docker host — each needs a different prefix so their default names don't collide. The prefix is also stamped on every container as a label, so each Suite only ever lists, replaces or removes its own; changing it later on an existing Suite makes the old containers read as another Suite's, so remove those with Docker directly. Any component's `containerName` field, if set, always wins over the prefixed default. |
 | `PUID` / `PGID` | `1000` / `1000` | Who owns the data directory, and who every component the Suite creates runs as. **Unraid: set `99` / `100`.** |
 | `DOCKER_PROXY_URL` | `http://docker-socket-proxy:2375` | Where the Docker socket proxy is reachable. See **Stack management** below. |
 | `NODE_ENV` | — | Set to `production` in the image |

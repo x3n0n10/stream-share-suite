@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { planStack } from "../src/reconcile/reconciler.js";
 import { VPN_ENABLED_SETTING } from "../src/reconcile/catalog.js";
-import { managedLabels } from "../src/docker/labels.js";
+import { managedLabels, LABEL_SUITE } from "../src/docker/labels.js";
 import { computeSpecHash } from "../src/docker/spec.js";
 import { saveComponentValues } from "../src/store/components.js";
 import { setSetting } from "../src/store/settings.js";
@@ -153,6 +153,65 @@ test("a managed container whose component left the stack is reported as orphaned
   assert.equal(orphan.containerId, "gluetun-id");
   assert.equal(orphan.containerName, "streamshare-suite-gluetun");
   assert.ok(orphan.runtime, "an orphan row should still carry a runtime object");
+});
+
+test("another Suite's container is never reported as an orphan", async () => {
+  configureGluetun();
+  containers.set("other-gluetun", {
+    Id: "other-id",
+    name: "other-gluetun",
+    Config: { Labels: { ...managedLabels("gluetun", "some-hash", ""), [LABEL_SUITE]: "other-suite-" } },
+  });
+
+  vpn(false);
+
+  const { plans } = await planStack();
+  assert.equal(plans.filter((p) => p.action === "orphaned").length, 0);
+});
+
+test("a legacy managed container with no instance label is still reported as an orphan", async () => {
+  configureGluetun();
+  const labels = managedLabels("gluetun", "some-hash", "");
+  delete labels[LABEL_SUITE];
+  containers.set("streamshare-suite-gluetun", {
+    Id: "legacy-id",
+    name: "streamshare-suite-gluetun",
+    Config: { Labels: labels },
+  });
+
+  vpn(false);
+
+  const { plans } = await planStack();
+  assert.ok(plans.find((p) => p.action === "orphaned" && p.containerId === "legacy-id"));
+});
+
+test("a same-named container created by another Suite plans as adopt with a warning, never recreate", async () => {
+  configureGluetun();
+  containers.set("streamshare-suite-gluetun", {
+    Id: "other-id",
+    name: "streamshare-suite-gluetun",
+    Config: { Labels: { ...managedLabels("gluetun", "stale-hash", ""), [LABEL_SUITE]: "other-suite-" } },
+  });
+
+  const { plans } = await planStack();
+  const row = plans.find((p) => p.kind === "gluetun");
+
+  assert.equal(row.action, "adopt");
+  assert.match(row.reason, /another Suite/);
+  assert.ok(row.warnings.some((w) => /SUITE_CONTAINER_PREFIX/.test(w)));
+});
+
+test("a same-named container carrying this Suite's own label still plans as noop", async () => {
+  configureGluetun();
+  const { plans: first } = await planStack();
+  containers.set("streamshare-suite-gluetun", {
+    Id: "own-id",
+    name: "streamshare-suite-gluetun",
+    Config: { Labels: managedLabels("gluetun", first[0].desiredHash, "") },
+  });
+
+  const { plans } = await planStack();
+  assert.equal(plans.find((p) => p.kind === "gluetun").action, "noop");
 });
 
 test("an orphan is never counted as a change — removing it is its own action", async () => {

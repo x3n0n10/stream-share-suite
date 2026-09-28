@@ -18,7 +18,8 @@
 //   orphaned — a container we created, for a component that is no longer part
 //              of the stack (the VPN was switched off, an instance removed).
 //              Never removed automatically: the plan surfaces it and removing
-//              it is its own confirmed action.
+//              it is its own confirmed action. A container labeled for a
+//              different Suite is not this Suite's orphan and is never listed.
 
 import {
   inspectContainer,
@@ -32,7 +33,7 @@ import {
   inspectImage,
 } from "../docker/client.js";
 import { computeSpecHash, toCreatePayload } from "../docker/spec.js";
-import { LABEL_MANAGED, LABEL_SPEC_HASH, managedLabels, isManaged, componentOf } from "../docker/labels.js";
+import { LABEL_MANAGED, LABEL_SPEC_HASH, LABEL_SUITE, managedLabels, isManaged, belongsToAnotherSuite, componentOf } from "../docker/labels.js";
 import { setAdoptedContainer, clearAdoption, getComponentValues, componentId } from "../store/components.js";
 import { validate } from "../schema/registry.js";
 import { activeComponents, inactiveComponents } from "./catalog.js";
@@ -97,6 +98,21 @@ export async function planComponent(node, spec) {
     };
   }
 
+  // Same name, but created by a different Suite on this host. Never ours to
+  // recreate: handled like any other container the Suite may not touch, with
+  // the cause spelled out so the fix (a distinct prefix) is obvious.
+  if (belongsToAnotherSuite(labels)) {
+    return {
+      ...base,
+      action: "adopt",
+      reason: `Created by another Suite (${labels[LABEL_SUITE]}) — never touched without a takeover`,
+      containerId: existing.Id,
+      warnings: [
+        "This container belongs to another Suite on this host. Give each Suite its own SUITE_CONTAINER_PREFIX so their container names don't collide.",
+      ],
+    };
+  }
+
   if (labels[LABEL_SPEC_HASH] === desiredHash) {
     // A hash match alone isn't "fine" if the container isn't actually
     // running — stopped outside the Suite (or, see applyStack, by the Suite
@@ -143,6 +159,7 @@ async function findOrphans(activeIds) {
 
   return containers
     .map((container) => {
+      if (belongsToAnotherSuite(container.Labels || {})) return null;
       const component = componentOf(container.Labels || {});
       if (!component) return null;
 
@@ -460,6 +477,15 @@ export async function applyStack(plans, { log = () => {} } = {}) {
 // the reconciler does automatically should ever destroy a container it can no
 // longer describe.
 export async function removeOrphan(containerId, { log = () => {} } = {}) {
+  // Removal is by container ID, so nothing else stops this from taking down
+  // another Suite's container — check the label here.
+  const existing = await inspectContainer(containerId);
+  if (existing && belongsToAnotherSuite(existing.Config?.Labels || {})) {
+    throw new Error(
+      `Refusing to remove ${containerId}: it belongs to another Suite (${existing.Config.Labels[LABEL_SUITE]}).`
+    );
+  }
+
   log(`Stopping ${containerId}...`);
   await stopContainer(containerId, { timeoutSeconds: 30 });
   log("Removing it...");

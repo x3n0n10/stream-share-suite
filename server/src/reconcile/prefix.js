@@ -5,7 +5,10 @@
 // UI. The default guarantees a fresh install never collides with anything
 // already on the host; the override exists for the one case a default can't
 // cover on its own — more than one Suite installed on the same host, each
-// needing containers that don't collide with the other's.
+// needing containers that don't collide with the other's. It is also the
+// identity a Suite stamps on every container it creates (the
+// `streamshare.suite.instance` label), so a Suite never treats another Suite's
+// containers as its own.
 //
 // This only ever decides a *default* name. Every component that uses it also
 // carries its own containerName override field, so a container the operator

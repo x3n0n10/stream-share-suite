@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { deprovisionInstance, provisionInstance } from "../src/reconcile/provisioning.js";
 import { instanceContainerName } from "../src/reconcile/instance.js";
 import { getComponentValues, saveComponentValues } from "../src/store/components.js";
-import { managedLabels } from "../src/docker/labels.js";
+import { managedLabels, LABEL_SUITE } from "../src/docker/labels.js";
 import { freshDatabase } from "./helpers.js";
 
 let server;
@@ -130,6 +130,25 @@ test("an adopted container — not the Suite's own — is left running, never st
   assert.equal(containers.get(name).running, true);
   assert.equal(requests.some((r) => r.path.includes("/stop")), false);
   assert.ok(lines.some((l) => l.includes("was not created by the Suite")));
+});
+
+test("a same-named container created by another Suite is left running, never stopped", async () => {
+  const { key } = provisionInstance(PROVIDER);
+  const name = instanceContainerName(key, getComponentValues("instance", key));
+  containers.set(name, {
+    Id: "other-id",
+    name,
+    Labels: { ...managedLabels("instance", "h", key), [LABEL_SUITE]: "other-suite-" },
+    running: true,
+  });
+
+  const { log, lines } = collectLog();
+  await deprovisionInstance(key, { dropData: false, log });
+
+  assert.equal(containers.has(name), true, "left running, untouched");
+  assert.equal(containers.get(name).running, true);
+  assert.equal(requests.some((r) => r.path.includes("/stop")), false);
+  assert.ok(lines.some((l) => l.includes("belongs to another Suite")));
 });
 
 test("removing an instance with no running container at all just proceeds", async () => {
