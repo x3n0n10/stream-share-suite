@@ -70,7 +70,8 @@ export const CADDY_SCHEMA = {
       label: "DNS provider",
       help:
         "The DNS service your domain is hosted on. Your Caddy image must include this provider's plugin, " +
-        `built with — ${DNS_MODULES}. Not listed? Pick Custom.`,
+        `built with — ${DNS_MODULES}. Not listed? Pick Custom. The API token below is stored write-only and ` +
+        "never written into the Caddyfile. Switching provider? Enter that provider's token again.",
       type: "select",
       options: DNS_PROVIDER_OPTIONS,
       optionLabels: DNS_PROVIDER_LABELS,
@@ -99,7 +100,7 @@ export const CADDY_SCHEMA = {
       label: "Directive",
       help:
         "Everything after `dns` in the site's tls block, e.g. `porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}`. " +
-        "Reference credentials as {env.NAME} and define them below.",
+        "Reference credentials as {env.NAME} and define them in \"Provider environment variables\" below, one KEY=VALUE per line.",
       group: "DNS challenge",
       required: true,
       dependsOn: [
@@ -176,7 +177,7 @@ export const CADDY_SCHEMA = {
       key: "image",
       envVar: null,
       label: "Image",
-      help: "Any Caddy 2 tag.",
+      help: "Any Caddy 2 tag. For the DNS challenge, an image built with your DNS provider's plugin (see the README).",
       group: "Container",
       default: "caddy:2-alpine",
       advanced: true,

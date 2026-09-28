@@ -364,7 +364,8 @@ to be reachable from the internet. Pick a provider (Hetzner and Cloudflare are
 built in; **Custom** takes any Caddy DNS module's directive and its environment
 variables), enter its API token, and Caddy gets a `tls { dns ... }` block per
 site. An optional **Propagation delay** (e.g. `30s`) makes Caddy wait after
-creating the DNS record, which slow providers need.
+creating the DNS record, which slow providers need; it must be a Go duration
+such as `30s` or `1m30s`, and anything else is ignored.
 
 The token is stored write-only and passed to the Caddy container through its
 environment; the Caddyfile only ever contains an `{env.NAME}` placeholder.

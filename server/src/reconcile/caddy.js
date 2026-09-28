@@ -31,6 +31,7 @@ import { containerPrefix } from "./prefix.js";
 import { getSelfContainerName } from "../docker/self.js";
 
 const NETWORKS_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "networks");
+const IMAGE_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "image");
 const DNS_PROVIDER_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "dnsProvider");
 const GO_DURATION = /^(\d+(\.\d+)?(ns|us|µs|ms|s|m|h))+$/;
 
@@ -202,7 +203,7 @@ export async function renderCaddySpec(values) {
 
   return {
     name,
-    image: values.image || "caddy:2-alpine",
+    image: values.image || IMAGE_FIELD.default,
     env: {
       // The DNS provider's credentials, referenced from the Caddyfile as
       // {env.NAME} so the token itself never lands in a file on disk. Spread
