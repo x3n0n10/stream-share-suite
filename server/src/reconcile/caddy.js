@@ -7,6 +7,8 @@
 // URL right now), the same way gluetun's FIREWALL_OUTBOUND_SUBNETS or its
 // published ports are — see catalog.js and gluetun.js. Writing it during
 // render is exactly as safe as those: idempotent, and re-run on every plan.
+// The dashboard itself is one more route of the same kind, from the Caddy
+// component's own `dashboardUrl` field.
 //
 // The one thing that needs extra care is the spec hash (see docker/spec.js):
 // it's computed over the spec object, never over what ends up on disk, so a
@@ -22,6 +24,7 @@ import { listComponents, getComponentValues } from "../store/components.js";
 import { componentDataDir, ensureDirectory } from "../store/paths.js";
 import { instanceUrl } from "./instance.js";
 import { containerPrefix } from "./prefix.js";
+import { getSelfContainerName } from "../docker/self.js";
 
 const NETWORKS_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "networks");
 
@@ -47,6 +50,7 @@ function instanceRoutes() {
     } catch {
       continue; // Not a full URL — nothing to route on, same as leaving it blank.
     }
+    if (!url.host) continue; // "host:port" parses with an empty host — same as unparseable.
 
     const target = instanceUrl(row.key, values);
     if (!target) continue;
@@ -55,6 +59,26 @@ function instanceRoutes() {
   }
 
   return routes;
+}
+
+// The Suite's own dashboard, published the same way an instance is: only when
+// the operator has said where it is reached from outside. Only the host is
+// used — the dashboard is root-absolute (/assets, /api), so it cannot live
+// under a path prefix. `suiteTarget` is where Caddy reaches the Suite over
+// Docker's DNS; without one there is nothing to route to.
+function dashboardRoute(values, suiteTarget) {
+  const raw = String(values.dashboardUrl || "").trim();
+  if (!raw || !suiteTarget) return null;
+
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return null;
+  }
+  if (!url.host) return null; // "host:port" parses with an empty host — same as unparseable.
+
+  return { host: url.host, path: "", target: suiteTarget, dashboard: true };
 }
 
 function groupByHost(routes) {
@@ -70,8 +94,13 @@ function groupByHost(routes) {
 // several instances can share a hostname on different paths, each becoming
 // its own handle_path inside that one block; an instance alone on its
 // hostname gets a plain reverse_proxy instead of a needless handle_path.
-export function renderCaddyfile(values) {
-  const byHost = groupByHost(instanceRoutes());
+export function renderCaddyfile(values, suiteTarget) {
+  const routes = instanceRoutes();
+  const dashboard = dashboardRoute(values, suiteTarget);
+  // Last, so within a shared hostname the path-based instance blocks match
+  // before the dashboard's catch-all.
+  if (dashboard) routes.push(dashboard);
+  const byHost = groupByHost(routes);
   let file = "";
 
   if (values.tlsMode === "acme" && values.acmeEmail) {
@@ -85,9 +114,15 @@ export function renderCaddyfile(values) {
       file += `${host} {\n`;
       if ((values.tlsMode || "internal") === "internal") file += `\ttls internal\n`;
       for (const route of hostRoutes) {
-        file += route.path
-          ? `\thandle_path ${route.path}* {\n\t\treverse_proxy ${route.target}\n\t}\n`
-          : `\treverse_proxy ${route.target}\n`;
+        if (route.path) {
+          file += `\thandle_path ${route.path}* {\n\t\treverse_proxy ${route.target}\n\t}\n`;
+        } else if (route.dashboard && hostRoutes.length > 1) {
+          // Shares its hostname with path-based instances: an explicit handle
+          // makes it the fallback that they are matched ahead of.
+          file += `\thandle {\n\t\treverse_proxy ${route.target}\n\t}\n`;
+        } else {
+          file += `\treverse_proxy ${route.target}\n`;
+        }
       }
       file += `}\n\n`;
     }
@@ -100,7 +135,11 @@ export function renderCaddyfile(values) {
 
 export async function renderCaddySpec(values) {
   const name = caddyContainerName(values);
-  const caddyfile = renderCaddyfile(values);
+  // Only ask Docker who we are when there is a dashboard to point at.
+  const suiteTarget = values.dashboardUrl
+    ? `http://${await getSelfContainerName()}:${process.env.PORT || 3000}`
+    : undefined;
+  const caddyfile = renderCaddyfile(values, suiteTarget);
 
   const dir = ensureDirectory(componentDataDir(name));
   const caddyfilePath = path.join(dir, "Caddyfile");

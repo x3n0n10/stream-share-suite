@@ -1,7 +1,9 @@
 // The Caddy component: an optional reverse proxy that publishes instances
 // under a real hostname instead of a raw port, with HTTPS handled for you.
 //
-// Deliberately no routing fields here. Each instance already has its own
+// Deliberately no per-instance routing fields here (the one exception is the
+// dashboard's own address, below — the Suite has no other place to say where
+// it is reached from outside). Each instance already has its own
 // "Public base URL" (see schema/instance.js) — the address stream-share tells
 // its own players to use — and that is the one place an operator should have
 // to say "this is how the outside world reaches this instance." Rather than
@@ -48,6 +50,18 @@ export const CADDY_SCHEMA = {
       group: "HTTPS",
       required: true,
       dependsOn: { key: "tlsMode", equals: "acme" },
+    },
+    {
+      key: "dashboardUrl",
+      envVar: null,
+      label: "Dashboard public URL",
+      help:
+        "Optional. The address this dashboard is reached at from outside, e.g. https://suite.example.com. " +
+        "Only the hostname (and port, if any) is used — give it a hostname of its own rather than a path. " +
+        "Leave blank to keep the dashboard unpublished. The Suite must be on a Docker network Caddy joins " +
+        "(the default streamshare network covers this). Publishing it puts the sign-in page on the internet: " +
+        "it has a real login, CSRF protection and a throttled sign-in, but that is now your exposure.",
+      group: "Dashboard",
     },
     {
       key: "networks",

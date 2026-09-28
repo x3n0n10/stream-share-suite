@@ -47,3 +47,19 @@ export async function getSelfNetworks() {
   }
   return result;
 }
+
+// The compose file's own container_name — what every shipped install calls
+// the Suite, and what Caddy can still reach if self-inspection fails.
+const DEFAULT_SELF_NAME = "stream-share-suite";
+
+// The Suite's own container name, for addressing it from another container
+// over Docker's DNS. Same technique and same never-throw rule as
+// getSelfNetworks above.
+export async function getSelfContainerName() {
+  try {
+    const info = await inspectContainer(hostname());
+    return String(info?.Name || "").replace(/^\//, "") || DEFAULT_SELF_NAME;
+  } catch {
+    return DEFAULT_SELF_NAME;
+  }
+}
