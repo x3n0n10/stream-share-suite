@@ -302,3 +302,98 @@ test("a table provider needs its token; a custom provider needs its directive bu
     []
   );
 });
+
+const DNS = {
+  tlsMode: "dns",
+  acmeEmail: "admin@example.com",
+  dnsProvider: "hetzner",
+  dnsApiToken: "secret-token",
+};
+
+test("DNS mode writes the global email and a tls { dns ... } block per site, never tls internal", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/p1"));
+  const file = renderCaddyfile(DNS);
+  assert.match(file, /email admin@example\.com/);
+  assert.match(file, /tv\.example\.com \{\n\ttls \{\n\t\tdns hetzner \{env\.HETZNER_API_TOKEN\}\n\t\}\n/);
+  assert.equal(file.includes("tls internal"), false);
+});
+
+test("the DNS tls block appears in every site block, the dashboard's included", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/p1"));
+  const file = renderCaddyfile(
+    { ...DNS, dashboardUrl: "https://suite.example.com" },
+    "http://stream-share-suite:3000"
+  );
+  assert.equal(file.match(/\ttls \{/g).length, 2);
+});
+
+test("propagation_delay is written only when set, inside the same tls block", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/p1"));
+
+  const withDelay = renderCaddyfile({ ...DNS, dnsPropagationDelay: "30s" });
+  assert.match(withDelay, /\t\tdns hetzner \{env\.HETZNER_API_TOKEN\}\n\t\tpropagation_delay 30s\n\t\}/);
+
+  assert.equal(renderCaddyfile(DNS).includes("propagation_delay"), false);
+});
+
+test("the Caddyfile never contains the token, only the env placeholder", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/p1"));
+  const file = renderCaddyfile(DNS);
+  assert.equal(file.includes("secret-token"), false);
+  assert.match(file, /\{env\.HETZNER_API_TOKEN\}/);
+});
+
+test("a custom provider's directive is written as typed", () => {
+  provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/p1"));
+  const file = renderCaddyfile({
+    tlsMode: "dns",
+    acmeEmail: "admin@example.com",
+    dnsProvider: "custom",
+    dnsDirective: "porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}",
+  });
+  assert.match(file, /\t\tdns porkbun \{env\.PORKBUN_API_KEY\} \{env\.PORKBUN_API_SECRET_KEY\}\n/);
+});
+
+test("renderCaddySpec carries the token in env and the spec hash moves with it", async () => {
+  const spec = await renderCaddySpec(DNS);
+  assert.equal(spec.env.HETZNER_API_TOKEN, "secret-token");
+  assert.ok(spec.env.CADDY_CONFIG_HASH);
+
+  const other = await renderCaddySpec({ ...DNS, dnsApiToken: "another-token" });
+  assert.notEqual(computeSpecHash(spec), computeSpecHash(other));
+});
+
+test("a custom provider's env reaches the container, and CADDY_CONFIG_HASH cannot be overridden by it", async () => {
+  const spec = await renderCaddySpec({
+    tlsMode: "dns",
+    acmeEmail: "admin@example.com",
+    dnsProvider: "custom",
+    dnsDirective: "porkbun {env.PORKBUN_API_KEY}",
+    dnsEnv: "PORKBUN_API_KEY=k\nCADDY_CONFIG_HASH=spoofed",
+  });
+  assert.equal(spec.env.PORKBUN_API_KEY, "k");
+  assert.notEqual(spec.env.CADDY_CONFIG_HASH, "spoofed");
+});
+
+test("outside DNS mode the container env is just the config hash", async () => {
+  assert.deepEqual(Object.keys((await renderCaddySpec({})).env), ["CADDY_CONFIG_HASH"]);
+  assert.deepEqual(Object.keys((await renderCaddySpec({ tlsMode: "acme", acmeEmail: "a@example.com" })).env), [
+    "CADDY_CONFIG_HASH",
+  ]);
+});
+
+test("DNS mode on the stock Caddy image is flagged as not ready; a custom image or another mode is fine", () => {
+  const entry = getCatalogEntry("caddy");
+  assert.match(entry.ready({ tlsMode: "dns" }), /includes your provider's plugin/);
+  assert.match(entry.ready({ tlsMode: "dns", image: "caddy:2-alpine" }), /includes your provider's plugin/);
+  assert.equal(entry.ready({ tlsMode: "dns", image: "ghcr.io/me/caddy-hetzner:2" }), null);
+  assert.equal(entry.ready({ tlsMode: "acme" }), null);
+  assert.equal(entry.ready({}), null);
+});
+
+test("a custom DNS provider with a blank directive is flagged as not ready", () => {
+  const entry = getCatalogEntry("caddy");
+  const base = { tlsMode: "dns", dnsProvider: "custom", image: "ghcr.io/me/caddy-x:2" };
+  assert.match(entry.ready({ ...base, dnsDirective: "   " }), /needs a directive/);
+  assert.equal(entry.ready({ ...base, dnsDirective: "porkbun {env.K}" }), null);
+});

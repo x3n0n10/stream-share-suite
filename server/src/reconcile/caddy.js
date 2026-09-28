@@ -8,7 +8,9 @@
 // published ports are — see catalog.js and gluetun.js. Writing it during
 // render is exactly as safe as those: idempotent, and re-run on every plan.
 // The dashboard itself is one more route of the same kind, from the Caddy
-// component's own `dashboardUrl` field.
+// component's own `dashboardUrl` field. In DNS-challenge mode each site block
+// also carries a `tls { dns ... }` block, and the provider's credentials
+// travel in the container's environment rather than the file.
 //
 // The one thing that needs extra care is the spec hash (see docker/spec.js):
 // it's computed over the spec object, never over what ends up on disk, so a
@@ -142,7 +144,8 @@ export function renderCaddyfile(values, suiteTarget) {
   const byHost = groupByHost(routes);
   let file = "";
 
-  if (values.tlsMode === "acme" && values.acmeEmail) {
+  const challenge = dnsChallenge(values);
+  if ((values.tlsMode === "acme" || values.tlsMode === "dns") && values.acmeEmail) {
     file += `{\n\temail ${values.acmeEmail}\n}\n\n`;
   }
 
@@ -152,6 +155,11 @@ export function renderCaddyfile(values, suiteTarget) {
     for (const [host, hostRoutes] of byHost) {
       file += `${host} {\n`;
       if ((values.tlsMode || "internal") === "internal") file += `\ttls internal\n`;
+      if (challenge) {
+        file += `\ttls {\n\t\tdns ${challenge.directive}\n`;
+        if (challenge.propagationDelay) file += `\t\tpropagation_delay ${challenge.propagationDelay}\n`;
+        file += `\t}\n`;
+      }
       for (const route of hostRoutes) {
         if (route.path) {
           file += `\thandle_path ${route.path}* {\n\t\treverse_proxy ${route.target}\n\t}\n`;
@@ -179,6 +187,7 @@ export async function renderCaddySpec(values) {
     ? `http://${await getSelfContainerName()}:${process.env.PORT || 3000}`
     : undefined;
   const caddyfile = renderCaddyfile(values, suiteTarget);
+  const challenge = dnsChallenge(values);
 
   const dir = ensureDirectory(componentDataDir(name));
   const caddyfilePath = path.join(dir, "Caddyfile");
@@ -195,6 +204,10 @@ export async function renderCaddySpec(values) {
     name,
     image: values.image || "caddy:2-alpine",
     env: {
+      // The DNS provider's credentials, referenced from the Caddyfile as
+      // {env.NAME} so the token itself never lands in a file on disk. Spread
+      // first so nothing in it can shadow the hash below.
+      ...(challenge?.env || {}),
       // Not read by Caddy — see this file's header for why it's here.
       CADDY_CONFIG_HASH: createHash("sha256").update(caddyfile).digest("hex"),
     },

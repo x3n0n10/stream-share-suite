@@ -29,6 +29,8 @@ import { getBoolean } from "../store/settings.js";
 import { getDataPath, validatePath } from "../store/paths.js";
 import { componentId, listComponents, getComponentValues } from "../store/components.js";
 
+const CADDY_IMAGE_DEFAULT = CADDY_SCHEMA.fields.find((f) => f.key === "image").default;
+
 // Whether the stack routes its traffic through a VPN at all. This is one
 // stack-wide setting rather than a per-instance choice: a StreamShare
 // deployment shares one tunnel, and per-instance tunnels would mean a gluetun
@@ -136,6 +138,19 @@ const CATALOG = {
     singleton: true,
     containerName: () => caddyContainerName(getComponentValues("caddy")),
     present: () => isCaddyEnabled(),
+    // The DNS challenge needs a Caddy build that includes the provider's
+    // plugin, and the stock image never does — better an incomplete row that
+    // says so than a Caddy container that applies cleanly and then cannot start.
+    ready: (values) => {
+      if (values.tlsMode !== "dns") return null;
+      if (!values.image || values.image === CADDY_IMAGE_DEFAULT) {
+        return "DNS challenge needs a Caddy image that includes your provider's plugin — set the Image field.";
+      }
+      if (values.dnsProvider === "custom" && !String(values.dnsDirective || "").trim()) {
+        return "A custom DNS provider needs a directive.";
+      }
+      return null;
+    },
     dependsOn: () => [],
     // On the shared network rather than inside anyone's namespace — see
     // schema/caddy.js for why that's a different, weaker relationship.

@@ -357,6 +357,33 @@ on the Caddy component (a hostname of its own, e.g. `https://suite.example.com`)
 and Caddy proxies it to the Suite over the shared network. It needs a hostname
 rather than a path, and it puts the sign-in page on the internet.
 
+**DNS challenge.** Besides self-signed and automatic (ACME over HTTP), the
+HTTPS setting has **Automatic (DNS challenge)**, which proves you own a domain
+through your DNS provider's API instead of over ports 80/443 — so nothing has
+to be reachable from the internet. Pick a provider (Hetzner and Cloudflare are
+built in; **Custom** takes any Caddy DNS module's directive and its environment
+variables), enter its API token, and Caddy gets a `tls { dns ... }` block per
+site. An optional **Propagation delay** (e.g. `30s`) makes Caddy wait after
+creating the DNS record, which slow providers need.
+
+The token is stored write-only and passed to the Caddy container through its
+environment; the Caddyfile only ever contains an `{env.NAME}` placeholder.
+
+DNS providers are Caddy plugins, and the stock `caddy:2-alpine` image has none,
+so this mode needs a Caddy image that includes yours — set it in the **Image**
+field. The Caddy row shows as incomplete until you do. A minimal image:
+
+```dockerfile
+FROM caddy:builder AS builder
+RUN xcaddy build --with github.com/caddy-dns/hetzner/v2
+
+FROM caddy:2-alpine
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+```
+
+Module paths for the built-in providers: Hetzner
+`github.com/caddy-dns/hetzner/v2`, Cloudflare `github.com/caddy-dns/cloudflare`.
+
 ### Setup wizard
 
 A guided path through a fresh install, built around your instances first and

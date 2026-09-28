@@ -84,7 +84,7 @@ export const CADDY_SCHEMA = {
       envVar: null,
       label: "API token",
       help:
-        "Stored write-only and passed to Caddy through its environment; it is never written into the Caddyfile.",
+        "Stored write-only and passed to Caddy through its environment; it is never written into the Caddyfile. Switching provider? Enter that provider's token again.",
       secret: true,
       group: "DNS challenge",
       required: true,
