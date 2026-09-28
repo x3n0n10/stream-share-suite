@@ -92,7 +92,11 @@ export default function SchemaForm({
                   field={field}
                   value={draft[field.key]}
                   onChange={set}
-                  extra={extraOptions?.[field.key]}
+                  extra={
+                    typeof extraOptions?.[field.key] === "function"
+                      ? extraOptions[field.key](draft, set)
+                      : extraOptions?.[field.key]
+                  }
                   componentKey={componentKey}
                 />
               ))}
