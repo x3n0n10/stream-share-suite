@@ -8,7 +8,10 @@
 // published ports are — see catalog.js and gluetun.js. Writing it during
 // render is exactly as safe as those: idempotent, and re-run on every plan.
 // The dashboard itself is one more route of the same kind, from the Caddy
-// component's own `dashboardUrl` field.
+// component's own `dashboardUrl` field. In DNS-challenge mode each site block
+// also carries a `tls { dns ... }` block, the provider's credentials travel in
+// the container's environment rather than the file, and the container's start
+// command adds the provider's plugin to Caddy.
 //
 // The one thing that needs extra care is the spec hash (see docker/spec.js):
 // it's computed over the spec object, never over what ends up on disk, so a
@@ -20,13 +23,17 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { CADDY_SCHEMA } from "../schema/caddy.js";
+import { MODULE_PATH } from "../schema/dnsModule.js";
 import { listComponents, getComponentValues } from "../store/components.js";
 import { componentDataDir, ensureDirectory } from "../store/paths.js";
 import { instanceUrl } from "./instance.js";
+import { parseExtraEnv } from "./env.js";
 import { containerPrefix } from "./prefix.js";
 import { getSelfContainerName } from "../docker/self.js";
 
 const NETWORKS_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "networks");
+const IMAGE_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "image");
+const GO_DURATION = /^(\d+(\.\d+)?(ns|us|µs|ms|s|m|h))+$/;
 
 export function caddyContainerName(values = {}) {
   return String(values.containerName || "").trim() || `${containerPrefix()}caddy`;
@@ -90,6 +97,75 @@ function groupByHost(routes) {
   return byHost;
 }
 
+// What the DNS challenge needs, resolved from the stored values: the
+// directive that goes after `dns` in each site's tls block, the environment
+// variables it references, the Caddy package to add (`modules`), and an
+// optional propagation delay. Null when DNS mode is off or the module/
+// directive is not usable.
+//
+// The token only ever travels in `env` (the container's environment); the
+// directive refers to it as {env.NAME}, so the Caddyfile on disk never holds
+// it — the operator's own dnsEnv values decide what that placeholder
+// resolves to, sight unseen by this function. The directive is collapsed to
+// one line so it stays one directive regardless of how it was typed. A
+// propagation delay that is not a Go duration is ignored, the same way an
+// unparseable URL is elsewhere in this file, rather than written into a
+// Caddyfile Caddy would refuse to load.
+export function dnsChallenge(values) {
+  if (values.tlsMode !== "dns") return null;
+
+  const module = String(values.dnsModule || "").trim();
+  if (!MODULE_PATH.test(module)) return null;
+
+  const directive = String(values.dnsDirective || "").replace(/\s*\n\s*/g, " ").trim();
+  if (!directive) return null;
+
+  const referenced = new Set([...directive.matchAll(/\{env\.([A-Za-z0-9_]+)\}/g)].map((m) => m[1]));
+  const env = Object.fromEntries(Object.entries(parseExtraEnv(values.dnsEnv)).filter(([name]) => referenced.has(name)));
+  const delay = String(values.dnsPropagationDelay || "").trim();
+  return { directive, env, modules: [module], propagationDelay: GO_DURATION.test(delay) ? delay : null };
+}
+
+// What runs as the Caddy container's command in DNS-challenge mode. The stock
+// image has no DNS provider plugins, so this adds the missing ones with
+// Caddy's own `add-package` (which swaps the binary on disk for a build from
+// Caddy's download service that has them) and then starts Caddy exactly as the
+// image would. Modules are positional arguments, never interpolated into the
+// script, and are skipped when the binary already has them. If adding fails
+// the container exits with the reason in its log rather than starting Caddy
+// without the plugin; Docker's restart policy retries.
+//
+// The build is cached in /config (the mounted config folder), keyed on the
+// image's own Caddy version plus the modules and computed before anything is
+// added. Any Caddyfile change recreates the container with a fresh filesystem,
+// and the download must not stand between a route edit and a working proxy;
+// an image upgrade or a module change misses the cache, downloads again and
+// drops the old build. A failed copy into the cache only warns. Note that
+// `add-package` sends no Caddy version, so it always installs the latest.
+// `cache=/config` stays on one line so tests can point it at a temp dir.
+export const CADDY_START_SCRIPT = `cache=/config
+key=$( { caddy version; printf '%s\\n' "$@"; } | cksum | cut -d' ' -f1)
+bin="$cache/caddy-dns-$key"
+if [ -x "$bin" ]; then
+  exec "$bin" run --config /etc/caddy/Caddyfile --adapter caddyfile
+fi
+missing=""
+for m in "$@"; do
+  pkg="\${m%@*}"
+  caddy list-modules --packages | awk -v p="$pkg" '{ for (i = 1; i <= NF; i++) if ($i == p) found = 1 } END { exit !found }' || missing="$missing $m"
+done
+if [ -n "$missing" ]; then
+  echo "Adding Caddy packages:$missing"
+  caddy add-package $missing || { echo "caddy add-package failed - is Caddy's download service reachable?" >&2; exit 1; }
+  { rm -f "$cache"/caddy-dns-* && cp "$(command -v caddy)" "$bin.tmp" && mv "$bin.tmp" "$bin"; } || echo "could not cache the Caddy build in $cache" >&2
+fi
+exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+`;
+
+function caddyStartCommand(modules) {
+  return ["sh", "-c", CADDY_START_SCRIPT, "sh", ...modules];
+}
+
 // Builds the actual Caddyfile text. One site block per distinct hostname —
 // several instances can share a hostname on different paths, each becoming
 // its own handle_path inside that one block; an instance alone on its
@@ -103,7 +179,8 @@ export function renderCaddyfile(values, suiteTarget) {
   const byHost = groupByHost(routes);
   let file = "";
 
-  if (values.tlsMode === "acme" && values.acmeEmail) {
+  const challenge = dnsChallenge(values);
+  if ((values.tlsMode === "acme" || values.tlsMode === "dns") && values.acmeEmail) {
     file += `{\n\temail ${values.acmeEmail}\n}\n\n`;
   }
 
@@ -113,6 +190,11 @@ export function renderCaddyfile(values, suiteTarget) {
     for (const [host, hostRoutes] of byHost) {
       file += `${host} {\n`;
       if ((values.tlsMode || "internal") === "internal") file += `\ttls internal\n`;
+      if (challenge) {
+        file += `\ttls {\n\t\tdns ${challenge.directive}\n`;
+        if (challenge.propagationDelay) file += `\t\tpropagation_delay ${challenge.propagationDelay}\n`;
+        file += `\t}\n`;
+      }
       for (const route of hostRoutes) {
         if (route.path) {
           file += `\thandle_path ${route.path}* {\n\t\treverse_proxy ${route.target}\n\t}\n`;
@@ -140,6 +222,7 @@ export async function renderCaddySpec(values) {
     ? `http://${await getSelfContainerName()}:${process.env.PORT || 3000}`
     : undefined;
   const caddyfile = renderCaddyfile(values, suiteTarget);
+  const challenge = dnsChallenge(values);
 
   const dir = ensureDirectory(componentDataDir(name));
   const caddyfilePath = path.join(dir, "Caddyfile");
@@ -154,8 +237,12 @@ export async function renderCaddySpec(values) {
 
   return {
     name,
-    image: values.image || "caddy:2-alpine",
+    image: values.image || IMAGE_FIELD.default,
     env: {
+      // The DNS provider's credentials, referenced from the Caddyfile as
+      // {env.NAME} so the token itself never lands in a file on disk. Spread
+      // first so nothing in it can shadow the hash below.
+      ...(challenge?.env || {}),
       // Not read by Caddy — see this file's header for why it's here.
       CADDY_CONFIG_HASH: createHash("sha256").update(caddyfile).digest("hex"),
     },
@@ -166,5 +253,6 @@ export async function renderCaddySpec(values) {
       { host: Number(values.httpsPort || 443), container: 443, protocol: "tcp" },
     ],
     restartPolicy: "unless-stopped",
+    ...(challenge ? { command: caddyStartCommand(challenge.modules) } : {}),
   };
 }

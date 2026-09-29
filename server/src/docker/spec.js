@@ -59,7 +59,8 @@ function sortKeysDeep(value) {
 //   managed/spec-hash are added at apply time, never hashed), capAdd: [...],
 //   devices: ["/host:/container[:perms]"], volumes: ["/host:/container[:ro]"],
 //   ports: [{host, container, protocol}], networks: [...names],
-//   networkMode, restartPolicy, name }
+//   networkMode, restartPolicy, name,
+//   command: [...args] (optional override of the image's CMD) }
 //
 // env and labels are objects (unordered by nature) rather than the
 // "KEY=value" array Docker's API wants — that conversion happens in
@@ -94,6 +95,9 @@ export function computeSpecHash(spec) {
   if ((spec.ports || []).length > 0) canonical.ports = normalisePorts(spec.ports);
   if (spec.networkMode) canonical.networkMode = spec.networkMode;
   if (spec.user) canonical.user = spec.user;
+  // Order is significant for a command, unlike the sorted lists above. Omitted
+  // when empty, like every optional field, so no existing spec's hash moves.
+  if ((spec.command || []).length > 0) canonical.command = [...spec.command];
 
   return createHash("sha256").update(JSON.stringify(sortKeysDeep(canonical))).digest("hex");
 }
@@ -150,6 +154,10 @@ export function toCreatePayload(spec, { labels } = {}) {
       NetworkMode: spec.networkMode || primaryNetwork || "bridge",
     },
   };
+
+  // Overrides the image's own CMD. Only ever set by a renderer that has a
+  // reason to (Caddy's DNS-challenge start script), never from operator text.
+  if ((spec.command || []).length > 0) payload.Cmd = [...spec.command];
 
   if (ports.length > 0) {
     // ExposedPorts sits on the container config; PortBindings sits on
