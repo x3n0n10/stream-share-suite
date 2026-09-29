@@ -251,7 +251,7 @@ test("a table provider yields its directive and its token env var", () => {
   const cloudflare = dnsChallenge({ tlsMode: "dns", dnsProvider: "cloudflare", dnsApiToken: "tok" });
   assert.equal(cloudflare.directive, "cloudflare {env.CLOUDFLARE_API_TOKEN}");
   assert.deepEqual(cloudflare.env, { CLOUDFLARE_API_TOKEN: "tok" });
-  assert.deepEqual(cloudflare.modules, ["github.com/caddy-dns/cloudflare"]);
+  assert.deepEqual(cloudflare.modules, ["github.com/caddy-dns/cloudflare@v0.2.4"]);
 });
 
 test("the provider defaults to Hetzner when unset", () => {

@@ -23,7 +23,7 @@ Let the Caddy component obtain HTTPS certificates with the ACME **DNS challenge*
 ```js
 export const DNS_PROVIDERS = {
   hetzner:    { label: "Hetzner",    directive: "hetzner {env.HETZNER_API_TOKEN}",       tokenEnv: "HETZNER_API_TOKEN",    module: "github.com/caddy-dns/hetzner@v2.0.1" },
-  cloudflare: { label: "Cloudflare", directive: "cloudflare {env.CLOUDFLARE_API_TOKEN}", tokenEnv: "CLOUDFLARE_API_TOKEN", module: "github.com/caddy-dns/cloudflare" },
+  cloudflare: { label: "Cloudflare", directive: "cloudflare {env.CLOUDFLARE_API_TOKEN}", tokenEnv: "CLOUDFLARE_API_TOKEN", module: "github.com/caddy-dns/cloudflare@v0.2.4" },
 };
 ```
 

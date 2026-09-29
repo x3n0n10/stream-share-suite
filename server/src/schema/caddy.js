@@ -97,8 +97,9 @@ export const CADDY_SCHEMA = {
       envVar: null,
       label: "Caddy module",
       help:
-        "The Go package of your provider's Caddy plugin, e.g. github.com/caddy-dns/porkbun (an @version suffix " +
-        "such as @v1.2.3 is allowed). Caddy downloads it when it starts; see caddyserver.com/download for the list.",
+        "The Go package of your provider's Caddy plugin, e.g. github.com/caddy-dns/porkbun@v1.2.3. Pin an exact " +
+        "version — without one, Caddy's add-package can build the module's unreleased branch instead of its " +
+        "latest release. See caddyserver.com/download for the list of packages.",
       group: "DNS challenge",
       required: true,
       dependsOn: [
