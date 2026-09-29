@@ -3,6 +3,7 @@ import { Button, ErrorNote, FIELD } from "./common.jsx";
 import ErrorSlateEditor from "./ErrorSlateEditor.jsx";
 import ProviderCombobox from "./ProviderCombobox.jsx";
 import ChannelSearchInput from "./ChannelSearchInput.jsx";
+import DirectiveEnvEditor from "./DirectiveEnvEditor.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
 // the point of the schema registry: a new field on the server is a new row
@@ -98,6 +99,7 @@ export default function SchemaForm({
                       : extraOptions?.[field.key]
                   }
                   componentKey={componentKey}
+                  draft={draft}
                 />
               ))}
             </div>
@@ -114,6 +116,7 @@ export default function SchemaForm({
                       value={draft[field.key]}
                       onChange={set}
                       componentKey={componentKey}
+                      draft={draft}
                     />
                   ))}
                 </div>
@@ -147,7 +150,7 @@ export default function SchemaForm({
   );
 }
 
-function FieldInput({ field, value, onChange, extra, componentKey }) {
+function FieldInput({ field, value, onChange, extra, componentKey, draft }) {
   const hint = field.secret
     ? field.valueSet
       ? "Set. Leave blank to keep it."
@@ -163,6 +166,7 @@ function FieldInput({ field, value, onChange, extra, componentKey }) {
   const multiControl =
     field.type === "select" ||
     field.type === "errorSlates" ||
+    field.type === "directiveEnv" ||
     field.type === "combobox" ||
     field.type === "channelSearch";
   const Wrapper = multiControl ? "div" : "label";
@@ -177,13 +181,13 @@ function FieldInput({ field, value, onChange, extra, componentKey }) {
         {field.label}
         {field.required && <span className="text-rose-500"> *</span>}
       </span>
-      {renderControl(field, value, onChange, extra, componentKey)}
+      {renderControl(field, value, onChange, extra, componentKey, draft)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
     </Wrapper>
   );
 }
 
-function renderControl(field, value, onChange, extra, componentKey) {
+function renderControl(field, value, onChange, extra, componentKey, draft) {
   if (field.type === "textarea") {
     return (
       <textarea
@@ -196,6 +200,10 @@ function renderControl(field, value, onChange, extra, componentKey) {
 
   if (field.type === "errorSlates") {
     return <ErrorSlateEditor value={value} onChange={(next) => onChange(field.key, next)} />;
+  }
+
+  if (field.type === "directiveEnv") {
+    return <DirectiveEnvEditor value={value} directive={draft?.dnsDirective} onChange={(next) => onChange(field.key, next)} />;
   }
 
   if (field.type === "checkbox") {
