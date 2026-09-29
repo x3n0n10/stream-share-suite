@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { FIELD } from "./common.jsx";
 
 // One write-only box per {env.NAME} the current directive references,
@@ -15,6 +15,15 @@ import { FIELD } from "./common.jsx";
 //
 // `directive` is the live sibling field's value, threaded down through
 // SchemaForm's draft — this editor has no server round-trip of its own.
+//
+// Removing a name from the directive (or clearing it entirely) doesn't by
+// itself touch a box for that name — there's no keystroke here to catch it,
+// and once the box disappears there's nothing left to type into. So a
+// useEffect below proactively prunes any stored name that's no longer
+// referenced whenever the directive or value changes, rather than relying on
+// the user to revisit a remaining box. It only fires when there's something
+// real to prune, so an untouched field (still its pristine "") is never
+// marked dirty by an unrelated directive edit.
 
 const ENV_REF = /\{env\.([A-Za-z0-9_]+)\}/g;
 
@@ -35,10 +44,17 @@ export default function DirectiveEnvEditor({ value, directive, onChange }) {
   const names = useMemo(() => detectNames(directive), [directive]);
   const values = useMemo(() => parseValue(value), [value]);
 
+  useEffect(() => {
+    if (Object.keys(values).some((name) => !names.includes(name))) {
+      onChange(names.map((n) => `${n}=${values[n] ?? ""}`).join("\n"));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directive, value]);
+
   function setName(name, next) {
-    // Only currently-referenced names are ever written back — editing the
-    // directive to drop a name drops its value on the very next keystroke
-    // here, rather than leaving an orphaned credential in storage.
+    // Only currently-referenced names are ever written back — the effect
+    // above handles the case where a name drops out from under an untouched
+    // box.
     const merged = { ...values, [name]: next };
     onChange(names.map((n) => `${n}=${merged[n] ?? ""}`).join("\n"));
   }
