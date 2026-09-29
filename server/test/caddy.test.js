@@ -244,7 +244,7 @@ test("a table provider yields its directive and its token env var", () => {
   assert.deepEqual(dnsChallenge({ tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "tok" }), {
     directive: "hetzner {env.HETZNER_API_TOKEN}",
     env: { HETZNER_API_TOKEN: "tok" },
-    modules: ["github.com/caddy-dns/hetzner"],
+    modules: ["github.com/caddy-dns/hetzner@v2.0.1"],
     propagationDelay: null,
   });
 
@@ -424,7 +424,7 @@ test("MODULE_PATH accepts Go package paths (with an optional version) and reject
 
 test("in DNS mode the container command adds the provider's module, and the spec hash moves when it changes", async () => {
   const hetzner = await renderCaddySpec(DNS);
-  assert.deepEqual(hetzner.command, ["sh", "-c", CADDY_START_SCRIPT, "sh", "github.com/caddy-dns/hetzner"]);
+  assert.deepEqual(hetzner.command, ["sh", "-c", CADDY_START_SCRIPT, "sh", "github.com/caddy-dns/hetzner@v2.0.1"]);
 
   const custom = {
     tlsMode: "dns",

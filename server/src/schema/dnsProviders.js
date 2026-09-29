@@ -21,7 +21,9 @@ export const DNS_PROVIDERS = {
     // including this major bump — through @version instead. Confirmed
     // against the registry (caddyserver.com/api/packages): the hetzner entry
     // is registered at this exact path, and add-package 400s on ".../v2".
-    module: "github.com/caddy-dns/hetzner",
+    // Pinned to a known-good release rather than left to float to whatever
+    // add-package resolves as latest.
+    module: "github.com/caddy-dns/hetzner@v2.0.1",
   },
   cloudflare: {
     label: "Cloudflare",
