@@ -120,7 +120,8 @@ export function dnsChallenge(values) {
   const directive = String(values.dnsDirective || "").replace(/\s*\n\s*/g, " ").trim();
   if (!directive) return null;
 
-  const env = parseExtraEnv(values.dnsEnv);
+  const referenced = new Set([...directive.matchAll(/\{env\.([A-Za-z0-9_]+)\}/g)].map((m) => m[1]));
+  const env = Object.fromEntries(Object.entries(parseExtraEnv(values.dnsEnv)).filter(([name]) => referenced.has(name)));
   const delay = String(values.dnsPropagationDelay || "").trim();
   return { directive, env, modules: [module], propagationDelay: GO_DURATION.test(delay) ? delay : null };
 }

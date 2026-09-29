@@ -360,9 +360,8 @@ rather than a path, and it puts the sign-in page on the internet.
 **DNS challenge.** Besides self-signed and automatic (ACME over HTTP), the
 HTTPS setting has **Automatic (DNS challenge)**, which proves you own a domain
 through your DNS provider's API instead of over ports 80/443 — so nothing has
-to be reachable from the internet. Pick a provider (Hetzner and Cloudflare are
-built in; **Custom** takes any Caddy DNS module: its Caddy module path, its
-directive and its environment variables), enter its API token, and Caddy gets
+to be reachable from the internet. Type the Caddy DNS module for your
+provider and its directive (see below for both), and Caddy gets
 a `tls { dns ... }` block per site. An optional **Propagation delay**
 (e.g. `30s`) makes Caddy wait after creating the DNS record, which slow
 providers need; it must be a Go duration such as `30s` or `1m30s`, and
@@ -397,8 +396,9 @@ Worth knowing:
   log: Apply reports success once the container has started, not once the
   download has finished.
 - The download always installs the latest Caddy release, whatever the image tag
-  says (`add-package` does not send a version). `@version` on a custom module
-  pins only that plugin, not Caddy, and the built-in providers can't be pinned.
+  says (`add-package` does not send a version). `@version` on the Caddy module
+  pins only that plugin, not Caddy — which is why every module must be pinned
+  (see above), not just Caddy's image tag.
 - The image must not set its own ENTRYPOINT in this mode.
 
 ### Setup wizard

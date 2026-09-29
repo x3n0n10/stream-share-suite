@@ -374,6 +374,16 @@ test("the env reaches the container, and CADDY_CONFIG_HASH cannot be overridden 
   assert.notEqual(spec.env.CADDY_CONFIG_HASH, "spoofed");
 });
 
+test("dnsChallenge only includes env vars the directive actually references", () => {
+  const challenge = dnsChallenge({
+    tlsMode: "dns",
+    dnsModule: "github.com/caddy-dns/porkbun@v1.2.3",
+    dnsDirective: "porkbun {env.PORKBUN_API_KEY}",
+    dnsEnv: "PORKBUN_API_KEY=k\nOLD_TOKEN=stale",
+  });
+  assert.deepEqual(challenge.env, { PORKBUN_API_KEY: "k" });
+});
+
 test("outside DNS mode the container env is just the config hash", async () => {
   assert.deepEqual(Object.keys((await renderCaddySpec({})).env), ["CADDY_CONFIG_HASH"]);
   assert.deepEqual(Object.keys((await renderCaddySpec({ tlsMode: "acme", acmeEmail: "a@example.com" })).env), [
@@ -460,6 +470,19 @@ test("DNS mode is not ready when the directive references a variable dnsEnv does
   assert.equal(
     entry.ready({ ...base, dnsDirective: "hetzner {env.HETZNER_API_TOKEN}", dnsEnv: "HETZNER_API_TOKEN=tok" }),
     null
+  );
+});
+
+test("DNS mode is not ready when a referenced variable's value is empty", () => {
+  const entry = getCatalogEntry("caddy");
+  assert.match(
+    entry.ready({
+      tlsMode: "dns",
+      dnsModule: "github.com/caddy-dns/hetzner@v2.0.1",
+      dnsDirective: "hetzner {env.A} {env.B}",
+      dnsEnv: "A=x\nB=",
+    }),
+    /Directive references B but no value is set/
   );
 });
 

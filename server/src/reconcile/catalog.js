@@ -153,7 +153,8 @@ const CATALOG = {
       const referenced = [...String(values.dnsDirective || "").matchAll(/\{env\.([A-Za-z0-9_]+)\}/g)].map(
         (m) => m[1]
       );
-      const provided = new Set(Object.keys(parseExtraEnv(values.dnsEnv)));
+      const env = parseExtraEnv(values.dnsEnv);
+      const provided = new Set(Object.keys(env).filter((name) => env[name]));
       const missing = [...new Set(referenced)].filter((name) => !provided.has(name));
       if (missing.length > 0) return `Directive references ${missing.join(", ")} but no value is set.`;
       return null;
