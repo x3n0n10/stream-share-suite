@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { renderCaddyfile, renderCaddySpec, caddyContainerName, dnsChallenge, CADDY_START_SCRIPT } from "../src/reconcile/caddy.js";
-import { MODULE_PATH } from "../src/schema/dnsProviders.js";
+import { MODULE_PATH } from "../src/schema/dnsModule.js";
 import { computeSpecHash } from "../src/docker/spec.js";
 import { getCatalogEntry, isCaddyEnabled, CADDY_ENABLED_SETTING } from "../src/reconcile/catalog.js";
 import { setSetting } from "../src/store/settings.js";
@@ -235,55 +235,35 @@ test("the spec hash changes when the dashboard URL changes, and the Suite's addr
 // --- DNS challenge ---------------------------------------------------------
 
 test("dnsChallenge is null outside DNS mode", () => {
-  assert.equal(dnsChallenge({ tlsMode: "internal", dnsApiToken: "t" }), null);
-  assert.equal(dnsChallenge({ tlsMode: "acme", dnsApiToken: "t" }), null);
+  const dns = { dnsModule: "github.com/caddy-dns/hetzner@v2.0.1", dnsDirective: "hetzner {env.T}" };
+  assert.equal(dnsChallenge({ tlsMode: "internal", ...dns }), null);
+  assert.equal(dnsChallenge({ tlsMode: "acme", ...dns }), null);
   assert.equal(dnsChallenge({}), null);
 });
 
-test("a table provider yields its directive and its token env var", () => {
-  assert.deepEqual(dnsChallenge({ tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "tok" }), {
-    directive: "hetzner {env.HETZNER_API_TOKEN}",
-    env: { HETZNER_API_TOKEN: "tok" },
-    modules: ["github.com/caddy-dns/hetzner@v2.0.1"],
-    propagationDelay: null,
-  });
-
-  const cloudflare = dnsChallenge({ tlsMode: "dns", dnsProvider: "cloudflare", dnsApiToken: "tok" });
-  assert.equal(cloudflare.directive, "cloudflare {env.CLOUDFLARE_API_TOKEN}");
-  assert.deepEqual(cloudflare.env, { CLOUDFLARE_API_TOKEN: "tok" });
-  assert.deepEqual(cloudflare.modules, ["github.com/caddy-dns/cloudflare@v0.2.4"]);
-});
-
-test("the provider defaults to Hetzner when unset", () => {
-  assert.equal(dnsChallenge({ tlsMode: "dns", dnsApiToken: "tok" }).directive, "hetzner {env.HETZNER_API_TOKEN}");
-});
-
-test("a custom provider uses the typed directive on one line and the parsed env", () => {
+test("dnsChallenge uses the typed directive collapsed to one line, the module, and the parsed env", () => {
   const challenge = dnsChallenge({
     tlsMode: "dns",
-    dnsProvider: "custom",
+    dnsModule: "github.com/caddy-dns/porkbun@v1.2.3",
     dnsDirective: "porkbun {env.PORKBUN_API_KEY}\n {env.PORKBUN_API_SECRET_KEY}",
-    dnsModule: "github.com/caddy-dns/porkbun",
     dnsEnv: "PORKBUN_API_KEY=k\nPORKBUN_API_SECRET_KEY=s\n# a comment\n",
   });
   assert.equal(challenge.directive, "porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}");
   assert.deepEqual(challenge.env, { PORKBUN_API_KEY: "k", PORKBUN_API_SECRET_KEY: "s" });
-  assert.deepEqual(challenge.modules, ["github.com/caddy-dns/porkbun"]);
+  assert.deepEqual(challenge.modules, ["github.com/caddy-dns/porkbun@v1.2.3"]);
 });
 
-test("dnsChallenge is null when the token or custom directive is missing, or the provider is unknown", () => {
-  assert.equal(dnsChallenge({ tlsMode: "dns", dnsProvider: "hetzner" }), null);
-  assert.equal(dnsChallenge({ tlsMode: "dns", dnsProvider: "custom", dnsDirective: "  " }), null);
-  assert.equal(dnsChallenge({ tlsMode: "dns", dnsProvider: "nope", dnsApiToken: "t" }), null);
+test("dnsChallenge is null when the directive or module is missing or invalid", () => {
+  assert.equal(dnsChallenge({ tlsMode: "dns", dnsDirective: "  " }), null); // blank directive
+  assert.equal(dnsChallenge({ tlsMode: "dns", dnsDirective: "porkbun {env.K}" }), null); // no module
 
-  const custom = { tlsMode: "dns", dnsProvider: "custom", dnsDirective: "porkbun {env.K}" };
-  assert.equal(dnsChallenge(custom), null); // no module
-  assert.equal(dnsChallenge({ ...custom, dnsModule: "porkbun; rm -rf /" }), null); // not a package path
-  assert.notEqual(dnsChallenge({ ...custom, dnsModule: "github.com/caddy-dns/porkbun" }), null);
+  const base = { tlsMode: "dns", dnsDirective: "porkbun {env.K}" };
+  assert.equal(dnsChallenge({ ...base, dnsModule: "porkbun; rm -rf /" }), null); // not a package path
+  assert.notEqual(dnsChallenge({ ...base, dnsModule: "github.com/caddy-dns/porkbun@v1.2.3" }), null);
 });
 
 test("a propagation delay is kept when it is a Go duration and ignored otherwise", () => {
-  const base = { tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "t" };
+  const base = { tlsMode: "dns", dnsModule: "github.com/caddy-dns/hetzner@v2.0.1", dnsDirective: "hetzner {env.T}" };
   assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "30s" }).propagationDelay, "30s");
   assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "1m30s" }).propagationDelay, "1m30s");
   assert.equal(dnsChallenge({ ...base, dnsPropagationDelay: "soon" }).propagationDelay, null);
@@ -291,7 +271,7 @@ test("a propagation delay is kept when it is a Go duration and ignored otherwise
 });
 
 test("DNS mode requires the ACME email, and the DNS fields only matter in DNS mode", () => {
-  const dns = { tlsMode: "dns", dnsProvider: "hetzner", dnsApiToken: "t" };
+  const dns = { tlsMode: "dns", dnsModule: "github.com/caddy-dns/hetzner@v2.0.1", dnsDirective: "hetzner {env.T}" };
   assert.ok(validate(CADDY_SCHEMA, dns).some((e) => e.key === "acmeEmail"));
   assert.deepEqual(validate(CADDY_SCHEMA, { ...dns, acmeEmail: "a@example.com" }), []);
 
@@ -300,30 +280,33 @@ test("DNS mode requires the ACME email, and the DNS fields only matter in DNS mo
   assert.deepEqual(validate(CADDY_SCHEMA, { tlsMode: "acme", acmeEmail: "a@example.com" }), []);
 });
 
-test("a table provider needs its token; a custom provider needs its directive and module but not a token", () => {
+test("DNS mode needs a directive and a module, always", () => {
   const email = { tlsMode: "dns", acmeEmail: "a@example.com" };
-  assert.ok(validate(CADDY_SCHEMA, { ...email, dnsProvider: "hetzner" }).some((e) => e.key === "dnsApiToken"));
-
-  const custom = validate(CADDY_SCHEMA, { ...email, dnsProvider: "custom" });
-  assert.ok(custom.some((e) => e.key === "dnsDirective"));
-  assert.ok(custom.some((e) => e.key === "dnsModule"));
-  assert.equal(custom.some((e) => e.key === "dnsApiToken"), false);
+  const errors = validate(CADDY_SCHEMA, email);
+  assert.ok(errors.some((e) => e.key === "dnsDirective"));
+  assert.ok(errors.some((e) => e.key === "dnsModule"));
   assert.deepEqual(
     validate(CADDY_SCHEMA, {
       ...email,
-      dnsProvider: "custom",
       dnsDirective: "porkbun {env.K}",
-      dnsModule: "github.com/caddy-dns/porkbun",
+      dnsModule: "github.com/caddy-dns/porkbun@v1.2.3",
     }),
     []
   );
 });
 
+test("dnsProvider and dnsApiToken no longer exist on the schema", () => {
+  const keys = CADDY_SCHEMA.fields.map((f) => f.key);
+  assert.equal(keys.includes("dnsProvider"), false);
+  assert.equal(keys.includes("dnsApiToken"), false);
+});
+
 const DNS = {
   tlsMode: "dns",
   acmeEmail: "admin@example.com",
-  dnsProvider: "hetzner",
-  dnsApiToken: "secret-token",
+  dnsModule: "github.com/caddy-dns/hetzner@v2.0.1",
+  dnsDirective: "hetzner {env.HETZNER_API_TOKEN}",
+  dnsEnv: "HETZNER_API_TOKEN=secret-token",
 };
 
 test("DNS mode writes the global email and a tls { dns ... } block per site, never tls internal", () => {
@@ -359,14 +342,13 @@ test("the Caddyfile never contains the token, only the env placeholder", () => {
   assert.match(file, /\{env\.HETZNER_API_TOKEN\}/);
 });
 
-test("a custom provider's directive is written as typed", () => {
+test("a directive is written as typed", () => {
   provisionInstance(PROVIDER("Provider 1", null, "https://tv.example.com/p1"));
   const file = renderCaddyfile({
     tlsMode: "dns",
     acmeEmail: "admin@example.com",
-    dnsProvider: "custom",
     dnsDirective: "porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}",
-    dnsModule: "github.com/caddy-dns/porkbun",
+    dnsModule: "github.com/caddy-dns/porkbun@v1.2.3",
   });
   assert.match(file, /\t\tdns porkbun \{env\.PORKBUN_API_KEY\} \{env\.PORKBUN_API_SECRET_KEY\}\n/);
 });
@@ -376,17 +358,16 @@ test("renderCaddySpec carries the token in env and the spec hash moves with it",
   assert.equal(spec.env.HETZNER_API_TOKEN, "secret-token");
   assert.ok(spec.env.CADDY_CONFIG_HASH);
 
-  const other = await renderCaddySpec({ ...DNS, dnsApiToken: "another-token" });
+  const other = await renderCaddySpec({ ...DNS, dnsEnv: "HETZNER_API_TOKEN=another-token" });
   assert.notEqual(computeSpecHash(spec), computeSpecHash(other));
 });
 
-test("a custom provider's env reaches the container, and CADDY_CONFIG_HASH cannot be overridden by it", async () => {
+test("the env reaches the container, and CADDY_CONFIG_HASH cannot be overridden by it", async () => {
   const spec = await renderCaddySpec({
     tlsMode: "dns",
     acmeEmail: "admin@example.com",
-    dnsProvider: "custom",
     dnsDirective: "porkbun {env.PORKBUN_API_KEY}",
-    dnsModule: "github.com/caddy-dns/porkbun",
+    dnsModule: "github.com/caddy-dns/porkbun@v1.2.3",
     dnsEnv: "PORKBUN_API_KEY=k\nCADDY_CONFIG_HASH=spoofed",
   });
   assert.equal(spec.env.PORKBUN_API_KEY, "k");
@@ -422,19 +403,13 @@ test("MODULE_PATH accepts Go package paths (with an optional version) and reject
   }
 });
 
-test("in DNS mode the container command adds the provider's module, and the spec hash moves when it changes", async () => {
+test("in DNS mode the container command adds the configured module, and the spec hash moves when it changes", async () => {
   const hetzner = await renderCaddySpec(DNS);
   assert.deepEqual(hetzner.command, ["sh", "-c", CADDY_START_SCRIPT, "sh", "github.com/caddy-dns/hetzner@v2.0.1"]);
 
-  const custom = {
-    tlsMode: "dns",
-    acmeEmail: "admin@example.com",
-    dnsProvider: "custom",
-    dnsDirective: "porkbun {env.PORKBUN_API_KEY}",
-    dnsModule: "github.com/caddy-dns/porkbun",
-  };
-  const plain = await renderCaddySpec(custom);
-  const pinned = await renderCaddySpec({ ...custom, dnsModule: "github.com/caddy-dns/porkbun@v1.2.3" });
+  const base = { tlsMode: "dns", acmeEmail: "admin@example.com", dnsDirective: "porkbun {env.PORKBUN_API_KEY}" };
+  const plain = await renderCaddySpec({ ...base, dnsModule: "github.com/caddy-dns/porkbun" });
+  const pinned = await renderCaddySpec({ ...base, dnsModule: "github.com/caddy-dns/porkbun@v1.2.3" });
   assert.deepEqual(plain.command.slice(4), ["github.com/caddy-dns/porkbun"]);
   assert.notEqual(computeSpecHash(plain), computeSpecHash(pinned));
 });
@@ -444,19 +419,58 @@ test("outside DNS mode the container has no command override", async () => {
   assert.equal("command" in (await renderCaddySpec({ tlsMode: "acme", acmeEmail: "a@example.com" })), false);
 });
 
-test("DNS mode no longer cares which image is used", () => {
+test("the image is never checked for readiness", () => {
   const entry = getCatalogEntry("caddy");
-  assert.equal(entry.ready({ tlsMode: "dns" }), null);
-  assert.equal(entry.ready({ tlsMode: "dns", image: "caddy:2-alpine" }), null);
+  const dns = {
+    tlsMode: "dns",
+    dnsDirective: "hetzner {env.T}",
+    dnsModule: "github.com/caddy-dns/hetzner@v2.0.1",
+    dnsEnv: "T=x",
+  };
+  assert.equal(entry.ready({ ...dns, image: "caddy:2-alpine" }), null);
+  assert.equal(entry.ready({ ...dns, image: "" }), null);
   assert.equal(entry.ready({ tlsMode: "acme" }), null);
   assert.equal(entry.ready({}), null);
 });
 
-test("a custom DNS provider needs a directive and a valid module to be ready", () => {
+test("DNS mode needs a directive and a valid module to be ready", () => {
   const entry = getCatalogEntry("caddy");
-  const base = { tlsMode: "dns", dnsProvider: "custom" };
-  assert.match(entry.ready({ ...base, dnsDirective: "   ", dnsModule: "github.com/caddy-dns/porkbun" }), /needs a directive/);
-  assert.match(entry.ready({ ...base, dnsDirective: "porkbun {env.K}" }), /needs a Caddy module/);
-  assert.match(entry.ready({ ...base, dnsDirective: "porkbun {env.K}", dnsModule: "porkbun; id" }), /needs a Caddy module/);
-  assert.equal(entry.ready({ ...base, dnsDirective: "porkbun {env.K}", dnsModule: "github.com/caddy-dns/porkbun" }), null);
+  assert.match(
+    entry.ready({ tlsMode: "dns", dnsDirective: "   ", dnsModule: "github.com/caddy-dns/porkbun@v1.2.3" }),
+    /needs a directive/
+  );
+  assert.match(entry.ready({ tlsMode: "dns", dnsDirective: "porkbun {env.K}" }), /needs a Caddy module/);
+  assert.match(
+    entry.ready({ tlsMode: "dns", dnsDirective: "porkbun {env.K}", dnsModule: "porkbun; id" }),
+    /needs a Caddy module/
+  );
+});
+
+test("DNS mode is not ready when the directive references a variable dnsEnv does not supply", () => {
+  const entry = getCatalogEntry("caddy");
+  const base = { tlsMode: "dns", dnsModule: "github.com/caddy-dns/hetzner@v2.0.1" };
+  assert.match(
+    entry.ready({ ...base, dnsDirective: "hetzner {env.HETZNER_API_TOKEN}" }),
+    /Directive references HETZNER_API_TOKEN but no value is set/
+  );
+  assert.match(
+    entry.ready({ ...base, dnsDirective: "porkbun {env.A} {env.B}", dnsEnv: "A=x" }),
+    /Directive references B but no value is set/
+  );
+  assert.equal(
+    entry.ready({ ...base, dnsDirective: "hetzner {env.HETZNER_API_TOKEN}", dnsEnv: "HETZNER_API_TOKEN=tok" }),
+    null
+  );
+});
+
+test("DNS mode is ready when the directive references no {env.*} names at all", () => {
+  const entry = getCatalogEntry("caddy");
+  assert.equal(
+    entry.ready({
+      tlsMode: "dns",
+      dnsDirective: "hetzner literal-token",
+      dnsModule: "github.com/caddy-dns/hetzner@v2.0.1",
+    }),
+    null
+  );
 });

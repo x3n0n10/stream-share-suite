@@ -23,15 +23,6 @@
 // out of the plan entirely until switched on under Stack (see
 // CADDY_ENABLED_SETTING in reconcile/catalog.js).
 
-import { DNS_PROVIDERS } from "./dnsProviders.js";
-
-const TABLE_IDS = Object.keys(DNS_PROVIDERS);
-const DNS_PROVIDER_OPTIONS = [...TABLE_IDS, "custom"];
-const DNS_PROVIDER_LABELS = {
-  ...Object.fromEntries(TABLE_IDS.map((id) => [id, DNS_PROVIDERS[id].label])),
-  custom: "Custom",
-};
-
 export const CADDY_SCHEMA = {
   kind: "caddy",
   label: "Caddy (reverse proxy)",
@@ -63,76 +54,40 @@ export const CADDY_SCHEMA = {
       dependsOn: { key: "tlsMode", oneOf: ["acme", "dns"] },
     },
     {
-      key: "dnsProvider",
-      envVar: null,
-      label: "DNS provider",
-      help:
-        "The DNS service your domain is hosted on. Caddy adds the provider's plugin itself when it starts. " +
-        "Not listed? Pick Custom and give its Caddy module. The API token below is stored write-only and " +
-        "never written into the Caddyfile. Switching provider? Enter that provider's token again.",
-      type: "select",
-      options: DNS_PROVIDER_OPTIONS,
-      optionLabels: DNS_PROVIDER_LABELS,
-      default: TABLE_IDS[0],
-      group: "DNS challenge",
-      required: true,
-      dependsOn: { key: "tlsMode", equals: "dns" },
-    },
-    {
-      key: "dnsApiToken",
-      envVar: null,
-      label: "API token",
-      help:
-        "Stored write-only and passed to Caddy through its environment; it is never written into the Caddyfile. Switching provider? Enter that provider's token again.",
-      secret: true,
-      group: "DNS challenge",
-      required: true,
-      dependsOn: [
-        { key: "tlsMode", equals: "dns" },
-        { key: "dnsProvider", oneOf: TABLE_IDS },
-      ],
-    },
-    {
       key: "dnsModule",
       envVar: null,
       label: "Caddy module",
       help:
-        "The Go package of your provider's Caddy plugin, e.g. github.com/caddy-dns/porkbun@v1.2.3. Pin an exact " +
-        "version — without one, Caddy's add-package can build the module's unreleased branch instead of its " +
-        "latest release. See caddyserver.com/download for the list of packages.",
+        "The Go package of your provider's Caddy plugin, pinned to an exact version — e.g. " +
+        "github.com/caddy-dns/hetzner@v2.0.1 or github.com/caddy-dns/cloudflare@v0.2.4. Without a pinned " +
+        "version, Caddy's add-package can build the module's unreleased branch instead of its latest release. " +
+        "See caddyserver.com/download for the full list of packages.",
       group: "DNS challenge",
       required: true,
-      dependsOn: [
-        { key: "tlsMode", equals: "dns" },
-        { key: "dnsProvider", equals: "custom" },
-      ],
+      dependsOn: { key: "tlsMode", equals: "dns" },
     },
     {
       key: "dnsDirective",
       envVar: null,
       label: "Directive",
       help:
-        "Everything after `dns` in the site's tls block, e.g. `porkbun {env.PORKBUN_API_KEY} {env.PORKBUN_API_SECRET_KEY}`. " +
-        "Reference credentials as {env.NAME} and define them in \"Provider environment variables\" below, one KEY=VALUE per line.",
+        "Everything after `dns` in the site's tls block, e.g. `hetzner {env.HETZNER_API_TOKEN}` or " +
+        "`cloudflare {env.CLOUDFLARE_API_TOKEN}`. Reference credentials as {env.NAME} — a matching box appears " +
+        "below for each one, for you to fill in.",
       group: "DNS challenge",
       required: true,
-      dependsOn: [
-        { key: "tlsMode", equals: "dns" },
-        { key: "dnsProvider", equals: "custom" },
-      ],
+      dependsOn: { key: "tlsMode", equals: "dns" },
     },
     {
       key: "dnsEnv",
       envVar: null,
       label: "Provider environment variables",
-      help: "One KEY=VALUE per line, passed to the Caddy container. Stored write-only.",
-      type: "textarea",
+      help: "Filled in automatically from the {env.NAME} names in Directive, above. Stored write-only and " +
+        "passed to the Caddy container's environment; never written into the Caddyfile.",
+      type: "directiveEnv",
       secret: true,
       group: "DNS challenge",
-      dependsOn: [
-        { key: "tlsMode", equals: "dns" },
-        { key: "dnsProvider", equals: "custom" },
-      ],
+      dependsOn: { key: "tlsMode", equals: "dns" },
     },
     {
       key: "dnsPropagationDelay",

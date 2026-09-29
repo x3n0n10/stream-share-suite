@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { CADDY_SCHEMA } from "../schema/caddy.js";
-import { DNS_PROVIDERS, MODULE_PATH } from "../schema/dnsProviders.js";
+import { MODULE_PATH } from "../schema/dnsModule.js";
 import { listComponents, getComponentValues } from "../store/components.js";
 import { componentDataDir, ensureDirectory } from "../store/paths.js";
 import { instanceUrl } from "./instance.js";
@@ -33,7 +33,6 @@ import { getSelfContainerName } from "../docker/self.js";
 
 const NETWORKS_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "networks");
 const IMAGE_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "image");
-const DNS_PROVIDER_FIELD = CADDY_SCHEMA.fields.find((f) => f.key === "dnsProvider");
 const GO_DURATION = /^(\d+(\.\d+)?(ns|us|µs|ms|s|m|h))+$/;
 
 export function caddyContainerName(values = {}) {
@@ -98,45 +97,32 @@ function groupByHost(routes) {
   return byHost;
 }
 
-// What the DNS challenge needs, resolved from the stored values: the directive
-// that goes after `dns` in each site's tls block, the environment variables
-// that directive references, the Caddy packages to add (`modules`), and an
-// optional propagation delay. Null when DNS mode is off or the provider is not
-// fully configured.
+// What the DNS challenge needs, resolved from the stored values: the
+// directive that goes after `dns` in each site's tls block, the environment
+// variables it references, the Caddy package to add (`modules`), and an
+// optional propagation delay. Null when DNS mode is off or the module/
+// directive is not usable.
 //
 // The token only ever travels in `env` (the container's environment); the
 // directive refers to it as {env.NAME}, so the Caddyfile on disk never holds
-// it. A custom directive is collapsed to one line so it stays one directive.
-// A propagation delay that is not a Go duration is ignored, the same way an
+// it — the operator's own dnsEnv values decide what that placeholder
+// resolves to, sight unseen by this function. The directive is collapsed to
+// one line so it stays one directive regardless of how it was typed. A
+// propagation delay that is not a Go duration is ignored, the same way an
 // unparseable URL is elsewhere in this file, rather than written into a
 // Caddyfile Caddy would refuse to load.
 export function dnsChallenge(values) {
   if (values.tlsMode !== "dns") return null;
 
-  const providerId = values.dnsProvider || DNS_PROVIDER_FIELD.default;
-  const provider = DNS_PROVIDERS[providerId];
+  const module = String(values.dnsModule || "").trim();
+  if (!MODULE_PATH.test(module)) return null;
 
-  let directive;
-  let env;
-  let modules;
-  if (provider) {
-    if (!values.dnsApiToken) return null;
-    directive = provider.directive;
-    env = { [provider.tokenEnv]: values.dnsApiToken };
-    modules = [provider.module];
-  } else if (providerId === "custom") {
-    directive = String(values.dnsDirective || "").replace(/\s*\n\s*/g, " ").trim();
-    if (!directive) return null;
-    const module = String(values.dnsModule || "").trim();
-    if (!MODULE_PATH.test(module)) return null;
-    env = parseExtraEnv(values.dnsEnv);
-    modules = [module];
-  } else {
-    return null;
-  }
+  const directive = String(values.dnsDirective || "").replace(/\s*\n\s*/g, " ").trim();
+  if (!directive) return null;
 
+  const env = parseExtraEnv(values.dnsEnv);
   const delay = String(values.dnsPropagationDelay || "").trim();
-  return { directive, env, modules, propagationDelay: GO_DURATION.test(delay) ? delay : null };
+  return { directive, env, modules: [module], propagationDelay: GO_DURATION.test(delay) ? delay : null };
 }
 
 // What runs as the Caddy container's command in DNS-challenge mode. The stock

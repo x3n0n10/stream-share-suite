@@ -373,12 +373,15 @@ environment; the Caddyfile only ever contains an `{env.NAME}` placeholder.
 
 DNS providers are Caddy plugins, and the stock `caddy:2-alpine` image has none,
 so the Suite adds the plugin for you with Caddy's own `caddy add-package`, for
-the provider's module (Hetzner `github.com/caddy-dns/hetzner@v2.0.1`, Cloudflare
-`github.com/caddy-dns/cloudflare@v0.2.4`, or the **Caddy module** you enter for
-a Custom provider, e.g. `github.com/caddy-dns/porkbun@v1.2.3`). Every module is
-pinned to a specific release: without a version, `add-package` does not
-necessarily build the latest release — it can build the module's unreleased
-branch instead — so pin any Custom module the same way. The build is downloaded
+the module you give it in **Caddy module** (pinned to an exact version,
+e.g. `github.com/caddy-dns/hetzner@v2.0.1` or
+`github.com/caddy-dns/cloudflare@v0.2.4`), and writes the **Directive** you
+give it (everything after `dns` in the site's tls block, e.g.
+`hetzner {env.HETZNER_API_TOKEN}`) into the Caddyfile. Reference credentials
+in the directive as `{env.NAME}` — a matching box appears in **Provider
+environment variables** for each one you reference, to fill in. Without a
+pinned version, `add-package` does not necessarily build the latest release —
+it can build the module's unreleased branch instead, so always pin one. The build is downloaded
 when a Caddy container first starts, and again after an image upgrade or a
 module change; it is then kept in Caddy's config folder (mounted from the
 Suite's data directory), so later recreates (route changes and the like) and
