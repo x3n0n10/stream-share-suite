@@ -117,7 +117,7 @@ export async function removeContainer(idOrName, { force = false } = {}) {
 
 export async function connectNetwork(networkName, containerId, aliases = []) {
   const res = await request("POST", `/networks/${encodeURIComponent(networkName)}/connect`, {
-    body: { Container: containerId, ...(aliases.length > 0 ? { EndpointConfig: { Aliases: aliases } } : {}) },
+    body: { Container: containerId, EndpointConfig: { Aliases: aliases } },
   });
   if (res.status === 200) return;
   await parseJsonOrThrow(res, `connectNetwork(${networkName}, ${containerId})`);

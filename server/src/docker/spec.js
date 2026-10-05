@@ -175,11 +175,7 @@ export function toCreatePayload(spec, { labels } = {}) {
   }
 
   if (primaryNetwork) {
-    payload.NetworkingConfig = {
-      EndpointsConfig: {
-        [primaryNetwork]: (spec.networkAliases || []).length > 0 ? { Aliases: [...spec.networkAliases] } : {},
-      },
-    };
+    payload.NetworkingConfig = { EndpointsConfig: { [primaryNetwork]: { Aliases: spec.networkAliases } } };
   }
 
   return payload;

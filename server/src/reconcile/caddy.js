@@ -240,7 +240,7 @@ export async function renderCaddySpec(values) {
     ...new Set(
       [...instanceRoutes(), ...(dashboard ? [dashboard] : [])]
         .map((r) => new URL(`http://${r.host}`).hostname)
-        .filter((h) => h && !isIP(h.replace(/^\[|\]$/g, ""))),
+        .filter((h) => !isIP(h.replace(/^\[|\]$/g, ""))),
     ),
   ].sort();
 
@@ -262,7 +262,7 @@ export async function renderCaddySpec(values) {
     },
     volumes: [`${caddyfilePath}:/etc/caddy/Caddyfile:ro`, `${dataDir}:/data`, `${configDir}:/config`],
     networks,
-    ...(networkAliases.length > 0 ? { networkAliases } : {}),
+    networkAliases,
     ports: [
       { host: Number(values.httpPort || 80), container: 80, protocol: "tcp" },
       { host: Number(values.httpsPort || 443), container: 443, protocol: "tcp" },

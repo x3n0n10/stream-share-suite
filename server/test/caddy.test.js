@@ -499,7 +499,7 @@ test("DNS mode is ready when the directive references no {env.*} names at all", 
 });
 
 test("Caddy answers to every public hostname it serves, so containers on its networks skip public DNS", async () => {
-  assert.equal((await renderCaddySpec({})).networkAliases, undefined);
+  assert.deepEqual((await renderCaddySpec({})).networkAliases, []);
 
   provisionInstance(PROVIDER("Provider 1", null, "https://streamshare.example.com:8443/p1"));
   provisionInstance(PROVIDER("Provider 2", null, "https://streamshare.example.com/p2"));
