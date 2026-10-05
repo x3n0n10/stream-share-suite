@@ -21,6 +21,7 @@
 
 import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
+import { isIP } from "node:net";
 import path from "node:path";
 import { CADDY_SCHEMA } from "../schema/caddy.js";
 import { MODULE_PATH } from "../schema/dnsModule.js";
@@ -230,6 +231,19 @@ export async function renderCaddySpec(values) {
   const dataDir = ensureDirectory(dir, "data");
   const configDir = ensureDirectory(dir, "config");
 
+  // Caddy answers to every public hostname it serves, on every network it
+  // joins. Without this a container on that network resolves the hostname via
+  // public DNS and goes out through the internet (hairpin) instead of
+  // straight to Caddy. IP-literal hosts are not DNS names, so are skipped.
+  const dashboard = dashboardRoute(values, suiteTarget);
+  const networkAliases = [
+    ...new Set(
+      [...instanceRoutes(), ...(dashboard ? [dashboard] : [])]
+        .map((r) => new URL(`http://${r.host}`).hostname)
+        .filter((h) => h && !isIP(h.replace(/^\[|\]$/g, ""))),
+    ),
+  ].sort();
+
   const networks = String(values.networks || NETWORKS_FIELD.default)
     .split(",")
     .map((n) => n.trim())
@@ -248,6 +262,7 @@ export async function renderCaddySpec(values) {
     },
     volumes: [`${caddyfilePath}:/etc/caddy/Caddyfile:ro`, `${dataDir}:/data`, `${configDir}:/config`],
     networks,
+    ...(networkAliases.length > 0 ? { networkAliases } : {}),
     ports: [
       { host: Number(values.httpPort || 80), container: 80, protocol: "tcp" },
       { host: Number(values.httpsPort || 443), container: 443, protocol: "tcp" },

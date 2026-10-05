@@ -59,7 +59,8 @@ function sortKeysDeep(value) {
 //   managed/spec-hash are added at apply time, never hashed), capAdd: [...],
 //   devices: ["/host:/container[:perms]"], volumes: ["/host:/container[:ro]"],
 //   ports: [{host, container, protocol}], networks: [...names],
-//   networkMode, restartPolicy, name,
+//   networkAliases: [...hostnames] (extra DNS names this container answers to
+//   on every network it joins), networkMode, restartPolicy, name,
 //   command: [...args] (optional override of the image's CMD) }
 //
 // env and labels are objects (unordered by nature) rather than the
@@ -93,6 +94,7 @@ export function computeSpecHash(spec) {
 
   if ((spec.volumes || []).length > 0) canonical.volumes = [...spec.volumes].sort();
   if ((spec.ports || []).length > 0) canonical.ports = normalisePorts(spec.ports);
+  if ((spec.networkAliases || []).length > 0) canonical.networkAliases = [...spec.networkAliases].sort();
   if (spec.networkMode) canonical.networkMode = spec.networkMode;
   if (spec.user) canonical.user = spec.user;
   // Order is significant for a command, unlike the sorted lists above. Omitted
@@ -173,7 +175,11 @@ export function toCreatePayload(spec, { labels } = {}) {
   }
 
   if (primaryNetwork) {
-    payload.NetworkingConfig = { EndpointsConfig: { [primaryNetwork]: {} } };
+    payload.NetworkingConfig = {
+      EndpointsConfig: {
+        [primaryNetwork]: (spec.networkAliases || []).length > 0 ? { Aliases: [...spec.networkAliases] } : {},
+      },
+    };
   }
 
   return payload;
