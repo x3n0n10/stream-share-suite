@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { renderCaddyfile, renderCaddySpec, caddyContainerName, dnsChallenge, CADDY_START_SCRIPT } from "../src/reconcile/caddy.js";
 import { MODULE_PATH } from "../src/schema/dnsModule.js";
-import { computeSpecHash } from "../src/docker/spec.js";
+import { computeSpecHash, toCreatePayload } from "../src/docker/spec.js";
 import { getCatalogEntry, isCaddyEnabled, CADDY_ENABLED_SETTING } from "../src/reconcile/catalog.js";
 import { setSetting } from "../src/store/settings.js";
 import { saveComponentValues } from "../src/store/components.js";
@@ -496,4 +496,24 @@ test("DNS mode is ready when the directive references no {env.*} names at all", 
     }),
     null
   );
+});
+
+test("Caddy answers to every public hostname it serves, so containers on its networks skip public DNS", async () => {
+  assert.deepEqual((await renderCaddySpec({})).networkAliases, []);
+
+  provisionInstance(PROVIDER("Provider 1", null, "https://streamshare.example.com:8443/p1"));
+  provisionInstance(PROVIDER("Provider 2", null, "https://streamshare.example.com/p2"));
+  provisionInstance(PROVIDER("Provider 3", null, "https://10.0.0.5/p3"));
+  const spec = await renderCaddySpec({});
+  assert.deepEqual(spec.networkAliases, ["streamshare.example.com"]);
+});
+
+test("changing the aliases changes the spec hash; the payload carries them on the primary network", async () => {
+  const before = await renderCaddySpec({});
+  provisionInstance(PROVIDER("Provider 1", null, "https://streamshare.example.com/p1"));
+  const after = await renderCaddySpec({});
+  assert.notEqual(computeSpecHash(before), computeSpecHash(after));
+  assert.deepEqual(toCreatePayload(after).NetworkingConfig.EndpointsConfig.streamshare, {
+    Aliases: ["streamshare.example.com"],
+  });
 });

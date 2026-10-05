@@ -363,7 +363,7 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
 
   for (const networkName of (spec.networks || []).slice(1)) {
     log(`Joining network "${networkName}"...`);
-    await connectNetwork(networkName, created.Id);
+    await connectNetwork(networkName, created.Id, spec.networkAliases);
   }
 
   log(`Starting "${spec.name}"...`);
