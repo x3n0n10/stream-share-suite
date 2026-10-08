@@ -44,6 +44,16 @@ export function parseCheckTimes(raw) {
   return minutes;
 }
 
+async function execute(job) {
+  try {
+    await heal({ log: (line) => appendLog(job, line) });
+    finishJob(job, null);
+  } catch (err) {
+    appendLog(job, `Error: ${err.message}`);
+    finishJob(job, err);
+  }
+}
+
 // Runs heal() as a background job, the same way the reconciler's own applies
 // do (see reconcile/jobs.js / routes/stack.js's startJob) — fire-and-forget,
 // answering with the job id immediately rather than holding a request open
@@ -51,17 +61,16 @@ export function parseCheckTimes(raw) {
 export function runWatchdogJob() {
   const job = createJob("vpn-watchdog");
   lastJobId = job.id;
+  execute(job);
+  return job;
+}
 
-  (async () => {
-    try {
-      await heal({ log: (line) => appendLog(job, line) });
-      finishJob(job, null);
-    } catch (err) {
-      appendLog(job, `Error: ${err.message}`);
-      finishJob(job, err);
-    }
-  })();
-
+// Same run, but for a caller (the health-check API route) that wants to
+// block until it's done instead of polling a job id.
+export async function runWatchdogJobSync() {
+  const job = createJob("vpn-watchdog");
+  lastJobId = job.id;
+  await execute(job);
   return job;
 }
 

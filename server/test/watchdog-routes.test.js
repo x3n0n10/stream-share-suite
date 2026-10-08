@@ -104,3 +104,20 @@ test("the watchdog routes are behind the auth gate like everything else", async 
   const res = await apiClient(base).get("/api/watchdog/settings");
   assert.equal(res.status, 401);
 });
+
+test("health-check reports never run before anything has run", async () => {
+  const c = await signedInClient(base);
+  assert.deepEqual((await c.get("/api/watchdog/health-check")).body, { status: "never_run" });
+});
+
+test("health-check runs synchronously and reports the finished result, not a job id", async () => {
+  const c = await signedInClient(base);
+  const res = await c.post("/api/watchdog/health-check", {});
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, "success");
+  assert.equal(res.body.jobId, undefined);
+  assert.ok(res.body.log.some((line) => line.includes("nothing to watch")));
+
+  const after = await c.get("/api/watchdog/health-check");
+  assert.deepEqual(after.body, res.body);
+});
