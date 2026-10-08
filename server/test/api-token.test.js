@@ -185,3 +185,16 @@ test("a bearer request never falls back to the cookie session", async () => {
   });
   assert.equal(valid.status, 403);
 });
+
+test("changing the password revokes the API token", async () => {
+  const c = await signedInClient(base);
+  const { token } = (await c.post("/api/settings/api-token")).body;
+
+  const changed = await c.post("/api/auth/password", {
+    currentPassword: TEST_PASSWORD,
+    newPassword: "another-sufficiently-long-password",
+  });
+  assert.equal(changed.status, 200);
+  assert.equal((await bearer("GET", "/api/gluetun", token)).status, 401);
+  assert.deepEqual((await c.get("/api/settings/api-token")).body, { exists: false, createdAt: null });
+});

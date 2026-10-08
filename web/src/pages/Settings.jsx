@@ -213,7 +213,7 @@ function PasswordSection() {
   return (
     <Section
       title="Change password"
-      description="Changing it signs out every other session."
+      description="Changing it signs out every other session and revokes the API token."
       footer={
         <Button
           tone="accent"

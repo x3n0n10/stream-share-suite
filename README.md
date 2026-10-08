@@ -628,7 +628,7 @@ other legacy variables; the VPN page says so when neither is available.
 Scripts and other tools can read the VPN status and trigger a reconnect
 without signing in. Under **Settings → API access**, generate a token. It is
 shown once; only its hash is stored. Generating again replaces it, and
-**Revoke** disables it.
+**Revoke** disables it, and so does changing the admin password.
 
 Send it as a bearer token:
 
