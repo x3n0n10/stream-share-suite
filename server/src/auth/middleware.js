@@ -80,7 +80,7 @@ export function requireCsrf(req, res, next) {
 // Routes an API client may call with the API token instead of a session.
 // Paths are relative to /api. Exposing another route is one entry here plus a
 // test in api-token.test.js.
-export const API_TOKEN_ROUTES = ["GET /gluetun", "POST /gluetun/reconnect"];
+const API_TOKEN_ROUTES = ["GET /gluetun", "POST /gluetun/reconnect"];
 
 // Handles requests that carry `Authorization: Bearer`. Anything else passes
 // straight through to the cookie path. A bearer request never also rides on a
@@ -99,7 +99,7 @@ export function apiTokenAuth(req, res, next) {
       recordFailedLogin(req);
       return res.status(401).json({ error: "Invalid API token" });
     }
-    const path = req.path.replace(/\/+$/, "") || "/";
+    const path = req.path.replace(/\/+$/, "");
     if (!API_TOKEN_ROUTES.includes(`${req.method} ${path}`)) {
       return res.status(403).json({ error: "This route is not available with an API token" });
     }

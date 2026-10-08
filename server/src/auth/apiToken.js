@@ -28,7 +28,5 @@ export function revokeApiToken() {
 }
 
 export function verifyApiToken(token) {
-  const stored = getSetting(HASH_KEY);
-  if (!stored || !token) return false;
-  return safeEqual(hashToken(token), stored);
+  return !!token && safeEqual(hashToken(token), getSetting(HASH_KEY));
 }
