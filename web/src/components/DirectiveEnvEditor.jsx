@@ -8,10 +8,10 @@ import { FIELD } from "./common.jsx";
 // `value` is this field's own draft value (KEY=VALUE lines) — like any other
 // secret field it arrives as "" whenever the form doesn't already hold an
 // unsaved edit, because a secret's stored content is never sent back to the
-// browser (see registry.js's toPublicFields). So there is no per-name
-// "already set" state to show here; the field-level hint above this editor
-// (rendered by FieldInput, from field.valueSet) already covers that at the
-// whole-value granularity every other secret field uses.
+// browser (see registry.js's toPublicFields). `namesSet` carries the one
+// thing the server will say about each name: whether it has a stored value,
+// never the value itself — same guarantee as valueSet on every other secret
+// field, just at per-name granularity instead of whole-field.
 //
 // `directive` is the live sibling field's value, threaded down through
 // SchemaForm's draft — this editor has no server round-trip of its own.
@@ -40,7 +40,7 @@ function detectNames(directive) {
   return [...new Set([...String(directive || "").matchAll(ENV_REF)].map((m) => m[1]))];
 }
 
-export default function DirectiveEnvEditor({ value, directive, onChange }) {
+export default function DirectiveEnvEditor({ value, directive, onChange, namesSet }) {
   const names = useMemo(() => detectNames(directive), [directive]);
   const values = useMemo(() => parseValue(value), [value]);
 
@@ -76,9 +76,13 @@ export default function DirectiveEnvEditor({ value, directive, onChange }) {
             className={FIELD}
             type="password"
             autoComplete="new-password"
+            placeholder={namesSet?.[name] ? "••••••••  (unchanged)" : ""}
             value={values[name] ?? ""}
             onChange={(e) => setName(name, e.target.value)}
           />
+          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+            {namesSet?.[name] ? "Set. Leave blank to keep it." : "Not set."}
+          </span>
         </label>
       ))}
     </div>

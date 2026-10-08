@@ -151,11 +151,14 @@ export default function SchemaForm({
 }
 
 function FieldInput({ field, value, onChange, extra, componentKey, draft }) {
-  const hint = field.secret
-    ? field.valueSet
-      ? "Set. Leave blank to keep it."
-      : "Not set."
-    : field.help;
+  const hint =
+    field.type === "directiveEnv"
+      ? field.help
+      : field.secret
+        ? field.valueSet
+          ? "Set. Leave blank to keep it."
+          : "Not set."
+        : field.help;
 
   // A <label> wraps a single control by convention — fine for a lone
   // input/textarea/checkbox, but a select field is really a row of several
@@ -203,7 +206,14 @@ function renderControl(field, value, onChange, extra, componentKey, draft) {
   }
 
   if (field.type === "directiveEnv") {
-    return <DirectiveEnvEditor value={value} directive={draft?.dnsDirective} onChange={(next) => onChange(field.key, next)} />;
+    return (
+      <DirectiveEnvEditor
+        value={value}
+        directive={draft?.dnsDirective}
+        namesSet={field.namesSet}
+        onChange={(next) => onChange(field.key, next)}
+      />
+    );
   }
 
   if (field.type === "checkbox") {
