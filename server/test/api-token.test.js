@@ -71,3 +71,67 @@ test("revoking removes the token", () => {
   assert.equal(verifyApiToken(token), false);
   assert.deepEqual(apiTokenStatus(), { exists: false, createdAt: null });
 });
+
+test("a valid token reaches the VPN status and reconnect routes without CSRF", async () => {
+  const { token } = generateApiToken();
+
+  const status = await bearer("GET", "/api/gluetun", token);
+  assert.equal(status.status, 200);
+  assert.deepEqual(status.body, { enabled: false });
+
+  // 404 is the handler's own "gluetun not configured" answer, so auth passed.
+  const reconnect = await bearer("POST", "/api/gluetun/reconnect", token);
+  assert.equal(reconnect.status, 404);
+  assert.match(reconnect.body.error, /not configured/);
+});
+
+test("a wrong, missing or unconfigured token is refused with 401", async () => {
+  assert.equal((await bearer("GET", "/api/gluetun", "no-token-configured")).status, 401);
+
+  generateApiToken();
+  assert.equal((await bearer("GET", "/api/gluetun", "wrong")).status, 401);
+
+  const res = await fetch(`${base}/api/gluetun`, { headers: { Authorization: "Bearer" } });
+  assert.equal(res.status, 401);
+});
+
+test("a valid token is refused with 403 outside the allowlist", async () => {
+  const { token } = generateApiToken();
+  for (const [method, path] of [
+    ["GET", "/api/config"],
+    ["GET", "/api/settings"],
+    ["POST", "/api/gluetun/stop"],
+    ["GET", "/api/settings/api-token"],
+    ["POST", "/api/settings/api-token"],
+  ]) {
+    assert.equal((await bearer(method, path, token)).status, 403, `${method} ${path}`);
+  }
+});
+
+test("a regenerated or revoked token stops working over HTTP", async () => {
+  const old = generateApiToken().token;
+  const current = generateApiToken().token;
+  assert.equal((await bearer("GET", "/api/gluetun", old)).status, 401);
+  assert.equal((await bearer("GET", "/api/gluetun", current)).status, 200);
+
+  revokeApiToken();
+  assert.equal((await bearer("GET", "/api/gluetun", current)).status, 401);
+});
+
+test("repeated bad tokens hit the login throttle", async () => {
+  generateApiToken();
+  for (let i = 0; i < 10; i += 1) {
+    assert.equal((await bearer("GET", "/api/gluetun", "wrong")).status, 401);
+  }
+  const res = await fetch(`${base}/api/gluetun`, { headers: { Authorization: "Bearer wrong" } });
+  assert.equal(res.status, 429);
+  assert.ok(res.headers.get("retry-after"));
+});
+
+test("the cookie path still enforces CSRF", async () => {
+  const c = await signedInClient(base);
+  c.dropCsrf();
+  const { status, body } = await c.post("/api/gluetun/reconnect");
+  assert.equal(status, 403);
+  assert.match(body.error, /CSRF/);
+});

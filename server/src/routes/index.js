@@ -1,10 +1,11 @@
 // Mounts the API. The ordering here is the security boundary: /auth is public
 // (it has to be — it answers "is there an admin yet"), everything after
-// requireAuth is not.
+// requireAuth is not. apiTokenAuth sits just before it and lets a bearer-token
+// request through only to the routes in API_TOKEN_ROUTES.
 
 import { Router } from "express";
 import { loadConfig } from "../config.js";
-import { requireAuth, requireCsrf } from "../auth/middleware.js";
+import { apiTokenAuth, requireAuth, requireCsrf } from "../auth/middleware.js";
 import { createAuthRouter } from "./auth.js";
 import { createSettingsRouter } from "./settings.js";
 import { createOpsRouter } from "./ops.js";
@@ -25,6 +26,7 @@ export function createApiRouter() {
 
   router.use("/auth", createAuthRouter());
 
+  router.use(apiTokenAuth);
   router.use(requireAuth);
   router.use(requireCsrf);
   router.use(withConfig);
