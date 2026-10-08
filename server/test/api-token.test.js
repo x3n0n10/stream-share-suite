@@ -85,6 +85,18 @@ test("a valid token reaches the VPN status and reconnect routes without CSRF", a
   assert.match(reconnect.body.error, /not configured/);
 });
 
+test("a valid token reaches the health-check routes without CSRF", async () => {
+  const { token } = generateApiToken();
+
+  const status = await bearer("GET", "/api/watchdog/health-check", token);
+  assert.equal(status.status, 200);
+  assert.deepEqual(status.body, { status: "never_run" });
+
+  const run = await bearer("POST", "/api/watchdog/health-check", token);
+  assert.equal(run.status, 200);
+  assert.equal(run.body.status, "success");
+});
+
 test("a wrong, missing or unconfigured token is refused with 401", async () => {
   assert.equal((await bearer("GET", "/api/gluetun", "no-token-configured")).status, 401);
 
@@ -103,6 +115,8 @@ test("a valid token is refused with 403 outside the allowlist", async () => {
     ["POST", "/api/gluetun/stop"],
     ["GET", "/api/settings/api-token"],
     ["POST", "/api/settings/api-token"],
+    ["POST", "/api/watchdog/run"],
+    ["GET", "/api/watchdog/settings"],
   ]) {
     assert.equal((await bearer(method, path, token)).status, 403, `${method} ${path}`);
   }

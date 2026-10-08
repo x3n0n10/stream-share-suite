@@ -625,10 +625,11 @@ other legacy variables; the VPN page says so when neither is available.
 
 ## API access
 
-Scripts and other tools can read the VPN status and trigger a reconnect
-without signing in. Under **Settings → API access**, generate a token. It is
-shown once; only its hash is stored. Generating again replaces it, and
-**Revoke** disables it, and so does changing the admin password.
+Scripts and other tools can read the VPN status, trigger a reconnect, and run
+the VPN watchdog's health check, without signing in. Under **Settings → API
+access**, generate a token. It is shown once; only its hash is stored.
+Generating again replaces it, and **Revoke** disables it, and so does
+changing the admin password.
 
 Send it as a bearer token:
 
@@ -639,9 +640,23 @@ curl -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun
 # Reconnect: stop, wait, start, wait. Blocks until the VPN is running again
 # (up to the reconnect timeout, 45 s by default), so allow at least 60 s.
 curl -X POST -m 60 -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun/reconnect
+
+# Health check: probes every health-check-enabled instance and, if any report
+# their provider is blocking the current exit IP, reconnects gluetun and
+# retries (up to the configured max reconnects). Blocks until done, which at
+# the defaults can take several minutes (max reconnects × a reconnect-and-
+# settle cycle), so allow at least 300 s.
+curl -X POST -m 300 -H "Authorization: Bearer $TOKEN" https://suite.example/api/watchdog/health-check
+
+# Same result shape, without triggering a run: the last run's outcome.
+curl -H "Authorization: Bearer $TOKEN" https://suite.example/api/watchdog/health-check
 ```
 
-The token reaches only these two routes for now. Anything else answers `403`; a wrong
+The reconnect and health check are independent: triggering one never triggers
+the other. A script that wants a fresh exit IP checked right away should call
+`/gluetun/reconnect` and then `/watchdog/health-check` itself.
+
+The token reaches only these routes for now. Anything else answers `403`; a wrong
 token answers `401`. Failed token attempts share the failed sign-in budget, so
 a client repeating a wrong token is throttled (`429`) and also delays sign-in
 for up to 15 minutes.

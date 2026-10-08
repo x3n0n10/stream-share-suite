@@ -12,7 +12,12 @@ import {
   WATCHDOG_CHECK_TIMES_SETTING,
   WATCHDOG_MAX_RECONNECTS_SETTING,
 } from "../watchdog/vpnWatchdog.js";
-import { runWatchdogJob, getLastWatchdogJobId, parseCheckTimes } from "../watchdog/scheduler.js";
+import {
+  runWatchdogJob,
+  runWatchdogJobSync,
+  getLastWatchdogJobId,
+  parseCheckTimes,
+} from "../watchdog/scheduler.js";
 import { getJob } from "../reconcile/jobs.js";
 
 const MAX_RECONNECTS_CAP = 20;
@@ -82,5 +87,31 @@ export function createWatchdogRouter() {
     res.json({ jobId: getLastWatchdogJobId() });
   });
 
+  // The API-token-reachable twin of /run: no job id to poll, it just blocks
+  // until heal() is done and answers with the finished result. Worst case is
+  // bounded by maxReconnects × a full reconnect-and-settle cycle (minutes at
+  // the defaults), so a caller needs a generous timeout — see README.
+  router.post("/health-check", async (req, res) => {
+    const job = await runWatchdogJobSync();
+    res.json(jobResult(job));
+  });
+
+  // Same shape as the POST, but just reports the last run instead of
+  // triggering a new one.
+  router.get("/health-check", (req, res) => {
+    const job = getJob(getLastWatchdogJobId());
+    res.json(job ? jobResult(job) : { status: "never_run" });
+  });
+
   return router;
+}
+
+function jobResult(job) {
+  return {
+    status: job.status,
+    log: job.log.map((entry) => entry.line),
+    error: job.error,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+  };
 }
