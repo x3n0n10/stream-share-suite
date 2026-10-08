@@ -19,6 +19,7 @@ import {
 import { getNumber, getSetting, setSettings } from "../store/settings.js";
 import { pingInstance } from "../instanceClient.js";
 import { DEFAULTS } from "../config.js";
+import { apiTokenStatus, generateApiToken, revokeApiToken } from "../auth/apiToken.js";
 
 // Rejects anything that isn't an absolute http(s) URL, so a typo surfaces at
 // save time rather than as a confusing fetch failure on the next poll.
@@ -221,6 +222,18 @@ export function createSettingsRouter() {
     } catch (err) {
       res.status(200).json({ ok: false, error: err.message });
     }
+  });
+
+  // The API token follows the secrets convention above with one exception: a
+  // freshly generated token is returned once, because nothing else could ever
+  // show it. Bearer requests never reach these (they are not allowlisted).
+  router.get("/api-token", (req, res) => res.json(apiTokenStatus()));
+
+  router.post("/api-token", (req, res) => res.json(generateApiToken()));
+
+  router.delete("/api-token", (req, res) => {
+    revokeApiToken();
+    res.json(apiTokenStatus());
   });
 
   return router;

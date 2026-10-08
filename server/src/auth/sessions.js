@@ -14,7 +14,7 @@ export const SESSION_COOKIE = "suite_session";
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const TOUCH_INTERVAL_MS = 60 * 60 * 1000;
 
-function hashToken(token) {
+export function hashToken(token) {
   return createHash("sha256").update(token).digest("hex");
 }
 

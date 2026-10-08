@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout.jsx";
 import { Button, Card, ConfirmDialog, ErrorNote, FIELD } from "../components/common.jsx";
 import { api } from "../lib/api.js";
+import { formatDateTime } from "../lib/format.js";
 
 function Field({ label, hint, children }) {
   return (
@@ -72,6 +73,7 @@ export default function Settings({ onConfigChanged }) {
       <div className="flex flex-col gap-4">
         {settings && <GeneralSection settings={settings} onSave={saveSettings} />}
         <PasswordSection />
+        <ApiAccessSection />
         <BackupSection />
       </div>
     </Layout>
@@ -211,7 +213,7 @@ function PasswordSection() {
   return (
     <Section
       title="Change password"
-      description="Changing it signs out every other session."
+      description="Changing it signs out every other session and revokes the API token."
       footer={
         <Button
           tone="accent"
@@ -259,6 +261,97 @@ function PasswordSection() {
       </div>
       {error && <ErrorNote message={error} />}
       {done && <p className="text-xs text-emerald-700 dark:text-emerald-400">Password changed.</p>}
+    </Section>
+  );
+}
+
+function ApiAccessSection() {
+  const [status, setStatus] = useState(null);
+  const [token, setToken] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  // "regenerate" | "revoke" | null — both break whatever uses the old token.
+  const [confirming, setConfirming] = useState(null);
+
+  useEffect(() => {
+    api.apiToken().then(setStatus, (err) => setError(err.message));
+  }, []);
+
+  async function run(action) {
+    setConfirming(null);
+    setBusy(true);
+    setError(null);
+    try {
+      if (action === "revoke") {
+        setStatus(await api.revokeApiToken());
+        setToken(null);
+      } else {
+        const created = await api.createApiToken();
+        setToken(created.token);
+        setStatus({ exists: true, createdAt: created.createdAt });
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!status) return null;
+
+  return (
+    <Section
+      title="API access"
+      description="Lets scripts and other tools interact with StreamShare Suite. Send the token as an Authorization: Bearer header."
+      footer={
+        <>
+          <Button
+            tone="accent"
+            loading={busy}
+            onClick={() => (status.exists ? setConfirming("regenerate") : run("generate"))}
+          >
+            {status.exists ? "Regenerate token" : "Generate token"}
+          </Button>
+          {status.exists && (
+            <Button tone="ghost" disabled={busy} onClick={() => setConfirming("revoke")}>
+              Revoke
+            </Button>
+          )}
+        </>
+      }
+    >
+      <p className="text-xs text-slate-600 dark:text-slate-400">
+        {status.exists ? `A token exists, created ${formatDateTime(status.createdAt)}.` : "No token yet."}
+      </p>
+
+      {token && (
+        <Field label="Your new token" hint="Copy it now. It will not be shown again.">
+          <div className="flex gap-2">
+            <input
+              className={`${FIELD} font-mono`}
+              readOnly
+              value={token}
+              onFocus={(e) => e.target.select()}
+            />
+            {navigator.clipboard && (
+              <Button tone="ghost" onClick={() => navigator.clipboard.writeText(token)}>
+                Copy
+              </Button>
+            )}
+          </div>
+        </Field>
+      )}
+
+      {error && <ErrorNote message={error} />}
+
+      <ConfirmDialog
+        open={!!confirming}
+        title={confirming === "revoke" ? "Revoke the API token?" : "Replace the API token?"}
+        body="Anything still using the current token will stop working immediately."
+        confirmLabel={confirming === "revoke" ? "Revoke" : "Regenerate"}
+        onConfirm={() => run(confirming)}
+        onCancel={() => setConfirming(null)}
+      />
     </Section>
   );
 }

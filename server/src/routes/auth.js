@@ -22,6 +22,7 @@ import {
 } from "../auth/middleware.js";
 import { changePassword, checkCredentials, countUsers, createUser } from "../auth/users.js";
 import { validatePassword } from "../auth/passwords.js";
+import { revokeApiToken } from "../auth/apiToken.js";
 
 function setSessionCookie(req, res, session) {
   res.set(
@@ -107,8 +108,8 @@ export function createAuthRouter() {
     res.json({ ok: true });
   });
 
-  // Changing the password invalidates every other session: whoever was signed
-  // in with the old one should not stay signed in.
+  // Changing the password invalidates every other session and the API token:
+  // whoever got in with the old credentials should not stay in.
   router.post("/password", requireAuth, requireCsrf, async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
@@ -120,6 +121,7 @@ export function createAuthRouter() {
 
     await changePassword(req.user.userId, newPassword);
     destroyAllSessions(req.user.userId, { exceptToken: req.sessionToken });
+    revokeApiToken();
     res.json({ ok: true });
   });
 

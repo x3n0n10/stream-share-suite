@@ -623,6 +623,29 @@ create (adopted or external, with its own real authentication) is reached
 through `GLUETUN_URL` / `GLUETUN_API_KEY`, imported at first boot like the
 other legacy variables; the VPN page says so when neither is available.
 
+## API access
+
+Scripts and other tools can read the VPN status and trigger a reconnect
+without signing in. Under **Settings → API access**, generate a token. It is
+shown once; only its hash is stored. Generating again replaces it, and
+**Revoke** disables it, and so does changing the admin password.
+
+Send it as a bearer token:
+
+```sh
+# VPN status and exit IP
+curl -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun
+
+# Reconnect: stop, wait, start, wait. Blocks until the VPN is running again
+# (up to the reconnect timeout, 45 s by default), so allow at least 60 s.
+curl -X POST -m 60 -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun/reconnect
+```
+
+The token reaches only these two routes for now. Anything else answers `403`; a wrong
+token answers `401`. Failed token attempts share the failed sign-in budget, so
+a client repeating a wrong token is throttled (`429`) and also delays sign-in
+for up to 15 minutes.
+
 ## Data and backups
 
 The configuration that matters is one SQLite file at `$SUITE_DATA_DIR/suite.db`,

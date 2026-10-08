@@ -121,7 +121,20 @@ async function waitForVpnStatus(gluetun, desired, deadline) {
 // "Reconnected" is purely the VPN status flipping to "running"; the exit IP
 // simply shows up whenever it next appears via the dashboard's normal
 // (much less frequent) status polling, same as any other status change.
-export async function reconnectVpn(gluetun) {
+//
+// One cycle at a time: a caller arriving mid-cycle (dashboard, API client,
+// watchdog) joins the one in flight instead of stopping the tunnel again
+// underneath it.
+let inFlight = null;
+
+export function reconnectVpn(gluetun) {
+  inFlight ??= runReconnect(gluetun).finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function runReconnect(gluetun) {
   const deadline = Date.now() + gluetun.reconnectTimeoutMs;
 
   await setVpnStatus(gluetun, "stopped");

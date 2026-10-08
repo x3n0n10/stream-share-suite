@@ -7,6 +7,7 @@
 import { randomBytes } from "node:crypto";
 import { SESSION_COOKIE, resolveSession, safeEqual } from "./sessions.js";
 import { countUsers } from "./users.js";
+import { verifyApiToken } from "./apiToken.js";
 
 export function parseCookies(header) {
   const out = {};
@@ -51,7 +52,7 @@ export function attachSession(req, res, next) {
 }
 
 export function requireAuth(req, res, next) {
-  if (req.user) return next();
+  if (req.user || req.apiToken) return next();
   // setupRequired is always present, never merely absent: the frontend uses it
   // to choose between the setup form and the login form, and an undefined would
   // make "no admin yet" and "signed out" look the same on a 401.
@@ -67,10 +68,44 @@ export function requireAuth(req, res, next) {
 // also echo the session token in a header the browser will not attach for
 // anyone else.
 export function requireCsrf(req, res, next) {
+  // A bearer header is never attached by a browser on its own, so the
+  // cross-site request CSRF guards against cannot carry one.
+  if (req.apiToken) return next();
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
   const header = req.get("X-Suite-CSRF");
   if (req.sessionToken && safeEqual(header, req.sessionToken)) return next();
   return res.status(403).json({ error: "Invalid or missing CSRF token" });
+}
+
+// Routes an API client may call with the API token instead of a session.
+// Paths are relative to /api. Exposing another route is one entry here plus a
+// test in api-token.test.js.
+const API_TOKEN_ROUTES = ["GET /gluetun", "POST /gluetun/reconnect"];
+
+// Handles requests that carry `Authorization: Bearer`. Anything else passes
+// straight through to the cookie path. A bearer request never also rides on a
+// cookie session, and every bad token counts against the login throttle, since
+// guessing the token is the same attack as guessing a password.
+export function apiTokenAuth(req, res, next) {
+  const header = req.get("Authorization") || "";
+  if (!/^Bearer\b/i.test(header)) return next();
+
+  req.user = null;
+  req.sessionToken = null;
+
+  throttleLogin(req, res, () => {
+    const token = header.replace(/^Bearer\s*/i, "").trim();
+    if (!verifyApiToken(token)) {
+      recordFailedLogin(req);
+      return res.status(401).json({ error: "Invalid API token" });
+    }
+    const path = req.path.replace(/\/+$/, "");
+    if (!API_TOKEN_ROUTES.includes(`${req.method} ${path}`)) {
+      return res.status(403).json({ error: "This route is not available with an API token" });
+    }
+    req.apiToken = true;
+    next();
+  });
 }
 
 // Login throttle. In-memory is the right scope: a single-admin Suite has one
