@@ -641,7 +641,7 @@ curl -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun
 curl -X POST -m 60 -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun/reconnect
 ```
 
-The token reaches only these two routes. Anything else answers `403`; a wrong
+The token reaches only these two routes for now. Anything else answers `403`; a wrong
 token answers `401`. Failed token attempts share the failed sign-in budget, so
 a client repeating a wrong token is throttled (`429`) and also delays sign-in
 for up to 15 minutes.
