@@ -169,6 +169,44 @@ test("applyPatch coerces a checkbox field to a real boolean", () => {
   assert.strictEqual(next.flag, true);
 });
 
+const DIRECTIVE_ENV_SCHEMA = {
+  kind: "caddy",
+  label: "Caddy",
+  fields: [
+    { key: "dnsDirective", envVar: null, label: "Directive" },
+    { key: "dnsEnv", envVar: null, label: "Env", type: "directiveEnv", secret: true },
+  ],
+};
+
+test("toPublicFields reports namesSet per referenced name, never the values", () => {
+  const values = { dnsDirective: "porkbun {env.KEY} {env.SECRET}", dnsEnv: "KEY=abc" };
+  const fields = toPublicFields(DIRECTIVE_ENV_SCHEMA, values);
+  const dnsEnv = fields.find((f) => f.key === "dnsEnv");
+  assert.deepEqual(dnsEnv.namesSet, { KEY: true, SECRET: false });
+  assert.equal("value" in dnsEnv, false);
+  assert.equal(JSON.stringify(fields).includes("abc"), false);
+});
+
+test("applyPatch: saving one directiveEnv name leaves another name's stored value alone", () => {
+  // The client always resends every referenced name, blank for ones the
+  // user didn't touch — a plain replace here would otherwise wipe SECRET.
+  const existing = { dnsDirective: "porkbun {env.KEY} {env.SECRET}", dnsEnv: "KEY=old\nSECRET=stored-secret" };
+  const next = applyPatch(DIRECTIVE_ENV_SCHEMA, existing, { dnsEnv: "KEY=new\nSECRET=" });
+  assert.equal(next.dnsEnv, "KEY=new\nSECRET=stored-secret");
+});
+
+test("applyPatch: a directiveEnv name no longer referenced is dropped from storage", () => {
+  const existing = { dnsDirective: "porkbun {env.KEY} {env.SECRET}", dnsEnv: "KEY=old\nSECRET=stored-secret" };
+  const next = applyPatch(DIRECTIVE_ENV_SCHEMA, existing, { dnsEnv: "KEY=new" });
+  assert.equal(next.dnsEnv, "KEY=new");
+});
+
+test("applyPatch: a directiveEnv field is left alone when the patch omits it, cleared by null", () => {
+  const existing = { dnsEnv: "KEY=stored" };
+  assert.equal(applyPatch(DIRECTIVE_ENV_SCHEMA, existing, {}).dnsEnv, "KEY=stored");
+  assert.equal("dnsEnv" in applyPatch(DIRECTIVE_ENV_SCHEMA, existing, { dnsEnv: null }), false);
+});
+
 test("requiredWhen gates the required check without hiding the field", () => {
   const schema = {
     kind: "db",

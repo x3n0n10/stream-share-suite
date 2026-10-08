@@ -186,11 +186,38 @@ export function toPublicFields(schema, values) {
       required: !!field.required,
       dependsOn: field.dependsOn || null,
     };
+    if (field.type === "directiveEnv") {
+      // dnsEnv packs several named secrets (one per {env.NAME} the sibling
+      // directive field references) into one write-only string. valueSet's
+      // whole-field granularity can't tell the editor which names already
+      // have a stored value, so report that per name instead — booleans
+      // only, never the values, same guarantee as valueSet below.
+      const names = detectDirectiveNames(values.dnsDirective);
+      const stored = parseDirectiveEnv(values[field.key]);
+      return { ...base, valueSet: !!values[field.key], namesSet: Object.fromEntries(names.map((n) => [n, !!stored[n]])) };
+    }
     if (field.secret) {
       return { ...base, valueSet: !!values[field.key] };
     }
     return { ...base, value: resolvedValue(field, values) };
   });
+}
+
+// Mirrors DirectiveEnvEditor.jsx's own ENV_REF/parseValue — see that file
+// for why there's no shared module between client and server here.
+const ENV_REF = /\{env\.([A-Za-z0-9_]+)\}/g;
+
+function detectDirectiveNames(directive) {
+  return [...new Set([...String(directive || "").matchAll(ENV_REF)].map((m) => m[1]))];
+}
+
+function parseDirectiveEnv(raw) {
+  const values = {};
+  for (const line of String(raw || "").split("\n")) {
+    const idx = line.indexOf("=");
+    if (idx > 0) values[line.slice(0, idx).trim()] = line.slice(idx + 1);
+  }
+  return values;
 }
 
 // Merges a patch into stored values under the write-only convention:
@@ -207,6 +234,24 @@ export function applyPatch(schema, existingValues, patch) {
   for (const field of schema.fields) {
     if (!(field.key in patch)) continue;
     const incoming = patch[field.key];
+
+    if (field.type === "directiveEnv") {
+      // dnsEnv's "leave blank to keep it" convention has to apply per name,
+      // not to the whole packed string — the client always resends every
+      // referenced name, blank for the ones the user didn't touch, so a
+      // plain replace here would silently wipe any other stored credential.
+      if (incoming === undefined) continue;
+      if (incoming === null) {
+        delete next[field.key];
+        continue;
+      }
+      const incomingMap = parseDirectiveEnv(incoming);
+      const existingMap = parseDirectiveEnv(next[field.key]);
+      next[field.key] = Object.keys(incomingMap)
+        .map((name) => `${name}=${incomingMap[name] || existingMap[name] || ""}`)
+        .join("\n");
+      continue;
+    }
 
     if (field.secret) {
       if (incoming === undefined) continue;
