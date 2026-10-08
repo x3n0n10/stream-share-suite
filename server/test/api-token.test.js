@@ -135,3 +135,26 @@ test("the cookie path still enforces CSRF", async () => {
   assert.equal(status, 403);
   assert.match(body.error, /CSRF/);
 });
+
+test("a signed-in admin generates, reads and revokes the token over HTTP", async () => {
+  const c = await signedInClient(base);
+
+  assert.deepEqual((await c.get("/api/settings/api-token")).body, { exists: false, createdAt: null });
+
+  const created = await c.post("/api/settings/api-token");
+  assert.equal(created.status, 200);
+  assert.equal(typeof created.body.token, "string");
+  assert.equal((await bearer("GET", "/api/gluetun", created.body.token)).status, 200);
+
+  const status = (await c.get("/api/settings/api-token")).body;
+  assert.deepEqual(status, { exists: true, createdAt: created.body.createdAt });
+  assert.equal(status.token, undefined);
+
+  const revoked = await c.del("/api/settings/api-token");
+  assert.deepEqual(revoked.body, { exists: false, createdAt: null });
+  assert.equal((await bearer("GET", "/api/gluetun", created.body.token)).status, 401);
+});
+
+test("token management needs a session", async () => {
+  assert.equal((await bearer("POST", "/api/settings/api-token")).status, 401);
+});

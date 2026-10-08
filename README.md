@@ -491,6 +491,28 @@ kept stable afterwards, same as an instance's own generated API key; a
 gluetun configured before this shipped needs one resave (open the Stack
 page's gluetun card and hit Save) to pick it up.
 
+## API access
+
+Scripts and other tools can read the VPN status and trigger a reconnect
+without signing in. Under **Settings → API access**, generate a token. It is
+shown once; only its hash is stored. Generating again replaces it, and
+**Revoke** disables it.
+
+Send it as a bearer token:
+
+```sh
+# VPN status and exit IP
+curl -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun
+
+# Reconnect: stop, wait, start, wait. Blocks until the VPN is running again
+# (up to the reconnect timeout, 45 s by default), so allow at least 60 s.
+curl -X POST -m 60 -H "Authorization: Bearer $TOKEN" https://suite.example/api/gluetun/reconnect
+```
+
+The token reaches only these two routes. Anything else answers `403`; a wrong
+token answers `401`, and repeated wrong tokens are throttled like failed
+sign-ins (`429`), and failed token attempts count against the same budget as failed sign-ins, so a client hammering a wrong token also delays sign-in for up to 15 minutes.
+
 ## Data and backups
 
 The configuration that matters is one SQLite file at `$SUITE_DATA_DIR/suite.db`,
