@@ -4,7 +4,7 @@
 
 import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
-import { freshDatabase, signedInClient } from "./helpers.js";
+import { freshDatabase, signedInClient, TEST_PASSWORD } from "./helpers.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
 import {
@@ -157,4 +157,31 @@ test("a signed-in admin generates, reads and revokes the token over HTTP", async
 
 test("token management needs a session", async () => {
   assert.equal((await bearer("POST", "/api/settings/api-token")).status, 401);
+});
+
+test("a bearer request never falls back to the cookie session", async () => {
+  const setup = await fetch(`${base}/api/auth/setup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "admin", password: TEST_PASSWORD }),
+  });
+  assert.equal(setup.status, 200);
+  const cookie = setup.headers.get("set-cookie").split(";")[0];
+  const { token } = generateApiToken();
+
+  // The cookie alone is a valid session.
+  const session = await fetch(`${base}/api/config`, { headers: { Cookie: cookie } });
+  assert.equal(session.status, 200);
+
+  // A wrong bearer is refused even though the cookie is valid.
+  const wrong = await fetch(`${base}/api/gluetun`, {
+    headers: { Cookie: cookie, Authorization: "Bearer wrong" },
+  });
+  assert.equal(wrong.status, 401);
+
+  // A valid bearer is confined to the allowlist; the cookie does not widen it.
+  const valid = await fetch(`${base}/api/config`, {
+    headers: { Cookie: cookie, Authorization: `Bearer ${token}` },
+  });
+  assert.equal(valid.status, 403);
 });

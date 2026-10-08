@@ -510,8 +510,9 @@ curl -X POST -m 60 -H "Authorization: Bearer $TOKEN" https://suite.example/api/g
 ```
 
 The token reaches only these two routes. Anything else answers `403`; a wrong
-token answers `401`, and repeated wrong tokens are throttled like failed
-sign-ins (`429`), and failed token attempts count against the same budget as failed sign-ins, so a client hammering a wrong token also delays sign-in for up to 15 minutes.
+token answers `401`. Failed token attempts share the failed sign-in budget, so
+a client repeating a wrong token is throttled (`429`) and also delays sign-in
+for up to 15 minutes.
 
 ## Data and backups
 
