@@ -302,7 +302,7 @@ function ApiAccessSection() {
   return (
     <Section
       title="API access"
-      description="Lets scripts and other tools read the VPN status and trigger a reconnect without signing in. Send the token as an Authorization: Bearer header."
+      description="Lets scripts and other tools interact with StreamShare Suite. Send the token as an Authorization: Bearer header."
       footer={
         <>
           <Button
