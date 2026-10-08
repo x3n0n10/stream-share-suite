@@ -219,6 +219,42 @@ export async function fetchHealth(instance, { timeoutMs }) {
   }
 }
 
+// Asks the instance itself which version it is running. Older stream-share
+// releases have no such endpoint (a 404), which the caller treats as "fall
+// back to what the image says" rather than as an error worth showing.
+export async function fetchVersion(instance, { timeoutMs }) {
+  const url = `${instance.url}/api/internal/version`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      headers: { "X-API-Key": instance.apiKey },
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new InstanceError(`HTTP ${res.status}`, res.status);
+
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      throw new InstanceError(`Non-JSON response (HTTP ${res.status})`, res.status);
+    }
+
+    const version = typeof body?.data?.version === "string" ? body.data.version.trim() : "";
+    if (!version) throw new InstanceError("Response carried no version", 502);
+    return version;
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new InstanceError(`Timed out after ${timeoutMs}ms`, 504);
+    }
+    if (err instanceof InstanceError) throw err;
+    throw new InstanceError(err.message || "Request failed", 502);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export { InstanceError };
 
 // Verifies a URL + API key pair against a live instance, used by the "Test

@@ -53,8 +53,10 @@ export default function StepVpn({ onNext, onBack }) {
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Route traffic through a VPN?</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Recommended if your provider restricts access by location or IP. Every instance shares one
-        tunnel — this isn't per-instance.
+        Recommended if your provider restricts access by location or IP. StreamShare Suite sets up a Gluetun instance
+        for you. Every instance shares this tunnel. You will probably need an account with a supported VPN provider.
+        Read all about it <a href="https://github.com/qdm12/gluetun-wiki" target="_blank" rel="noopener noreferrer" 
+        className="text-blue-500 hover:underline">over here</a>.
       </p>
 
       {error && !vpnEnabled && (
@@ -72,8 +74,7 @@ export default function StepVpn({ onNext, onBack }) {
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Gluetun (VPN)</h3>
           <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            The tunnel every instance's traffic will route through. This container also publishes
-            every instance's port.
+            The tunnel every instance's traffic will route through.
           </p>
           <div className="mt-4">
             {fields === null ? (

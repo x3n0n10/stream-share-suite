@@ -13,7 +13,6 @@ const TABS = [
   { id: "components", label: "Components" },
   { id: "import", label: "Import" },
 ];
-const MOBILE_TABS = [...TABS, { id: "plan", label: "Plan" }];
 
 // Draggable split between the tab content and the plan panel. Both sides
 // keep a 380px floor via CSS minmax — that holds even if a width restored
@@ -58,13 +57,19 @@ function TabBar({ tabs, activeTab, onChange, className = "" }) {
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
-          className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium ${
+          className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium ${
             activeTab === tab.id
               ? "border-accent-600 text-accent-600 dark:text-accent-400"
               : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
         >
           {tab.label}
+          {tab.attention && (
+            <span className="relative flex h-2 w-2" aria-label="Pending changes">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-500 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-500" />
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -173,9 +178,19 @@ export default function Stack({ pollIntervalMs = 15000 }) {
     );
   }
 
+  // On mobile the plan lives behind its own tab instead of sitting alongside
+  // the others, so it's the one place an unapplied change can go unnoticed —
+  // the dot calls attention to it until either it's applied or the tab is open.
+  const planTab = {
+    id: "plan",
+    label: "Plan",
+    attention: !!plan && plan.summary.changes > 0 && activeTab !== "plan",
+  };
+  const mobileTabs = [...TABS, planTab];
+
   return (
     <Layout title="Stack" headerExtra={<RefreshButton onClick={reload} />}>
-      <TabBar tabs={MOBILE_TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 lg:hidden" />
+      <TabBar tabs={mobileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-4 lg:hidden" />
       <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 hidden lg:flex" />
 
       <div

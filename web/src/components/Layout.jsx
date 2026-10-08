@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
 import { ConfirmDialog } from "./common.jsx";
+import VersionBlock from "./VersionBlock.jsx";
 import {
   IconOverview,
   IconHistory,
@@ -134,6 +135,7 @@ export default function Layout({ title, children, headerExtra }) {
           </span>
         </div>
         <NavList items={visibleNavItems} collapsed={collapsed} />
+        {!collapsed && <VersionBlock />}
         <div className="px-3 pt-4">
           <button
             onClick={() => setSignOutOpen(true)}
@@ -188,6 +190,7 @@ export default function Layout({ title, children, headerExtra }) {
               </button>
             </div>
             <NavList items={visibleNavItems} onNavigate={() => setDrawerOpen(false)} />
+            <VersionBlock />
             <div className="px-3 pt-4">
               <button
                 onClick={() => {

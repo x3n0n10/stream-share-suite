@@ -23,7 +23,7 @@ import { allocatePort, instanceContainerName } from "./instance.js";
 import { databaseNamesFor, generatePassword, ensureDatabase, dropDatabase } from "./database.js";
 import { connectionTarget } from "./postgres.js";
 import { inspectContainer, stopContainer, removeContainer } from "../docker/client.js";
-import { isManaged } from "../docker/labels.js";
+import { isManaged, belongsToAnotherSuite } from "../docker/labels.js";
 
 // The key doubles as the instance's id in the ops API, so it has to be unique
 // against the externally-configured instances in the other table too — not
@@ -94,17 +94,24 @@ export async function deprovisionInstance(key, { dropData = false, log = () => {
   const name = instanceContainerName(key, values);
   const existing = await inspectContainer(name);
 
-  if (existing && isManaged(existing.Config?.Labels || {})) {
+  const labels = existing?.Config?.Labels || {};
+
+  if (existing && isManaged(labels) && !belongsToAnotherSuite(labels)) {
     log(`Stopping ${name}...`);
     await stopContainer(existing.Id, { timeoutSeconds: 30 });
     log(`Removing ${name}...`);
     await removeContainer(existing.Id, { force: true });
   } else if (existing) {
     // Adopted, not ours to stop — the same invariant Adopt itself rests on.
+    // (Or created by another Suite on this host, which is no more ours.)
     // If dropData is also asked for, the drop below may fail while this is
     // still connected to it; there is no way around that without touching a
     // container the Suite was never allowed to touch.
-    log(`${name} was not created by the Suite — leaving it running.`);
+    log(
+      belongsToAnotherSuite(labels)
+        ? `${name} belongs to another Suite — leaving it running.`
+        : `${name} was not created by the Suite — leaving it running.`
+    );
   }
 
   if (dropData && values._dbName) {

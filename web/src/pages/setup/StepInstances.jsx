@@ -14,7 +14,7 @@ const ACCESS_MODES = [
   {
     value: "custom",
     label: "Set custom credentials",
-    help: "A separate username and password from your provider's, for sharing without handing out the real ones.",
+    help: "A separate username and password from your provider's, for connecting without handing out the real ones.",
   },
   {
     value: "ldap",
@@ -195,8 +195,8 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Your instances</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        One StreamShare instance per IPTV provider. At least one is required. To remove an
-        instance, use the Stack page instead — it's not available here.
+        Now let's set up a StreamShare instance, one per IPTV provider. At least one is required. To remove an
+        instance, use the Stack page instead — it's not available here because reasons.
       </p>
 
       {instances.length > 0 && (

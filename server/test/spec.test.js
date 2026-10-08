@@ -211,3 +211,24 @@ test("networkMode wins over networks and suppresses the network attachment", () 
     "a container inside another's namespace must not also be attached to a network"
   );
 });
+
+// --- command override --------------------------------------------------------
+
+test("a spec with no command hashes the same as before the field existed", () => {
+  const hash = computeSpecHash(BASE);
+  assert.equal(computeSpecHash({ ...BASE, command: [] }), hash);
+  assert.equal(computeSpecHash({ ...BASE, command: undefined }), hash);
+});
+
+test("setting a command changes the hash, and the order of its arguments matters", () => {
+  const first = computeSpecHash({ ...BASE, command: ["sh", "-c", "x"] });
+  assert.notEqual(first, computeSpecHash(BASE));
+  assert.notEqual(first, computeSpecHash({ ...BASE, command: ["-c", "sh", "x"] }));
+  assert.equal(first, computeSpecHash({ ...BASE, command: ["sh", "-c", "x"] }));
+});
+
+test("command becomes Cmd on the create payload, and only when set", () => {
+  assert.deepEqual(toCreatePayload({ ...BASE, command: ["sh", "-c", "x"] }).Cmd, ["sh", "-c", "x"]);
+  assert.equal("Cmd" in toCreatePayload(BASE), false);
+  assert.equal("Cmd" in toCreatePayload({ ...BASE, command: [] }), false);
+});

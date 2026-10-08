@@ -3,10 +3,10 @@ import { Card, Button } from "../../components/common.jsx";
 export default function StepDone({ navigate, onBack }) {
   return (
     <Card className="p-6 text-center">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">You're set up</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">You're set up!</h2>
       <p className="mx-auto mt-2 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Nothing has actually been created on Docker yet: review the plan and apply it to bring the
-        containers up.
+        Don't worry, nothing will actually be applied yet. In the stack plan, review the setup and hit apply if
+        you're satisfied. You can always change anything from the Stack page or just re-run the wizard.
       </p>
       <div className="mt-5 flex items-center justify-center gap-2 border-t border-slate-200 pt-5 dark:border-slate-800">
         {onBack && (

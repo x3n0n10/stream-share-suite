@@ -80,6 +80,23 @@ export async function getPublicIP(gluetun) {
   return request(gluetun, "/v1/publicip/ip");
 }
 
+// Unstable gluetun builds report a placeholder instead of a version; the
+// commit is the only thing that identifies them then.
+const PLACEHOLDER_VERSIONS = new Set(["", "latest", "unknown", "dev"]);
+
+export function gluetunVersionFrom(body) {
+  const version = String(body?.version ?? "").trim();
+  if (!PLACEHOLDER_VERSIONS.has(version.toLowerCase())) return version;
+
+  const commit = String(body?.commit ?? "").trim();
+  if (commit && commit.toLowerCase() !== "unknown") return commit.slice(0, 7);
+  return null;
+}
+
+export async function getVersion(gluetun) {
+  return gluetunVersionFrom(await request(gluetun, "/v1/version"));
+}
+
 async function waitForVpnStatus(gluetun, desired, deadline) {
   for (;;) {
     try {

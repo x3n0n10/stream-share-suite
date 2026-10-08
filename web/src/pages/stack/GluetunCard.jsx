@@ -69,7 +69,7 @@ export default function GluetunCard({
               onClick={onPull}
               disabled={busy}
               aria-label="Check for updates"
-              title="Pull this component's own configured image tag and recreate only if it actually changed"
+              title="Check and pull the latest version of Gluetun's configured image tag and recreate if it actually changed"
               className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
             >
               <IconRefresh className="h-4 w-4" />

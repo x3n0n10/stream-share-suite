@@ -18,7 +18,8 @@
 //   orphaned — a container we created, for a component that is no longer part
 //              of the stack (the VPN was switched off, an instance removed).
 //              Never removed automatically: the plan surfaces it and removing
-//              it is its own confirmed action.
+//              it is its own confirmed action. A container labeled for a
+//              different Suite is not this Suite's orphan and is never listed.
 
 import {
   inspectContainer,
@@ -32,7 +33,7 @@ import {
   inspectImage,
 } from "../docker/client.js";
 import { computeSpecHash, toCreatePayload } from "../docker/spec.js";
-import { LABEL_MANAGED, LABEL_SPEC_HASH, managedLabels, isManaged, componentOf } from "../docker/labels.js";
+import { LABEL_MANAGED, LABEL_SPEC_HASH, LABEL_SUITE, managedLabels, isManaged, belongsToAnotherSuite, componentOf } from "../docker/labels.js";
 import { setAdoptedContainer, clearAdoption, getComponentValues, componentId } from "../store/components.js";
 import { validate } from "../schema/registry.js";
 import { activeComponents, inactiveComponents } from "./catalog.js";
@@ -97,7 +98,37 @@ export async function planComponent(node, spec) {
     };
   }
 
+  // Same name, but created by a different Suite on this host. Never ours to
+  // recreate: handled like any other container the Suite may not touch, with
+  // the cause spelled out so the fix (a distinct prefix) is obvious.
+  if (belongsToAnotherSuite(labels)) {
+    return {
+      ...base,
+      action: "adopt",
+      reason: `Created by another Suite (${labels[LABEL_SUITE]}) — never touched without a takeover`,
+      containerId: existing.Id,
+      warnings: [
+        "This container belongs to another Suite on this host. Give each Suite its own SUITE_CONTAINER_PREFIX (and make sure no containerName override points at the same name) so their container names don't collide.",
+      ],
+    };
+  }
+
   if (labels[LABEL_SPEC_HASH] === desiredHash) {
+    // A hash match alone isn't "fine" if the container isn't actually
+    // running — stopped outside the Suite (or, see applyStack, by the Suite
+    // itself freeing a port an orphaned gluetun was holding). Recreating
+    // reuses the exact same stop/remove/create/start sequence a real config
+    // change already goes through, rather than a separate "start" action.
+    if (existing.State?.Status && existing.State.Status !== "running") {
+      return {
+        ...base,
+        action: "recreate",
+        reason: "Stopped outside the Suite — starting it back up",
+        containerId: existing.Id,
+        previousHash: labels[LABEL_SPEC_HASH],
+        stoppedOutsideSuite: true,
+      };
+    }
     return {
       ...base,
       action: "noop",
@@ -128,6 +159,7 @@ async function findOrphans(activeIds) {
 
   return containers
     .map((container) => {
+      if (belongsToAnotherSuite(container.Labels || {})) return null;
       const component = componentOf(container.Labels || {});
       if (!component) return null;
 
@@ -172,8 +204,9 @@ async function findDisabled(nodes) {
     const existing = await inspectContainer(node.containerName);
     if (!existing) continue;
 
-    // A managed one is already reported as an orphan by the pass above;
-    // reporting it twice would be worse than not reporting it at all.
+    // A managed one is already reported as an orphan by the pass above (or,
+    // if another Suite's, deliberately not shown at all); reporting it twice
+    // would be worse than not reporting it at all.
     if (isManaged(existing.Config?.Labels || {})) continue;
 
     rows.push({
@@ -280,7 +313,7 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   }
 
   if (action === "adopt" && !takeover) {
-    log(`Found an existing container named "${spec.name}" without the Suite's labels — adopting without recreating.`);
+    log(`Found an existing container named "${spec.name}" that this Suite did not create — adopting without recreating.`);
     log("It stays exactly as it is until you explicitly ask the Suite to take over.");
     for (const warning of plan.warnings || []) log(`Warning: ${warning}`);
     setAdoptedContainer(kind, plan.containerId, key);
@@ -297,6 +330,8 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   if (action === "recreate") {
     const why = plan.cascadedFrom
       ? `${plan.cascadedFrom} was replaced, taking its network namespace with it`
+      : plan.stoppedOutsideSuite
+      ? "it was stopped outside the Suite"
       : `configuration changed (${(plan.previousHash || "").slice(0, 12)} -> ${desiredHash.slice(0, 12)})`;
     log(`Recreating "${spec.name}" — ${why}.`);
     log("Stopping the current container...");
@@ -328,7 +363,7 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
 
   for (const networkName of (spec.networks || []).slice(1)) {
     log(`Joining network "${networkName}"...`);
-    await connectNetwork(networkName, created.Id);
+    await connectNetwork(networkName, created.Id, spec.networkAliases);
   }
 
   log(`Starting "${spec.name}"...`);
@@ -394,6 +429,41 @@ export async function applyStack(plans, { log = () => {} } = {}) {
     return;
   }
 
+  // Gluetun publishes every instance's port on their behalf while the VPN is
+  // on (see reconcile/gluetun.js's instancePorts()). Switching the VPN off
+  // makes gluetun orphaned rather than removed — orphans are never removed
+  // automatically — but an instance recreating in the same apply to
+  // self-publish that same port would fail with "port is already allocated"
+  // as long as the orphaned container is still holding it. Stopping it here
+  // (never removing it) is what lets that instance bind the port it needs;
+  // the orphan row itself is untouched, still there for the operator to
+  // remove explicitly whenever they choose to.
+  const orphanedGluetun = plans.find((plan) => plan.kind === "gluetun" && plan.action === "orphaned");
+  if (orphanedGluetun?.runtime?.status === "running") {
+    log("Gluetun was just switched off but is still running and holding every instance's port — stopping it first.");
+    await stopContainer(orphanedGluetun.containerId, { timeoutSeconds: 30 });
+  }
+
+  // The mirror image of the case above: turning the VPN back ON brings
+  // gluetun back (see planComponent's stoppedOutsideSuite branch, or a plain
+  // config change), and once up it re-takes every instance's port for itself
+  // (see gluetun.js's instancePorts()). An instance still running from while
+  // the VPN was off is bound directly to that same port — graph.js's
+  // applyCascade already marked it to recreate in this same apply, but
+  // gluetun is ordered first, so gluetun's own create fails with "port is
+  // already allocated" until that instance lets go. Stopping it here, before
+  // gluetun is applied, is what makes turning the VPN back on work in one
+  // apply too.
+  const gluetunPlan = plans.find((plan) => plan.kind === "gluetun" && APPLIES.has(plan.action));
+  if (gluetunPlan) {
+    for (const plan of plans) {
+      if (plan.cascadedFrom === gluetunPlan.id && plan.runtime?.status === "running") {
+        log(`${plan.label} is still running and holding its own port — stopping it before ${gluetunPlan.label} comes back.`);
+        await stopContainer(plan.containerId, { timeoutSeconds: 30 });
+      }
+    }
+  }
+
   let done = 0;
   for (const plan of actionable) {
     done += 1;
@@ -408,6 +478,15 @@ export async function applyStack(plans, { log = () => {} } = {}) {
 // the reconciler does automatically should ever destroy a container it can no
 // longer describe.
 export async function removeOrphan(containerId, { log = () => {} } = {}) {
+  // Removal is by container ID, so nothing else stops this from taking down
+  // another Suite's container — check the label here.
+  const existing = await inspectContainer(containerId);
+  if (existing && belongsToAnotherSuite(existing.Config?.Labels || {})) {
+    throw new Error(
+      `Refusing to remove ${containerId}: it belongs to another Suite (${existing.Config.Labels[LABEL_SUITE]}).`
+    );
+  }
+
   log(`Stopping ${containerId}...`);
   await stopContainer(containerId, { timeoutSeconds: 30 });
   log("Removing it...");

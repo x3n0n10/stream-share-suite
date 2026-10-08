@@ -13,9 +13,10 @@ export default function StepWelcome({ onNext }) {
     <Card className="p-6 text-center">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Welcome</h2>
       <p className="mx-auto mt-2 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        A few short steps get StreamShare Suite fully configured — no compose file to hand-edit, no
-        container names to remember. Answer what you know; anything you leave blank keeps a sensible
-        default, and everything here can be changed again later from Settings or the Stack page.
+        A few short steps get StreamShare Suite fully configured. Answer what you know; 
+        anything you leave blank keeps a sensible default, and everything here can be 
+        changed again later from Settings or the Stack page. Don't worry, nothing will be
+        changed or created until you hit "Apply" on the Stack page at the end of the setup.
       </p>
 
       <ul className="mx-auto mt-5 flex max-w-md flex-col gap-2 text-left text-sm text-slate-600 dark:text-slate-300">
@@ -27,15 +28,9 @@ export default function StepWelcome({ onNext }) {
         ))}
       </ul>
 
-      <p className="mx-auto mt-5 max-w-prose text-xs text-slate-400 dark:text-slate-500">
-        Nothing is actually created on Docker until you reach the end and apply the plan from the
-        Stack page — walk through as many or as few steps as you like, and come back anytime to pick
-        up where you left off.
-      </p>
-
       <div className="mt-5 flex items-center justify-center gap-2 border-t border-slate-200 pt-5 dark:border-slate-800">
         <Button tone="accent" onClick={() => onNext("portRange")}>
-          Get started
+          Get started!
         </Button>
       </div>
     </Card>

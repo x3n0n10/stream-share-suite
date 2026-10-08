@@ -1,7 +1,9 @@
 // The Caddy component: an optional reverse proxy that publishes instances
 // under a real hostname instead of a raw port, with HTTPS handled for you.
 //
-// Deliberately no routing fields here. Each instance already has its own
+// Deliberately no per-instance routing fields here (the one exception is the
+// dashboard's own address, below — the Suite has no other place to say where
+// it is reached from outside). Each instance already has its own
 // "Public base URL" (see schema/instance.js) — the address stream-share tells
 // its own players to use — and that is the one place an operator should have
 // to say "this is how the outside world reaches this instance." Rather than
@@ -32,10 +34,12 @@ export const CADDY_SCHEMA = {
       help:
         "\"Self-signed\" issues a certificate from Caddy's own internal CA — browsers warn once, fine on a " +
         "private network. \"Automatic (ACME)\" gets a real, trusted certificate per hostname, but needs ports " +
-        "80 and 443 reachable from the internet and each hostname's DNS already pointed here.",
+        "80 and 443 reachable from the internet and each hostname's DNS already pointed here. \"Automatic (DNS " +
+        "challenge)\" gets the same kind of certificate by proving domain ownership through your DNS provider's " +
+        "API instead, so no inbound ports are needed. Caddy adds your provider's plugin itself when it starts.",
       type: "select",
-      options: ["internal", "acme"],
-      optionLabels: { internal: "Self-signed", acme: "Automatic (ACME)" },
+      options: ["internal", "acme", "dns"],
+      optionLabels: { internal: "Self-signed", acme: "Automatic (ACME)", dns: "Automatic (DNS challenge)" },
       default: "internal",
       group: "HTTPS",
       required: true,
@@ -47,7 +51,66 @@ export const CADDY_SCHEMA = {
       help: "Sent to your certificate authority for expiry notices only — never published anywhere.",
       group: "HTTPS",
       required: true,
-      dependsOn: { key: "tlsMode", equals: "acme" },
+      dependsOn: { key: "tlsMode", oneOf: ["acme", "dns"] },
+    },
+    {
+      key: "dnsModule",
+      envVar: null,
+      label: "Caddy module",
+      help:
+        "The Go package of your provider's Caddy plugin, pinned to an exact version — e.g. " +
+        "github.com/caddy-dns/hetzner@v2.0.1 or github.com/caddy-dns/cloudflare@v0.2.4. Without a pinned " +
+        "version, Caddy's add-package can build the module's unreleased branch instead of its latest release. " +
+        "See caddyserver.com/download for the full list of packages.",
+      group: "DNS challenge",
+      required: true,
+      dependsOn: { key: "tlsMode", equals: "dns" },
+    },
+    {
+      key: "dnsDirective",
+      envVar: null,
+      label: "Directive",
+      help:
+        "Everything after `dns` in the site's tls block, e.g. `hetzner {env.HETZNER_API_TOKEN}` or " +
+        "`cloudflare {env.CLOUDFLARE_API_TOKEN}`. Reference credentials as {env.NAME} — a matching box appears " +
+        "below for each one, for you to fill in.",
+      group: "DNS challenge",
+      required: true,
+      dependsOn: { key: "tlsMode", equals: "dns" },
+    },
+    {
+      key: "dnsEnv",
+      envVar: null,
+      label: "Provider environment variables",
+      help: "Filled in automatically from the {env.NAME} names in Directive, above. Stored write-only and " +
+        "passed to the Caddy container's environment; never written into the Caddyfile.",
+      type: "directiveEnv",
+      secret: true,
+      group: "DNS challenge",
+      dependsOn: { key: "tlsMode", equals: "dns" },
+    },
+    {
+      key: "dnsPropagationDelay",
+      envVar: null,
+      label: "Propagation delay",
+      help:
+        "Optional. How long to wait after creating the DNS record before asking the CA to check it, e.g. 30s. " +
+        "Slow DNS providers sometimes need this. Leave blank to use Caddy's default.",
+      group: "DNS challenge",
+      advanced: true,
+      dependsOn: { key: "tlsMode", equals: "dns" },
+    },
+    {
+      key: "dashboardUrl",
+      envVar: null,
+      label: "Dashboard public URL",
+      help:
+        "Optional. The address this dashboard is reached at from outside, e.g. https://suite.example.com. " +
+        "Only the hostname (and port, if any) is used — give it a hostname of its own rather than a path. " +
+        "Leave blank to keep the dashboard unpublished. The Suite must be on a Docker network Caddy joins " +
+        "(the default streamshare network covers this). Publishing it puts the sign-in page on the internet: " +
+        "it has a real login, CSRF protection and a throttled sign-in, but that is now your exposure.",
+      group: "Dashboard",
     },
     {
       key: "networks",
@@ -82,7 +145,7 @@ export const CADDY_SCHEMA = {
       key: "image",
       envVar: null,
       label: "Image",
-      help: "Any Caddy 2 tag.",
+      help: "Any Caddy 2 tag. In DNS-challenge mode Caddy adds your provider's plugin itself on start (an image that already includes it skips the download); the image must not set its own ENTRYPOINT then.",
       group: "Container",
       default: "caddy:2-alpine",
       advanced: true,
@@ -104,7 +167,7 @@ export const CADDY_SCHEMA = {
       label: "Extra Caddyfile",
       help:
         "Raw Caddyfile text appended after every generated site block — for anything the Suite doesn't render " +
-        "for you, such as a route to something it doesn't manage.",
+        "for you, such as a route to something it doesn't manage. In JSON format.",
       type: "textarea",
       group: "Container",
       advanced: true,

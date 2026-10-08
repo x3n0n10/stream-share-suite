@@ -15,6 +15,7 @@ import { GLUETUN_SCHEMA } from "../schema/gluetun.js";
 import { POSTGRES_SCHEMA } from "../schema/postgres.js";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
 import { CADDY_SCHEMA } from "../schema/caddy.js";
+import { MODULE_PATH } from "../schema/dnsModule.js";
 import { renderGluetunSpec, gluetunContainerName } from "./gluetun.js";
 import {
   renderPostgresSpec,
@@ -25,6 +26,7 @@ import {
 import { renderInstanceSpec, instanceContainerName } from "./instance.js";
 import { renderCaddySpec, caddyContainerName } from "./caddy.js";
 import { prepareInstance } from "./provisioning.js";
+import { parseExtraEnv } from "./env.js";
 import { getBoolean } from "../store/settings.js";
 import { getDataPath, validatePath } from "../store/paths.js";
 import { componentId, listComponents, getComponentValues } from "../store/components.js";
@@ -136,6 +138,27 @@ const CATALOG = {
     singleton: true,
     containerName: () => caddyContainerName(getComponentValues("caddy")),
     present: () => isCaddyEnabled(),
+    // DNS mode needs a directive to write and a Caddy module to add — the
+    // stock image is fine either way, since the module is added when Caddy
+    // starts (see reconcile/caddy.js). It also needs a value for every
+    // {env.NAME} the directive actually references: the operator can edit
+    // the directive after already saving values, and a referenced name with
+    // no value would apply cleanly and then fail inside the Caddy container.
+    ready: (values) => {
+      if (values.tlsMode !== "dns") return null;
+      if (!String(values.dnsDirective || "").trim()) return "DNS challenge needs a directive.";
+      if (!MODULE_PATH.test(String(values.dnsModule || "").trim())) {
+        return "DNS challenge needs a Caddy module such as github.com/caddy-dns/porkbun@v1.2.3.";
+      }
+      const referenced = [...String(values.dnsDirective || "").matchAll(/\{env\.([A-Za-z0-9_]+)\}/g)].map(
+        (m) => m[1]
+      );
+      const env = parseExtraEnv(values.dnsEnv);
+      const provided = new Set(Object.keys(env).filter((name) => env[name]));
+      const missing = [...new Set(referenced)].filter((name) => !provided.has(name));
+      if (missing.length > 0) return `Directive references ${missing.join(", ")} but no value is set.`;
+      return null;
+    },
     dependsOn: () => [],
     // On the shared network rather than inside anyone's namespace — see
     // schema/caddy.js for why that's a different, weaker relationship.

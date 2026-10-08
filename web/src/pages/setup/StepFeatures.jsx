@@ -106,15 +106,17 @@ export default function StepFeatures({ instances, onNext, onBack }) {
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Caching</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Features</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Per instance — each one keeps whatever it's already set to until you change it here. The
+        Special features offered by StreamShare. Here you can set up stuff like caching and buffering. The
         folder below is where an instance keeps its temporary files: VOD cache and catchup buffers.
       </p>
 
       <label className="mt-4 flex flex-col gap-1.5">
         <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-          Parent folder on the Docker host (optional convenience)
+          <span className="italic">Helper</span>: you may enter a parent folder on the Docker host here
+          which will then be used as the parent folder for instances below. Only instances that don't 
+          already have a files path set are affected. Subfolders will be appended automatically.
         </span>
         <input
           className={FIELD}
@@ -122,8 +124,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
           onChange={(e) => updateParentPath(e.target.value)}
         />
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
-          Suggests a subfolder below for any instance that doesn't already have a temporary files
-          path. Any folder on the Docker host works — for example, a subfolder under the Suite's own
+          Enter an absolute path to a folder on the Docker host — for example, a subfolder under the Suite's own
           data folder, if you don't need these on a separate disk.
         </span>
       </label>

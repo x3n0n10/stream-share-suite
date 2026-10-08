@@ -91,7 +91,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">Health check</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
         Optional. Lets the VPN watchdog reconnect the tunnel when a provider blocks the current exit
-        IP — pick which instances to watch.
+        IP — pick which instances to take into account.
       </p>
 
       <div className="mt-5 flex flex-col gap-2">
@@ -110,8 +110,9 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Probe channel per instance</h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Type a channel name to search and pick a result, or enter a stream ID directly if you
-            already know it.
+            In order for the health check to work, you need to specify a channel to probe for each instance. This channel
+            will be synthetically 'viewed' to see if it's accessible. Type a channel name to search and pick a result, 
+            or enter a stream ID directly if you already know it.
           </p>
           <div className="mt-3 flex flex-col gap-3">
             {chosen.map((instance) => (
@@ -136,7 +137,9 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
 
           <label className="mt-4 flex flex-col gap-1.5">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Check times (local, HH:MM)
+              Check times (local, HH:MM) — usually twice a day should be enough. 
+              Pick times that are usually outside of your own viewing hours, 
+              so the health check doesn't interfere with you watching.
             </span>
             <input className={FIELD} value={checkTimes} onChange={(e) => setCheckTimes(e.target.value)} />
           </label>

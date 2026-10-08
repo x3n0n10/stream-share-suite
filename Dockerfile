@@ -20,6 +20,10 @@ FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 ENV SUITE_DATA_DIR=/data
+# Stamped in by CI: the release semver, or dev-<sha> for a dev build. A plain
+# local build reports "dev". Shown in the sidebar's version block.
+ARG APP_VERSION=dev
+ENV SUITE_VERSION=$APP_VERSION
 
 COPY server/package*.json ./
 COPY --from=server-deps /app/server/node_modules ./node_modules
