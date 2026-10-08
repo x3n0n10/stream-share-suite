@@ -153,6 +153,9 @@ export const api = {
 
   settings: () => get("/api/settings"),
   saveSettings: (payload) => put("/api/settings", payload),
+  apiToken: () => get("/api/settings/api-token"),
+  createApiToken: () => post("/api/settings/api-token"),
+  revokeApiToken: () => del("/api/settings/api-token"),
   listInstances: () => get("/api/settings/instances"),
   createInstance: (payload) => post("/api/settings/instances", payload),
   updateInstance: (id, payload) => put(`/api/settings/instances/${id}`, payload),
