@@ -163,6 +163,7 @@ export const api = {
   testInstance: (payload) => post("/api/settings/instances/test", payload),
 
   dockerStatus: () => get("/api/stack/docker/status"),
+  selfInfo: () => get("/api/stack/self"),
   stackComponents: () => get("/api/stack/components"),
   stackSettings: () => get("/api/stack/settings"),
   saveStackSettings: (payload) => put("/api/stack/settings", payload),
