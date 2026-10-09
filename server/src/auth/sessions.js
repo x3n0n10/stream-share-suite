@@ -9,6 +9,14 @@ import { getDatabase } from "../store/db.js";
 
 export const SESSION_COOKIE = "suite_session";
 
+// Cookies ignore the port, so two Suites on one host (192.168.1.2:3001 and
+// :3002) would overwrite each other's session. Suffix the name with the port
+// the browser used; behind a proxy there is none and the name stays plain.
+export function sessionCookieName(req) {
+  const port = /:(\d+)$/.exec(req.headers.host || "")?.[1];
+  return port ? `${SESSION_COOKIE}_${port}` : SESSION_COOKIE;
+}
+
 // Sliding window: every authenticated request pushes the expiry out, so an
 // active operator is never logged out mid-task, while an idle session dies.
 const SESSION_TTL_MS = 14 * 24 * 60 * 60 * 1000;

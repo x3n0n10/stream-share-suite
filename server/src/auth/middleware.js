@@ -5,7 +5,7 @@
 // which matters for an image that is meant to be easy to audit.
 
 import { randomBytes } from "node:crypto";
-import { SESSION_COOKIE, resolveSession, safeEqual } from "./sessions.js";
+import { sessionCookieName, resolveSession, safeEqual } from "./sessions.js";
 import { countUsers } from "./users.js";
 import { verifyApiToken } from "./apiToken.js";
 
@@ -45,7 +45,7 @@ export function isSecureRequest(req) {
 
 export function attachSession(req, res, next) {
   req.cookies = parseCookies(req.headers.cookie);
-  const token = req.cookies[SESSION_COOKIE];
+  const token = req.cookies[sessionCookieName(req)];
   req.sessionToken = token || null;
   req.user = token ? resolveSession(token) : null;
   next();

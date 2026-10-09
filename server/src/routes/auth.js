@@ -6,7 +6,7 @@
 
 import { Router } from "express";
 import {
-  SESSION_COOKIE,
+  sessionCookieName,
   createSession,
   destroyAllSessions,
   destroySession,
@@ -27,7 +27,7 @@ import { revokeApiToken } from "../auth/apiToken.js";
 function setSessionCookie(req, res, session) {
   res.set(
     "Set-Cookie",
-    serializeCookie(SESSION_COOKIE, session.token, {
+    serializeCookie(sessionCookieName(req), session.token, {
       maxAgeMs: session.maxAgeMs,
       secure: isSecureRequest(req),
     })
@@ -104,7 +104,7 @@ export function createAuthRouter() {
 
   router.post("/logout", requireCsrf, (req, res) => {
     destroySession(req.sessionToken);
-    res.set("Set-Cookie", serializeCookie(SESSION_COOKIE, "", { expires: true }));
+    res.set("Set-Cookie", serializeCookie(sessionCookieName(req), "", { expires: true }));
     res.json({ ok: true });
   });
 
