@@ -11,6 +11,7 @@
 // gluetun renderer) treats an empty list as "couldn't determine it" and
 // simply leaves the field unset.
 
+import { readFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { inspectContainer } from "./client.js";
 
@@ -33,7 +34,7 @@ export function ipv4NetworkCidr(ipAddress, prefixLen) {
 export async function getSelfNetworks() {
   let info;
   try {
-    info = await inspectContainer(hostname());
+    info = await inspectSelf();
   } catch {
     return [];
   }
@@ -57,9 +58,23 @@ const DEFAULT_SELF_NAME = "stream-share-suite";
 // getSelfNetworks above.
 export async function getSelfContainerName() {
   try {
-    const info = await inspectContainer(hostname());
+    const info = await inspectSelf();
     return String(info?.Name || "").replace(/^\//, "") || DEFAULT_SELF_NAME;
   } catch {
     return DEFAULT_SELF_NAME;
+  }
+}
+
+// Hostname first (the default: short ID). A compose `hostname:` override breaks
+// that, so fall back to the full container ID Docker bind-mounts into
+// /etc/hostname et al. — visible in mountinfo regardless of hostname.
+async function inspectSelf() {
+  const byHostname = await inspectContainer(hostname());
+  if (byHostname) return byHostname;
+  try {
+    const id = readFileSync("/proc/self/mountinfo", "utf8").match(/\/containers\/([0-9a-f]{64})\//)?.[1];
+    return id ? await inspectContainer(id) : null;
+  } catch {
+    return null;
   }
 }
