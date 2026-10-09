@@ -121,3 +121,10 @@ test("health-check runs synchronously and reports the finished result, not a job
   const after = await c.get("/api/watchdog/health-check");
   assert.deepEqual(after.body, res.body);
 });
+
+test("health-check still reports the last run after the job store has dropped it", async () => {
+  const c = await signedInClient(base);
+  const ran = await c.post("/api/watchdog/health-check", {});
+  _clearJobsForTests();
+  assert.deepEqual((await c.get("/api/watchdog/health-check")).body, ran.body);
+});
