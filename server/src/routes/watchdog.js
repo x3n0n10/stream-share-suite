@@ -16,6 +16,8 @@ import {
   runWatchdogJob,
   runWatchdogJobSync,
   getLastWatchdogJobId,
+  getLastWatchdogResult,
+  jobResult,
   parseCheckTimes,
 } from "../watchdog/scheduler.js";
 import { getJob } from "../reconcile/jobs.js";
@@ -99,19 +101,8 @@ export function createWatchdogRouter() {
   // Same shape as the POST, but just reports the last run instead of
   // triggering a new one.
   router.get("/health-check", (req, res) => {
-    const job = getJob(getLastWatchdogJobId());
-    res.json(job ? jobResult(job) : { status: "never_run" });
+    res.json(getLastWatchdogResult() || { status: "never_run" });
   });
 
   return router;
-}
-
-function jobResult(job) {
-  return {
-    status: job.status,
-    log: job.log.map((entry) => entry.line),
-    error: job.error,
-    startedAt: job.startedAt,
-    finishedAt: job.finishedAt,
-  };
 }

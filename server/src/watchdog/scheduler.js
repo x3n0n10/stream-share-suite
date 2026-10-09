@@ -9,10 +9,15 @@
 // style parsing isn't available everywhere, and isn't needed for "does the
 // current HH:MM match one of a handful of configured times".
 
-import { createJob, appendLog, finishJob } from "../reconcile/jobs.js";
+import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
+import { getSetting, setSetting } from "../store/settings.js";
 import { heal, isWatchdogEnabled, watchdogCheckTimes } from "./vpnWatchdog.js";
 
 const POLL_MS = 30 * 1000;
+
+// The job store drops a finished job after 30 minutes, which is far shorter
+// than the gap between scheduled runs, so the last result is also kept here.
+const LAST_RESULT_SETTING = "watchdog_last_result";
 
 let lastJobId = null;
 
@@ -24,6 +29,25 @@ export function getLastWatchdogJobId() {
 // state by design and needs resetting between tests that care about it.
 export function _resetLastWatchdogJobForTests() {
   lastJobId = null;
+}
+
+export function jobResult(job) {
+  return {
+    status: job.status,
+    log: job.log.map((entry) => entry.line),
+    error: job.error,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
+  };
+}
+
+// The in-memory job while it still exists (so a running one reports live),
+// else the persisted result of the last finished run, else null.
+export function getLastWatchdogResult() {
+  const job = getJob(lastJobId);
+  if (job) return jobResult(job);
+  const stored = getSetting(LAST_RESULT_SETTING);
+  return stored ? JSON.parse(stored) : null;
 }
 
 // Parses "HH:MM,HH:MM" into minutes-since-midnight, dropping anything that
@@ -52,6 +76,11 @@ async function execute(job) {
     appendLog(job, `Error: ${err.message}`);
     finishJob(job, err);
   }
+  // Best effort: a failed write must not turn a finished run into an
+  // unhandled rejection in the fire-and-forget caller.
+  try {
+    setSetting(LAST_RESULT_SETTING, JSON.stringify(jobResult(job)));
+  } catch {}
 }
 
 // Runs heal() as a background job, the same way the reconciler's own applies
