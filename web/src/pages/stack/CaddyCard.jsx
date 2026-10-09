@@ -1,6 +1,6 @@
 // web/src/pages/stack/CaddyCard.jsx
 import { useEffect, useState } from "react";
-import { Card, Badge, Button, OnOffToggle } from "../../components/common.jsx";
+import { Card, Badge, Button, OnOffToggle, FIELD } from "../../components/common.jsx";
 import { IconRefresh } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
@@ -19,10 +19,15 @@ export default function CaddyCard({
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [selfName, setSelfName] = useState(null);
 
   useEffect(() => {
     api.componentFields(component.kind).then((res) => setFields(res.fields));
   }, [component.kind]);
+
+  useEffect(() => {
+    api.selfInfo().then((res) => setSelfName(res.containerName)).catch(() => {});
+  }, []);
 
   async function save(patch) {
     setSaving(true);
@@ -88,6 +93,19 @@ export default function CaddyCard({
             saving={saving}
             error={error}
             submitLabel="Save configuration"
+            beforeField={{
+              dashboardUrl: selfName && (
+                <label className="flex flex-col gap-1.5 sm:col-span-2">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    Suite container name
+                  </span>
+                  <input className={FIELD} value={selfName} readOnly />
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                    Detected automatically. Caddy reaches the dashboard at this name.
+                  </span>
+                </label>
+              ),
+            }}
           />
         )}
 

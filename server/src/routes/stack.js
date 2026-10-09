@@ -38,6 +38,7 @@ import {
 } from "../reconcile/reconciler.js";
 import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
 import { ping, DockerError } from "../docker/client.js";
+import { getSelfContainerName } from "../docker/self.js";
 import {
   instanceUrl,
   instanceContainerName,
@@ -120,6 +121,12 @@ export function createStackRouter() {
       reachable = false;
     }
     res.json({ reachable });
+  });
+
+  // The name Caddy uses to reach the Suite over Docker's DNS, so an operator
+  // can see what the dashboard reverse_proxy will point at. Never throws.
+  router.get("/self", async (req, res) => {
+    res.json({ containerName: await getSelfContainerName() });
   });
 
   // What each active component is running, for the sidebar's version block. A

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Button, ErrorNote, FIELD } from "./common.jsx";
 import ErrorSlateEditor from "./ErrorSlateEditor.jsx";
 import ProviderCombobox from "./ProviderCombobox.jsx";
@@ -19,6 +19,7 @@ export default function SchemaForm({
   secondaryAction,
   extraOptions,
   componentKey,
+  beforeField,
 }) {
   const [draft, setDraft] = useState(() => initialDraft(fields));
 
@@ -88,19 +89,21 @@ export default function SchemaForm({
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               {basic.map((field) => (
-                <FieldInput
-                  key={field.key}
-                  field={field}
-                  value={draft[field.key]}
-                  onChange={set}
-                  extra={
-                    typeof extraOptions?.[field.key] === "function"
-                      ? extraOptions[field.key](draft, set)
-                      : extraOptions?.[field.key]
-                  }
-                  componentKey={componentKey}
-                  draft={draft}
-                />
+                <Fragment key={field.key}>
+                  {beforeField?.[field.key]}
+                  <FieldInput
+                    field={field}
+                    value={draft[field.key]}
+                    onChange={set}
+                    extra={
+                      typeof extraOptions?.[field.key] === "function"
+                        ? extraOptions[field.key](draft, set)
+                        : extraOptions?.[field.key]
+                    }
+                    componentKey={componentKey}
+                    draft={draft}
+                  />
+                </Fragment>
               ))}
             </div>
             {advanced.length > 0 && (
