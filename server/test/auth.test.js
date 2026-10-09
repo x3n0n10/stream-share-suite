@@ -1,6 +1,7 @@
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { freshDatabase } from "./helpers.js";
+import { sessionCookieName } from "../src/auth/sessions.js";
 import { hashPassword, validatePassword, verifyPassword } from "../src/auth/passwords.js";
 import { checkCredentials, countUsers, createUser } from "../src/auth/users.js";
 import {
@@ -126,4 +127,10 @@ test("parseCookies handles empty, malformed and multiple cookies", () => {
   assert.deepEqual(parseCookies(""), {});
   assert.deepEqual(parseCookies("novalue"), {});
   assert.deepEqual(parseCookies("a=1; b=2"), { a: "1", b: "2" });
+});
+
+test("session cookie name is per host port so two Suites on one host don't collide", () => {
+  const name = (host) => sessionCookieName({ headers: { host } });
+  assert.notEqual(name("192.168.1.2:3001"), name("192.168.1.2:3002"));
+  assert.equal(name("suite.example.com"), "suite_session");
 });
