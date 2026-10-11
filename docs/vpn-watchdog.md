@@ -7,6 +7,10 @@ examples, so you do not need that container any more.
 
 ## Turning it on
 
+![The VPN watchdog card with its check times, reconnect attempts, and Run now button](images/vpn-watchdog.png)
+
+*The watchdog card on the VPN page.*
+
 Enable it on the **VPN** page. It then probes every instance that has **Watch
 this instance's provider** turned on. That setting is under the instance's
 **Health check** group, alongside:

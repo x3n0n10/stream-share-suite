@@ -3,6 +3,10 @@
 Every part of the Suite is a page in the sidebar. On wide screens the sidebar
 collapses to icons. On phones it becomes a drawer and a bottom bar.
 
+![The Suite sidebar listing every page](images/sidebar.png)
+
+*The sidebar. Pages with nothing to show yet stay hidden.*
+
 | Page | What it does |
 | --- | --- |
 | **Overview** | Live status of every instance: active streams and users, subscription status |

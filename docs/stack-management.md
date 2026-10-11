@@ -16,6 +16,10 @@ Changes are reviewed across the whole stack, not one component at a time. Order
 matters once components depend on each other. The plan is sorted by dependency,
 and each row says whether you asked for it or it follows from something else.
 
+![The Stack plan panel listing five planned containers, each marked Create](images/stack-plan.png)
+
+*The plan panel on a fresh install: nothing exists in Docker yet, so every row is a Create.*
+
 Every Docker call goes through
 [`tecnativa/docker-socket-proxy`](https://github.com/Tecnativa/docker-socket-proxy),
 which is included in `docker-compose.yml`. The Suite never touches
