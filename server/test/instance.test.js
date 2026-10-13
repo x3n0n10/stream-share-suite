@@ -5,7 +5,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtempSync, rmSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -336,6 +336,22 @@ test("an instance with VOD caching on gets a cache volume from its own cachePath
   rmSync(cacheDir, { recursive: true, force: true });
 });
 
+test("caching on with no cachePath keeps the cache under the data directory, created by the Suite", async () => {
+  configureStack();
+  vpn(false);
+  for (const cachePath of [undefined, "", "   "]) {
+    const { key } = provisionInstance({ ...PROVIDER, vodCacheEnabled: "true", ...(cachePath === undefined ? {} : { cachePath }) });
+    const spec = await renderInstanceSpec(getComponentValues("instance", key), key);
+
+    const mount = spec.volumes.find((v) => v.endsWith(":/cache"));
+    assert.ok(mount, `cache volume for ${JSON.stringify(cachePath)}`);
+    const dir = mount.slice(0, -":/cache".length);
+    assert.ok(dir.startsWith(process.env.SUITE_DATA_DIR), "inside the data directory");
+    assert.ok(statSync(dir).isDirectory(), "created");
+    assert.equal(statSync(dir).mode & 0o777, 0o777, "writable by whichever id the instance runs as");
+  }
+});
+
 test("Discord on computes DISCORD_API_URL from publicBaseUrl rather than asking for it twice", async () => {
   configureStack();
   vpn(false);
@@ -567,17 +583,14 @@ test("cachePath is not required while both caching flags are off", () => {
   assert.equal(validate(INSTANCE_SCHEMA, PROVIDER).some((e) => e.key === "cachePath"), false);
 });
 
-test("cachePath is required once VOD caching is on", () => {
-  const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, vodCacheEnabled: "true" });
-  assert.equal(errors.some((e) => e.key === "cachePath"), true);
+test("cachePath is optional even with VOD caching or catchup on: blank uses the data directory", () => {
+  for (const flag of ["vodCacheEnabled", "catchupEnabled"]) {
+    const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, [flag]: "true" });
+    assert.equal(errors.some((e) => e.key === "cachePath"), false, flag);
+  }
 });
 
-test("cachePath is required once catchup is on, independently of VOD caching", () => {
-  const errors = validate(INSTANCE_SCHEMA, { ...PROVIDER, catchupEnabled: "true" });
-  assert.equal(errors.some((e) => e.key === "cachePath"), true);
-});
-
-test("cachePath satisfied with either caching flag on and a value given", () => {
+test("cachePath accepts a value of the operator's own with either caching flag on", () => {
   const errors = validate(INSTANCE_SCHEMA, {
     ...PROVIDER,
     vodCacheEnabled: "true",

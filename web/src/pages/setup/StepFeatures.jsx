@@ -57,14 +57,6 @@ export default function StepFeatures({ instances, onNext, onBack }) {
     setSuggestedFor(suggestions);
   }
 
-  const allPathsFilled =
-    byKey !== null &&
-    instances.every((i) => {
-      const values = byKey[i.key];
-      const cachingOn = values.vodCacheEnabled || values.catchupEnabled;
-      return !cachingOn || values.cachePath.trim();
-    });
-
   async function submit() {
     setSaving(true);
     setError(null);
@@ -77,7 +69,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
             vodCacheEnabled: values.vodCacheEnabled ? "true" : "false",
             catchupEnabled: values.catchupEnabled ? "true" : "false",
             ...(values.catchupEnabled ? { catchupDurationHours: values.catchupDurationHours } : {}),
-            ...(cachingOn ? { cachePath: values.cachePath } : {}),
+            ...(cachingOn ? { cachePath: values.cachePath.trim() } : {}),
           });
         })
       );
@@ -124,8 +116,10 @@ export default function StepFeatures({ instances, onNext, onBack }) {
           onChange={(e) => updateParentPath(e.target.value)}
         />
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
-          Enter an absolute path to a folder on the Docker host — for example, a subfolder under the Suite's own
-          data folder, if you don't need these on a separate disk.
+          Leave the paths below blank to keep each cache in the Suite's own data folder. Caches can grow to
+          tens of gigabytes, so we recommend an absolute path on a disk meant for caching with that much room
+          free. The folder must already exist and be owned by the PUID/PGID the Suite runs as: Docker would
+          create a missing one as root, and the instance could not write to it.
         </span>
       </label>
 
@@ -179,6 +173,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
                   </span>
                   <input
                     className={FIELD}
+                    placeholder="Blank: the Suite's data folder"
                     value={values.cachePath}
                     onChange={(e) => patch(instance.key, { cachePath: e.target.value })}
                   />
@@ -202,7 +197,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
           </Button>
         )}
         <div className="ml-auto">
-          <Button tone="accent" onClick={submit} loading={saving} disabled={saving || !allPathsFilled}>
+          <Button tone="accent" onClick={submit} loading={saving} disabled={saving}>
             Continue
           </Button>
         </div>

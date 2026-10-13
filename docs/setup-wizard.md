@@ -13,8 +13,8 @@ Steps, in order:
 2. **Instances:** one card per provider. Choose Xtream API or an M3U playlist,
    how users sign in (including "use my provider credentials"), and the name and
    address.
-3. **Features:** VOD caching and live catchup buffering, with a cache location
-   per instance.
+3. **Features:** VOD caching and live catchup buffering, with an optional cache
+   location per instance. See [cache paths](configuration.md#cache-paths).
 4. **Database:** PostgreSQL run by the Suite, or an external server.
 5. **External access:** Caddy for a public hostname, and the Discord bot.
 6. **VPN:** gluetun on or off, with a searchable provider picker.
