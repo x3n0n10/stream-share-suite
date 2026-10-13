@@ -7,6 +7,10 @@ collapses to icons. On phones it becomes a drawer and a bottom bar.
 
 *The sidebar. Pages with nothing to show yet stay hidden.*
 
+The sidebar's version block shows what is running and marks a newer version
+as `current → latest`. See
+[checking for updates](backups-and-updates.md#checking-for-updates).
+
 | Page | What it does |
 | --- | --- |
 | **Overview** | Live status of every instance: active streams and users, subscription status |
