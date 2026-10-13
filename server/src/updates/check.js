@@ -39,10 +39,29 @@ export function updateCheckStatus(store = settingsStore) {
   return { checkedAt: r.checkedAt ?? null, attemptedAt: r.attemptedAt ?? null };
 }
 
+// Only the standard image of each component is compared with its upstream repo.
+// A fork, mirror or custom build numbers itself, so a hint would be wrong. An
+// unknown image (no container, or an external instance) is not checked either.
+// The Suite has no entry: it cannot read its own image name reliably.
+const IMAGES = {
+  instance: ["ghcr.io/x3n0n10/stream-share"],
+  gluetun: ["qmcgaw/gluetun", "ghcr.io/qdm12/gluetun"],
+  caddy: ["caddy"],
+};
+
+// An image reference without its tag, digest and Docker Hub prefixes, lower-cased.
+export function imageName(ref) {
+  let name = String(ref ?? "").trim().toLowerCase().split("@")[0];
+  const colon = name.lastIndexOf(":");
+  if (colon > name.lastIndexOf("/")) name = name.slice(0, colon);
+  return name.replace(/^(?:(?:index\.|registry-1\.)?docker\.io\/)/, "").replace(/^library\//, "");
+}
+
 // The repo entry and parsed version to check for a row, or null.
-function target(kind, { status, version, source }) {
+function target(kind, { status, version, source, image }) {
   const entry = REPOS[kind];
   if (!entry || status !== "running" || !version || source === "image-id") return null;
+  if (IMAGES[kind] && !IMAGES[kind].includes(imageName(image))) return null;
   const parsed = parseVersion(version);
   if (!parsed) return null;
   if (kind === "caddy" && !(source === "tag" && parsed.type === "release")) return null;

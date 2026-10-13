@@ -122,17 +122,21 @@ async function containerFacts(lookups, containerName, timeoutMs) {
     imageRef: info.Config?.Image,
     imageId: info.Image,
   });
-  return { status, fallback };
+  return { status, fallback, image: info.Config?.Image || undefined };
 }
+
+// The running image, for the update check. Left off when there is none, so a row
+// without a container looks the same as before.
+const imageField = (facts) => (facts.image ? { image: facts.image } : {});
 
 async function resolveRow(base, { containerName, primary }, lookups, timeoutMs) {
   const facts = await containerFacts(lookups, containerName, timeoutMs);
   if (facts.status === "stopped") return { ...base, status: "stopped", ...NO_VERSION };
 
   const own = primary ? await attempt(() => withTimeout(primary(), timeoutMs)) : null;
-  if (own) return { ...base, status: facts.status, version: own, source: "self" };
+  if (own) return { ...base, status: facts.status, version: own, source: "self", ...imageField(facts) };
 
-  return { ...base, status: facts.status, ...facts.fallback };
+  return { ...base, status: facts.status, ...facts.fallback, ...imageField(facts) };
 }
 
 export async function collectVersions(input, lookups = defaultLookups, timeoutMs = LOOKUP_TIMEOUT_MS) {

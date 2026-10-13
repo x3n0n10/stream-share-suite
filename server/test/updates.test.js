@@ -7,7 +7,7 @@ import express from "express";
 import { freshDatabase } from "./helpers.js";
 import { parseVersion, isNewerRelease } from "../src/updates/compare.js";
 import { createUpstream } from "../src/updates/upstream.js";
-import { runUpdateCheck, withUpdates } from "../src/updates/check.js";
+import { imageName, runUpdateCheck, withUpdates } from "../src/updates/check.js";
 import { updateCheckStatus } from "../src/updates/check.js";
 import { isCheckDue } from "../src/updates/scheduler.js";
 import { createSettingsRouter } from "../src/routes/settings.js";
@@ -92,7 +92,21 @@ function memStore(initial = null) {
 }
 
 const NOW = new Date("2026-10-13T08:00:00.000Z");
-const row = (kind, key, version, source = "self", status = "running") => ({ kind, key, label: key, status, version, source });
+// Rows carry the standard image of their kind unless a test overrides it.
+const STD_IMAGE = {
+  instance: "ghcr.io/x3n0n10/stream-share:latest",
+  gluetun: "qmcgaw/gluetun:latest",
+  caddy: "caddy:2.8.4",
+};
+const row = (kind, key, version, source = "self", status = "running", image = STD_IMAGE[kind]) => ({
+  kind,
+  key,
+  label: key,
+  status,
+  version,
+  source,
+  image,
+});
 
 function fakeUpstream({ releases = {}, ahead = {}, fail = [] } = {}) {
   const asked = [];
@@ -242,4 +256,42 @@ test("updateCheckStatus: reports checkedAt and attemptedAt, null before any run"
     checkedAt: "a",
     attemptedAt: "b",
   });
+});
+
+test("imageName: strips tag, digest and Docker Hub prefixes, keeps registry ports", () => {
+  assert.equal(imageName("qmcgaw/gluetun:v3.40.0"), "qmcgaw/gluetun");
+  assert.equal(imageName("docker.io/qmcgaw/gluetun"), "qmcgaw/gluetun");
+  assert.equal(imageName("docker.io/library/caddy:2.8.4"), "caddy");
+  assert.equal(imageName("Caddy@sha256:abc"), "caddy");
+  assert.equal(imageName("myregistry:5000/gluetun"), "myregistry:5000/gluetun");
+  assert.equal(imageName(undefined), "");
+});
+
+test("runUpdateCheck: a custom image, or an unknown one, is never checked", async () => {
+  const up = fakeUpstream({ releases: { "qdm12/gluetun": "v9.0.0", "caddyserver/caddy": "v9.0.0" } });
+  const versions = {
+    suite: { version: "dev" },
+    components: [
+      row("gluetun", "fork", "v3.40.0", "self", "running", "ghcr.io/someone/gluetun:latest"),
+      row("gluetun", "none", "v3.40.0", "self", "running", null),
+      row("instance", "mirror", "1.0.0", "self", "running", "registry.example/stream-share:latest"),
+      row("caddy", "", "2.8.4", "tag", "running", "ghcr.io/someone/caddy-modular:2.8.4"),
+    ],
+  };
+  const r = await runUpdateCheck({ versions, upstream: up, store: memStore(), now: () => NOW });
+  assert.deepEqual(up.asked, []);
+  assert.deepEqual(r.rows, {});
+});
+
+test("runUpdateCheck: the standard image counts under any tag or Docker Hub prefix", async () => {
+  const up = fakeUpstream({ releases: { "qdm12/gluetun": "v3.41.0" } });
+  for (const image of ["qmcgaw/gluetun:v3.40.0", "docker.io/qmcgaw/gluetun", "ghcr.io/qdm12/gluetun:latest"]) {
+    const r = await runUpdateCheck({
+      versions: { suite: { version: "dev" }, components: [row("gluetun", "", "v3.40.0", "self", "running", image)] },
+      upstream: up,
+      store: memStore(),
+      now: () => NOW,
+    });
+    assert.deepEqual(r.rows, { "gluetun:": "v3.41.0" }, image);
+  }
 });

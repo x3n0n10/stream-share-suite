@@ -46,6 +46,16 @@ as one of:
 | gluetun | `qdm12/gluetun` | `master` | release or commit |
 | Caddy | `caddyserver/caddy` | not used | `source` is `tag` and the version is a release |
 
+**Standard images only.** Instance, gluetun and Caddy rows are checked only when the
+running container's image is the standard one: `ghcr.io/x3n0n10/stream-share`,
+`qmcgaw/gluetun` or `ghcr.io/qdm12/gluetun`, and `caddy`. The image name is compared
+without its tag or digest, ignoring a leading `docker.io/` and `library/`, so any
+tag matches. A fork, a mirror, a custom build or an unknown image (no container, or
+an external instance) is never checked, because it numbers itself. The Suite has no
+image rule: it cannot read its own image name reliably. To make this possible each
+row in `/api/stack/versions` also carries `image`, the running container's image
+reference, when there is one.
+
 The implementer confirms each default branch with `gh api repos/<repo> --jq
 .default_branch` before hard-coding it.
 
