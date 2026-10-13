@@ -70,18 +70,28 @@ Paths are validated when you save them. A typo or unmounted path shows up as an
 
 ## Cache paths
 
-Each instance's VOD and catchup cache is a separate host path, entered on that
-instance's form (in the wizard or on the Stack page). Caches can reach tens of
-gigabytes and often belong on a different disk from the configuration.
+Each instance's VOD and catchup cache has a **cache location** on its form (in the
+wizard or on the Stack page).
 
-The Suite does not read, create or check a cache path. It passes the path straight
-to Docker as the bind-mount source for the instance container. This lets you point
-a cache at a new disk without touching the compose file.
+**Leave it blank** and the cache goes in the data directory, in the instance's own
+`cache/` subfolder. The Suite creates it, like its other folders, so nothing more
+is needed.
 
-The trade-off is that the Suite cannot catch mistakes here. The directory must
-already exist on the host and be writable by `PUID:PGID`. If it is not, the
-instance fails to write its cache, and the error appears in the instance's own
-logs, not in the Suite.
+**Caches can reach tens of gigabytes.** For anything beyond a small setup, enter a
+path of your own on a disk meant for caching, with that much room free. This also
+lets you keep the cache off the disk that holds your configuration.
+
+The Suite does not create or check a path you enter. It passes the path straight
+to Docker as the bind-mount source for the instance container, so you can point a
+cache at a new disk without touching the compose file. For such a path:
+
+- The directory must already exist on the host. If it does not, Docker creates it
+  owned by `root`.
+- It must be owned by, or writable for, `PUID:PGID`. The instance runs as that
+  user and cannot write to a `root`-owned directory.
+
+If either is wrong, the instance fails to write its cache, and the error appears in
+the instance's own logs, not in the Suite.
 
 ## Networks
 

@@ -58,7 +58,8 @@ The form is grouped. Each group maps to something StreamShare can do:
 - **Discord:** an optional bot per instance, with its token and admin role ID. Its
   API address is computed from the public base URL.
 - **Caching:** VOD caching, live **catchup** buffering (hours to keep), and the
-  **cache location** on the host. See [cache paths](configuration.md#cache-paths).
+  **cache location** on the host. Blank keeps it in the data directory. See
+  [cache paths](configuration.md#cache-paths) before choosing your own.
 - **Health check:** whether the [VPN watchdog](vpn-watchdog.md) probes this
   instance's provider, and which channel it uses. Search channel names (with their
   category, since names repeat) or enter a stream ID.

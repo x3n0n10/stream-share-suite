@@ -21,10 +21,10 @@
 // which is the retyping this was built to avoid, not a second real use case.
 //
 // An instance's own cache path is a different story — each instance's
-// cachePath field is a real, per-instance, always-explicit value asked for
-// directly (see schema/instance.js), not a computed path under some shared
-// root the way it used to be. There's nothing to read from the environment
-// for it any more.
+// cachePath field is an optional, per-instance value (see schema/instance.js).
+// Left blank, the cache goes under the data directory like any other component
+// folder; filled in, it is the operator's own host path, never created or
+// checked here. There's nothing to read from the environment for it.
 //
 // Self-inspection (the same trick that computes gluetun's
 // FIREWALL_OUTBOUND_SUBNETS from the Suite's own networks) was considered and
