@@ -114,6 +114,8 @@ last run of any kind.
   an hour.
 - The check takes the current rows from `getVersions(config)` and clears stored
   results for rows that no longer exist.
+- `kickUpdateCheck()` runs immediately and skips the 24 hour rule. Only the hourly
+  tick applies it. A run already in progress makes a second call a no-op.
 - A run never throws out of the tick. Errors are logged with one `[updates]` line.
 
 ### `/api/stack/versions`

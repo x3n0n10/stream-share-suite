@@ -49,9 +49,9 @@ test("reports the suite version and degrades every unreachable component to unkn
   const { status, body } = await c.get("/api/stack/versions");
 
   assert.equal(status, 200);
-  assert.deepEqual(body.suite, { version: "9.9.9" });
+  assert.deepEqual(body.suite, { version: "9.9.9", latest: null });
   assert.deepEqual(body.components, [
-    { kind: "postgres", key: "", label: "PostgreSQL", status: "unknown", version: null, source: null },
+    { kind: "postgres", key: "", label: "PostgreSQL", status: "unknown", version: null, source: null, latest: null },
   ]);
 });
 

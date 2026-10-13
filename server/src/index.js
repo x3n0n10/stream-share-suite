@@ -12,6 +12,7 @@ import { countUsers } from "./auth/users.js";
 import { countInstances } from "./store/instances.js";
 import { loadConfig } from "./config.js";
 import { startWatchdogScheduler } from "./watchdog/scheduler.js";
+import { startUpdateScheduler } from "./updates/scheduler.js";
 import { createApp } from "./app.js";
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -33,6 +34,7 @@ pruneExpiredSessions();
 setInterval(pruneExpiredSessions, 24 * 60 * 60 * 1000).unref();
 
 startWatchdogScheduler();
+startUpdateScheduler();
 
 createApp().listen(PORT, () => {
   const config = loadConfig();

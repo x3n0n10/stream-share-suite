@@ -54,6 +54,7 @@ import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
 import { getVersions, invalidateVersions } from "../reconcile/versions.js";
+import { withUpdates } from "../updates/check.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -134,7 +135,7 @@ export function createStackRouter() {
   // Docker down; the guard is because Express 4 does not catch async throws.
   router.get("/versions", async (req, res) => {
     try {
-      res.json(await getVersions(req.config));
+      res.json(withUpdates(await getVersions(req.config)));
     } catch (err) {
       res.status(500).json({ error: `Could not read versions: ${err.message}` });
     }
