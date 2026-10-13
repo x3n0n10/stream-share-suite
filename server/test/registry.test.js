@@ -324,3 +324,20 @@ test("a field flagged json left blank is not flagged — it's optional here, not
   const errors = validate(SCHEMA, { name: "x", secretKey: "k", aOnly: "1" });
   assert.equal(errors.some((e) => e.key === "jsonField"), false);
 });
+
+test("toPublicFields exposes itemType and sort for list fields", () => {
+  const schema = {
+    kind: "widget",
+    label: "Widget",
+    fields: [
+      { key: "times", envVar: null, label: "Times", type: "list", itemType: "time", sort: true },
+      { key: "names", envVar: null, label: "Names", type: "list" },
+    ],
+  };
+  const [times, names] = toPublicFields(schema, { times: "04:00", names: "a,b" });
+  assert.equal(times.type, "list");
+  assert.equal(times.itemType, "time");
+  assert.equal(times.sort, true);
+  assert.equal(names.itemType, null);
+  assert.equal(names.sort, false);
+});
