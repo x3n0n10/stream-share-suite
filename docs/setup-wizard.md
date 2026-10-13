@@ -4,6 +4,9 @@ The wizard walks you through a fresh install. It starts with your instances and
 then covers the infrastructure they need. A signed-in user with no instances
 lands here automatically. You can open it any time from the sidebar.
 
+<img align="right" width="380" src="images/wizard-steps.png" alt="The wizard on its port range step, with the eight steps shown above it">
+<img align="right" width="340" src="images/wizard-instance.png" alt="The instance form: name, playlist source, Xtream address and credentials, and how users sign in">
+
 Steps, in order:
 
 1. **Port range:** the band instance ports are allocated from.

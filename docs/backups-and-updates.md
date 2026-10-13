@@ -12,6 +12,8 @@ It is useful to keep but can be rebuilt. `suite.db` is the one that matters.
 
 ### Download and restore
 
+<img align="right" width="380" src="images/backup-restore.png" alt="The Backup and restore card in Settings, with Download backup and Restore from backup">
+
 Settings has a **Backup & restore** section.
 
 - **Download backup** takes a consistent snapshot, using SQLite's `VACUUM INTO`, so

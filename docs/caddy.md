@@ -19,6 +19,8 @@ hostname on different paths. Each becomes its own route in the same site block.
 
 ## HTTPS modes
 
+<img align="right" width="340" src="images/caddy-https.png" alt="The Caddy card with its on and off switch and the three HTTPS modes">
+
 - **Self-signed:** Caddy's own internal CA. Browsers warn once. Fine on a private
   network.
 - **Automatic (ACME):** a real, trusted certificate for each hostname. Needs ports
@@ -29,6 +31,8 @@ hostname on different paths. Each becomes its own route in the same site block.
 
 Caddy joins the shared network, not gluetun's namespace. It reaches gluetun and
 instances by name over Docker's DNS, which only needs the same network.
+
+<br clear="right">
 
 ## Publishing the dashboard
 

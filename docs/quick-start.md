@@ -29,8 +29,12 @@ Compose pulls the published image, `ghcr.io/x3n0n10/stream-share-suite:latest`
 
 ## 2. Create the admin account
 
+<img align="right" width="240" src="images/admin-account.png" alt="The create-admin screen with username, password and confirm fields">
+
 Open `http://localhost:3000` and create the admin account. Nothing else in the
 app answers until that account exists.
+
+<br clear="right">
 
 ## 3. Set up your first instance
 

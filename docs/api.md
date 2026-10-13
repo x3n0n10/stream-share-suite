@@ -5,6 +5,8 @@ watchdog's health check, without signing in.
 
 ## Create a token
 
+<img align="right" width="380" src="images/api-access.png" alt="The API access card in Settings, with a Generate token button">
+
 Go to **Settings → API access** and generate a token. It is shown once. Only its
 hash is stored.
 

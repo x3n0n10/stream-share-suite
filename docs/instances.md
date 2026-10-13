@@ -5,6 +5,8 @@ and edit instances from a form. There is no compose file to edit.
 
 ## Adding an instance
 
+<img align="right" width="340" src="images/instances-card.png" alt="The Instances card on the Stack page listing three instances with their container names and ports">
+
 Three things you would otherwise work out by hand are handled for you:
 
 - **Port.** Allocated from a band of 20 ports, `8080`–`8099` by default. Move the

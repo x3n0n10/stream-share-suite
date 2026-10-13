@@ -7,7 +7,7 @@ examples, so you do not need that container any more.
 
 ## Turning it on
 
-![The VPN watchdog card with its check times, reconnect attempts, and Run now button](images/vpn-watchdog.png)
+<img align="right" width="420" src="images/vpn-watchdog.png" alt="The VPN watchdog card with its check times, reconnect attempts, and Run now button">
 
 *The watchdog card on the VPN page.*
 

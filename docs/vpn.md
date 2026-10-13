@@ -7,6 +7,8 @@ gluetun container each.
 
 ## Turning it off and on
 
+<img align="right" width="320" src="images/gluetun-card.png" alt="The Gluetun card on the Stack page with its off and on switch and the VPN provider field">
+
 **Off:** gluetun leaves the stack. Its card stays on the Stack page, but it no
 longer appears in any plan as something to act on. A running container is handled
 by who created it. A container the Suite created becomes an orphan, which you can
@@ -16,6 +18,8 @@ switched off and left alone. Either way it keeps running and stays on the page.
 **On:** gluetun returns with its configuration intact. The toggle also changes
 how every other component is addressed, so the plan shows the whole stack
 recreating when you flip it.
+
+<br clear="right">
 
 ## Other VPN providers
 

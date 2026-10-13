@@ -3,7 +3,7 @@
 Every part of the Suite is a page in the sidebar. On wide screens the sidebar
 collapses to icons. On phones it becomes a drawer and a bottom bar.
 
-![The Suite sidebar listing every page](images/sidebar.png)
+<img align="right" width="170" src="images/sidebar.png" alt="The Suite sidebar listing every page">
 
 *The sidebar. Pages with nothing to show yet stay hidden.*
 
