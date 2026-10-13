@@ -29,7 +29,8 @@ Props: `value` (comma string), `onChange(string)`, `itemType`, `sort`,
     splits into several chips.
   - `"number"`: same, but only digits are accepted.
   - `"time"`: a `+ Add time` button reveals a native `<input type="time">`;
-    committing (Enter or change) adds `HH:MM`.
+    Enter or an adjacent Add button commits `HH:MM` (not every `change` event,
+    since a native picker fires it repeatedly); Escape cancels.
 - Duplicates are ignored. `sort` (off by default) keeps the list ordered,
   used for times. Without it, insertion order is kept, which matters for
   `networks` (the first is the primary network) and hostnames.
