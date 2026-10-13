@@ -19,7 +19,7 @@ import {
 import { getNumber, getSetting, setSettings } from "../store/settings.js";
 import { pingInstance } from "../instanceClient.js";
 import { DEFAULTS } from "../config.js";
-import { AUTO_CHECK_SETTING, isAutoCheckEnabled, updateCheckStatus } from "../updates/check.js";
+import { AUTO_CHECK_SETTING, isAutoCheckEnabled, lastCheckedAt } from "../updates/check.js";
 import { kickUpdateCheck } from "../updates/scheduler.js";
 import { apiTokenStatus, generateApiToken, revokeApiToken } from "../auth/apiToken.js";
 
@@ -64,7 +64,7 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
         vodSearchTimeoutMs: getNumber("general.vod_search_timeout_ms", DEFAULTS.vodSearchTimeoutMs),
         vodActorUsername: getSetting("general.vod_actor_username") || DEFAULTS.vodActorUsername,
         autoUpdateCheck: isAutoCheckEnabled(),
-        updateCheckedAt: updateCheckStatus().checkedAt,
+        updateCheckedAt: lastCheckedAt(),
       },
       gluetun: {
         url: getSetting("gluetun.url") || "",

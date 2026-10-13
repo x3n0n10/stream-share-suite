@@ -54,7 +54,7 @@ import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
 import { getVersions, invalidateVersions } from "../reconcile/versions.js";
-import { isAutoCheckEnabled, updateCheckStatus, withUpdates } from "../updates/check.js";
+import { isAutoCheckEnabled, lastCheckedAt, withUpdates } from "../updates/check.js";
 import { kickUpdateCheck } from "../updates/scheduler.js";
 
 function componentOr404(req, res, next) {
@@ -148,9 +148,8 @@ export function createStackRouter() {
     if (!isAutoCheckEnabled()) {
       return res.status(409).json({ error: "Automatic update checks are off. Turn them on and save first." });
     }
-    await kickUpdateCheck();
-    const status = updateCheckStatus();
-    res.json({ ...status, complete: !!status.checkedAt && status.checkedAt === status.attemptedAt });
+    const result = await kickUpdateCheck();
+    res.json({ checkedAt: lastCheckedAt(), complete: !!result && result.checkedAt === result.attemptedAt });
   });
 
   // Stack-wide settings. The VPN toggle and the instance port range start are

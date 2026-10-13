@@ -7,8 +7,8 @@ import express from "express";
 import { freshDatabase } from "./helpers.js";
 import { parseVersion, isNewerRelease } from "../src/updates/compare.js";
 import { createUpstream } from "../src/updates/upstream.js";
-import { imageName, runUpdateCheck, withUpdates } from "../src/updates/check.js";
-import { updateCheckStatus } from "../src/updates/check.js";
+import { imageName, lastCheckedAt, runUpdateCheck, settingsStore, withUpdates, AUTO_CHECK_SETTING } from "../src/updates/check.js";
+import { setSetting } from "../src/store/settings.js";
 import { isCheckDue } from "../src/updates/scheduler.js";
 import { createSettingsRouter } from "../src/routes/settings.js";
 
@@ -86,11 +86,6 @@ test("upstream: 403, 429, 5xx and thrown errors throw", async () => {
   await assert.rejects(up.latestRelease("a/b"), /net down/);
 });
 
-function memStore(initial = null) {
-  let v = initial;
-  return { get: () => v, set: (x) => (v = x) };
-}
-
 const NOW = new Date("2026-10-13T08:00:00.000Z");
 // Rows carry the standard image of their kind unless a test overrides it.
 const STD_IMAGE = {
@@ -142,11 +137,10 @@ test("runUpdateCheck: only eligible rows are queried, results stored", async () 
     releases: { "x3n0n10/stream-share-suite": "1.0.1", "qdm12/gluetun": "v3.41.0" },
     ahead: { "x3n0n10/stream-share": { ahead: true, head: "9999999" } },
   });
-  const store = memStore();
-  const result = await runUpdateCheck({ versions, upstream: up, store, now: () => NOW });
+  const result = await runUpdateCheck({ versions, upstream: up, now: () => NOW });
 
   assert.deepEqual(up.asked.sort(), ["qdm12/gluetun", "x3n0n10/stream-share-suite", "x3n0n10/stream-share@a1b2c3d"].sort());
-  assert.deepEqual(store.get(), result);
+  assert.deepEqual(settingsStore.get(), result);
   assert.equal(result.suite, "1.0.1");
   assert.deepEqual(result.rows, { "instance:a": "9999999", "gluetun:": "v3.41.0" });
   assert.equal(result.checkedAt, NOW.toISOString());
@@ -157,7 +151,6 @@ test("runUpdateCheck: Caddy is checked only for a tagged release", async () => {
   const r = await runUpdateCheck({
     versions: { suite: { version: "dev" }, components: [row("caddy", "", "2.8.4", "tag")] },
     upstream: up,
-    store: memStore(),
     now: () => NOW,
   });
   assert.deepEqual(r.rows, { "caddy:": "2.9.0" });
@@ -169,12 +162,11 @@ test("runUpdateCheck: a failing row keeps its previous value, others continue, c
     attemptedAt: "2026-10-01T00:00:00.000Z",
     rows: { "gluetun:": "v3.40.5", "instance:gone": "x" },
   };
-  const store = memStore(old);
+  settingsStore.set(old);
   const up = fakeUpstream({ fail: ["qdm12/gluetun"], releases: { "x3n0n10/stream-share-suite": "1.0.1" } });
   const r = await runUpdateCheck({
     versions: { suite: { version: "1.0.0" }, components: [row("gluetun", "", "v3.40.0")] },
     upstream: up,
-    store,
     now: () => NOW,
   });
   assert.equal(r.suite, "1.0.1", "other checks still ran");
@@ -199,14 +191,15 @@ test("withUpdates: attaches latest, hides when off, drops a stale hint", () => {
     suite: { version: "1.0.0" },
     components: [row("gluetun", "", "v3.40.0"), row("instance", "a", "1.5.0"), row("postgres", "", "16")],
   };
-  const store = memStore({ suite: "1.0.1", rows: { "gluetun:": "v3.41.0", "instance:a": "1.4.3" } });
+  settingsStore.set({ suite: "1.0.1", rows: { "gluetun:": "v3.41.0", "instance:a": "1.4.3" } });
 
-  const on = withUpdates(versions, { store, enabled: () => true });
+  const on = withUpdates(versions);
   assert.equal(on.suite.latest, "1.0.1");
   assert.deepEqual(on.components.map((c) => c.latest), ["v3.41.0", null, null]);
   assert.equal(versions.suite.latest, undefined, "input not mutated");
 
-  const off = withUpdates(versions, { store, enabled: () => false });
+  setSetting(AUTO_CHECK_SETTING, "0");
+  const off = withUpdates(versions);
   assert.equal(off.suite.latest, null);
   assert.ok(off.components.every((c) => c.latest === null));
 });
@@ -250,12 +243,10 @@ test("settings: autoUpdateCheck defaults on, round-trips, kicks only on off to o
     assert.equal(kicks(), 1);
   }));
 
-test("updateCheckStatus: reports checkedAt and attemptedAt, null before any run", () => {
-  assert.deepEqual(updateCheckStatus({ get: () => null }), { checkedAt: null, attemptedAt: null });
-  assert.deepEqual(updateCheckStatus({ get: () => ({ checkedAt: "a", attemptedAt: "b", rows: {} }) }), {
-    checkedAt: "a",
-    attemptedAt: "b",
-  });
+test("lastCheckedAt: null before any run, then the last complete run", () => {
+  assert.equal(lastCheckedAt(), null);
+  settingsStore.set({ checkedAt: "a", attemptedAt: "b", rows: {} });
+  assert.equal(lastCheckedAt(), "a");
 });
 
 test("imageName: strips tag, digest and Docker Hub prefixes, keeps registry ports", () => {
@@ -278,7 +269,7 @@ test("runUpdateCheck: a custom image, or an unknown one, is never checked", asyn
       row("caddy", "", "2.8.4", "tag", "running", "ghcr.io/someone/caddy-modular:2.8.4"),
     ],
   };
-  const r = await runUpdateCheck({ versions, upstream: up, store: memStore(), now: () => NOW });
+  const r = await runUpdateCheck({ versions, upstream: up, now: () => NOW });
   assert.deepEqual(up.asked, []);
   assert.deepEqual(r.rows, {});
 });
@@ -289,8 +280,7 @@ test("runUpdateCheck: the standard image counts under any tag or Docker Hub pref
     const r = await runUpdateCheck({
       versions: { suite: { version: "dev" }, components: [row("gluetun", "", "v3.40.0", "self", "running", image)] },
       upstream: up,
-      store: memStore(),
-      now: () => NOW,
+        now: () => NOW,
     });
     assert.deepEqual(r.rows, { "gluetun:": "v3.41.0" }, image);
   }

@@ -29,7 +29,6 @@ export function createUpstream({ fetch = globalThis.fetch, userAgent = "stream-s
         if (!body?.sha) throw new Error(`No head commit for ${key}`);
         return body.sha.slice(0, 7);
       });
-      p.catch(() => heads.delete(key));
       heads.set(key, p);
     }
     return heads.get(key);

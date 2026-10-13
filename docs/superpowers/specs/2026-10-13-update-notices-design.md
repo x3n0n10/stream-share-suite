@@ -190,7 +190,7 @@ mocked versions payload that has a mix of rows with and without `latest`.
 
 - `POST /api/stack/updates/check` (behind auth and CSRF like its siblings) runs the
   check immediately and waits for it. It answers `409` when automatic checks are
-  off, otherwise `{ checkedAt, attemptedAt, complete }`, where `complete` means the
+  off, otherwise `{ checkedAt, complete }`, where `complete` means the
   run had no failures.
 - `GET /api/settings` general gains `updateCheckedAt` (the last complete run, or
   `null`).

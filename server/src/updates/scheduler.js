@@ -45,8 +45,6 @@ function tick() {
 }
 
 export function startUpdateScheduler() {
-  setTimeout(() => {
-    tick();
-    setInterval(tick, HOUR_MS).unref();
-  }, FIRST_TICK_MS).unref();
+  setTimeout(tick, FIRST_TICK_MS).unref();
+  setInterval(tick, HOUR_MS).unref();
 }

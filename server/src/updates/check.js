@@ -33,10 +33,9 @@ export function isAutoCheckEnabled() {
   return getBoolean(AUTO_CHECK_SETTING, true);
 }
 
-// When the last check ran, and the last attempt (they differ after a failed run).
-export function updateCheckStatus(store = settingsStore) {
-  const r = store.get() || {};
-  return { checkedAt: r.checkedAt ?? null, attemptedAt: r.attemptedAt ?? null };
+// When the last run without failures finished, or null.
+export function lastCheckedAt() {
+  return settingsStore.get()?.checkedAt ?? null;
 }
 
 // Only the standard image of each component is compared with its upstream repo.
@@ -73,42 +72,43 @@ const rowKey = (row) => `${row.kind}:${row.key}`;
 // Asks upstream about every eligible row and stores what is newer. Never
 // throws: a failing row keeps its previous stored value and the run is not
 // counted as complete (`checkedAt` stays), so it is retried sooner.
-export async function runUpdateCheck({ versions, upstream, store = settingsStore, now = () => new Date() }) {
-  const prev = store.get() || {};
+export async function runUpdateCheck({ versions, upstream, now = () => new Date() }) {
+  const prev = settingsStore.get() || {};
   const prevRows = prev.rows || {};
   const releases = new Map();
   let failed = false;
 
+  // The newer version for one row, or a falsy value when there is none or the row
+  // is not checked.
   async function latestFor(kind, current) {
     const t = target(kind, current);
-    if (!t) return undefined; // not checked: keep nothing
+    if (!t) return null;
+    if (t.parsed.type === "release") {
+      if (!releases.has(t.repo)) releases.set(t.repo, upstream.latestRelease(t.repo));
+      const tag = await releases.get(t.repo);
+      if (!tag || !isNewerRelease(current.version, tag)) return null;
+      const bare = tag.replace(/^v/, "");
+      return t.parsed.hasV ? `v${bare}` : bare;
+    }
+    const r = await upstream.commitsAhead(t.repo, t.parsed.sha, t.branch);
+    return r?.ahead ? r.head : null;
+  }
+
+  // A failing lookup keeps the row's previous result.
+  async function settle(kind, current, previous) {
     try {
-      if (t.parsed.type === "release") {
-        if (!releases.has(t.repo)) releases.set(t.repo, upstream.latestRelease(t.repo));
-        const tag = await releases.get(t.repo);
-        if (!tag || !isNewerRelease(current.version, tag)) return null;
-        const bare = tag.replace(/^v/, "");
-        return t.parsed.hasV ? `v${bare}` : bare;
-      }
-      const r = await upstream.commitsAhead(t.repo, t.parsed.sha, t.branch);
-      return r?.ahead ? r.head : null;
+      return await latestFor(kind, current);
     } catch (err) {
       failed = true;
       console.warn(`[updates] ${kind}: ${err.message}`);
-      return "failed";
+      return previous;
     }
   }
 
   const rows = {};
-  const settle = async (kind, key, current, previous) => {
-    const latest = await latestFor(kind, current);
-    if (latest === "failed") return previous;
-    return latest ?? undefined;
-  };
-
-  const suite = await settle("suite", "", { ...versions.suite, status: "running" }, prev.suite);
+  const suite = await settle("suite", { ...versions.suite, status: "running" }, prev.suite);
   for (const row of versions.components) {
-    const latest = await settle(row.kind, row.key, row, prevRows[rowKey(row)]);
+    const latest = await settle(row.kind, row, prevRows[rowKey(row)]);
     if (latest) rows[rowKey(row)] = latest;
   }
 
@@ -116,14 +116,14 @@ export async function runUpdateCheck({ versions, upstream, store = settingsStore
   const result = { checkedAt: failed ? prev.checkedAt : at, attemptedAt: at, rows };
   if (suite) result.suite = suite;
   if (!result.checkedAt) delete result.checkedAt;
-  store.set(result);
+  settingsStore.set(result);
   return result;
 }
 
 // Adds `latest` to the suite and every row. Reads only the stored result, and
 // shows a hint only while it is still newer than what is running now.
-export function withUpdates(versions, { store = settingsStore, enabled = isAutoCheckEnabled } = {}) {
-  const stored = enabled() ? store.get() : null;
+export function withUpdates(versions) {
+  const stored = isAutoCheckEnabled() ? settingsStore.get() : null;
   const pick = (current, latest) => {
     if (!latest) return null;
     const a = parseVersion(current);
