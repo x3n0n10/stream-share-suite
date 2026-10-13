@@ -70,7 +70,8 @@ block is collapsed, a dot appears next to the Suite version instead. The check c
 update, use the button above.
 
 The check is on by default. To turn it off, switch off **Automatically check for
-updates** in Settings → General.
+updates** in Settings → General. The same card has a **Check now** button that runs
+the check straight away and shows when it last ran.
 
 The Suite is allowed to pull images only for component tags it already manages.
 That is the one permission added to the Docker proxy since its first release. See

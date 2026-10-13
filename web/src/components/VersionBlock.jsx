@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePolling } from "../lib/usePolling.js";
 import { api } from "../lib/api.js";
 import { IconChevronDown } from "./Icons.jsx";
@@ -52,7 +52,12 @@ function Row({ label, text, muted, running, latest }) {
 // Informational only: if a poll fails usePolling keeps the last data, and
 // with none there is simply nothing to show, never an error banner.
 export default function VersionBlock() {
-  const { data } = usePolling(() => api.stackVersions(), REFRESH_MS);
+  const { data, refresh } = usePolling(() => api.stackVersions(), REFRESH_MS);
+  // Settings fires this after a manual update check so the hint shows at once.
+  useEffect(() => {
+    window.addEventListener("versions:refresh", refresh);
+    return () => window.removeEventListener("versions:refresh", refresh);
+  }, [refresh]);
   // Collapsed by default — most visits just want to confirm the Suite is on
   // the version they think it is, not read every component's. Persisted like
   // the sidebar's own collapse state, so it stays open for someone who wants

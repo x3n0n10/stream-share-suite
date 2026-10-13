@@ -54,7 +54,8 @@ import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
 import { getVersions, invalidateVersions } from "../reconcile/versions.js";
-import { withUpdates } from "../updates/check.js";
+import { isAutoCheckEnabled, updateCheckStatus, withUpdates } from "../updates/check.js";
+import { kickUpdateCheck } from "../updates/scheduler.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -139,6 +140,17 @@ export function createStackRouter() {
     } catch (err) {
       res.status(500).json({ error: `Could not read versions: ${err.message}` });
     }
+  });
+
+  // Runs the update check now instead of waiting for the daily tick. Awaits the
+  // run (a few GitHub calls) so the answer says whether it completed.
+  router.post("/updates/check", async (req, res) => {
+    if (!isAutoCheckEnabled()) {
+      return res.status(409).json({ error: "Automatic update checks are off. Turn them on and save first." });
+    }
+    await kickUpdateCheck();
+    const status = updateCheckStatus();
+    res.json({ ...status, complete: !!status.checkedAt && status.checkedAt === status.attemptedAt });
   });
 
   // Stack-wide settings. The VPN toggle and the instance port range start are

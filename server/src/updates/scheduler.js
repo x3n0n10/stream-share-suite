@@ -19,16 +19,18 @@ export function isCheckDue({ enabled, result, now = Date.now() }) {
 
 let running = false;
 
-// Runs one check now. Never throws; logs one [updates] line on error.
+// Runs one check now and returns its stored result, or null when one is already
+// running or it failed outright. Never throws; logs one [updates] line on error.
 export async function kickUpdateCheck() {
-  if (running) return;
+  if (running) return null;
   running = true;
   try {
     const versions = await collectVersions(versionsInput(loadConfig()));
     const upstream = createUpstream({ userAgent: `stream-share-suite/${resolveSuiteVersion()}` });
-    await runUpdateCheck({ versions, upstream });
+    return await runUpdateCheck({ versions, upstream });
   } catch (err) {
     console.warn(`[updates] check failed: ${err.message}`);
+    return null;
   } finally {
     running = false;
   }

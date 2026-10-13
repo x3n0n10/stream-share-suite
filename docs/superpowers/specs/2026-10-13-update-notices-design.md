@@ -176,6 +176,19 @@ Frontend: `web/` has no test framework. Verify with `npm run build`, then check
 the block collapsed, expanded and in the mobile drawer, in both themes, with a
 mocked versions payload that has a mix of rows with and without `latest`.
 
+## Check now
+
+- `POST /api/stack/updates/check` (behind auth and CSRF like its siblings) runs the
+  check immediately and waits for it. It answers `409` when automatic checks are
+  off, otherwise `{ checkedAt, attemptedAt, complete }`, where `complete` means the
+  run had no failures.
+- `GET /api/settings` general gains `updateCheckedAt` (the last complete run, or
+  `null`).
+- Settings → General: a **Check now** button under the toggle, disabled while the
+  toggle is off, with "Last checked <time>" beside it. A run that had failures
+  shows "Some checks failed. The Suite retries within the hour." After a run the
+  sidebar block refreshes at once through a `versions:refresh` window event.
+
 ## Docs
 
 - `docs/backups-and-updates.md`, "Checking for updates": add the daily check and
@@ -186,7 +199,7 @@ mocked versions payload that has a mix of rows with and without `latest`.
 
 ## Out of scope
 
-- A "check now" button, pre-releases, PostgreSQL, a `GITHUB_TOKEN` option,
+- Pre-releases, PostgreSQL, a `GITHUB_TOKEN` option,
   applying updates automatically, any notification outside the sidebar, and
   comparing a pinned release tag against a newer registry tag.
 

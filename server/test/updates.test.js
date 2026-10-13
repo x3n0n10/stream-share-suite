@@ -8,6 +8,7 @@ import { freshDatabase } from "./helpers.js";
 import { parseVersion, isNewerRelease } from "../src/updates/compare.js";
 import { createUpstream } from "../src/updates/upstream.js";
 import { runUpdateCheck, withUpdates } from "../src/updates/check.js";
+import { updateCheckStatus } from "../src/updates/check.js";
 import { isCheckDue } from "../src/updates/scheduler.js";
 import { createSettingsRouter } from "../src/routes/settings.js";
 
@@ -218,6 +219,7 @@ async function withSettings(fn) {
 test("settings: autoUpdateCheck defaults on, round-trips, kicks only on off to on", () =>
   withSettings(async ({ get, put, kicks }) => {
     assert.equal((await get()).general.autoUpdateCheck, true);
+    assert.equal((await get()).general.updateCheckedAt, null, "never checked yet");
 
     await put({ autoUpdateCheck: true });
     assert.equal(kicks(), 0, "already on");
@@ -233,3 +235,11 @@ test("settings: autoUpdateCheck defaults on, round-trips, kicks only on off to o
     assert.equal((await get()).general.autoUpdateCheck, true);
     assert.equal(kicks(), 1);
   }));
+
+test("updateCheckStatus: reports checkedAt and attemptedAt, null before any run", () => {
+  assert.deepEqual(updateCheckStatus({ get: () => null }), { checkedAt: null, attemptedAt: null });
+  assert.deepEqual(updateCheckStatus({ get: () => ({ checkedAt: "a", attemptedAt: "b", rows: {} }) }), {
+    checkedAt: "a",
+    attemptedAt: "b",
+  });
+});

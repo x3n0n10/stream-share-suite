@@ -33,6 +33,12 @@ export function isAutoCheckEnabled() {
   return getBoolean(AUTO_CHECK_SETTING, true);
 }
 
+// When the last check ran, and the last attempt (they differ after a failed run).
+export function updateCheckStatus(store = settingsStore) {
+  const r = store.get() || {};
+  return { checkedAt: r.checkedAt ?? null, attemptedAt: r.attemptedAt ?? null };
+}
+
 // The repo entry and parsed version to check for a row, or null.
 function target(kind, { status, version, source }) {
   const entry = REPOS[kind];
