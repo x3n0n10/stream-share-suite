@@ -104,7 +104,7 @@ test("a running instance reports its own version and marks the source self", asy
   const inst = { id: "p1", name: "Provider 1", url: "http://ss-p1:8080", apiKey: "k", containerName: "ss-p1" };
   const out = await collectVersions({ ...BASE, instances: [inst] }, lookups);
   assert.deepEqual(out.components, [
-    { kind: "instance", key: "p1", label: "Provider 1", status: "running", version: "1.4.2", source: "self" },
+    { kind: "instance", key: "p1", label: "Provider 1", status: "running", version: "1.4.2", source: "self", image: "ghcr.io/x3n0n10/stream-share:latest" },
   ]);
 });
 
@@ -122,6 +122,7 @@ test("an instance whose endpoint fails falls back to the image label", async () 
     status: "running",
     version: "1.3.0",
     source: "image-label",
+    image: "ghcr.io/x3n0n10/stream-share:latest",
   });
 });
 

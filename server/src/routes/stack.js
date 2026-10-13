@@ -54,6 +54,8 @@ import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
 import { getVersions, invalidateVersions } from "../reconcile/versions.js";
+import { isAutoCheckEnabled, lastCheckedAt, withUpdates } from "../updates/check.js";
+import { kickUpdateCheck } from "../updates/scheduler.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
@@ -134,10 +136,20 @@ export function createStackRouter() {
   // Docker down; the guard is because Express 4 does not catch async throws.
   router.get("/versions", async (req, res) => {
     try {
-      res.json(await getVersions(req.config));
+      res.json(withUpdates(await getVersions(req.config)));
     } catch (err) {
       res.status(500).json({ error: `Could not read versions: ${err.message}` });
     }
+  });
+
+  // Runs the update check now instead of waiting for the daily tick. Awaits the
+  // run (a few GitHub calls) so the answer says whether it completed.
+  router.post("/updates/check", async (req, res) => {
+    if (!isAutoCheckEnabled()) {
+      return res.status(409).json({ error: "Automatic update checks are off. Turn them on and save first." });
+    }
+    const result = await kickUpdateCheck();
+    res.json({ checkedAt: lastCheckedAt(), complete: !!result && result.checkedAt === result.attemptedAt });
   });
 
   // Stack-wide settings. The VPN toggle and the instance port range start are

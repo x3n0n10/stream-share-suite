@@ -122,7 +122,7 @@ async function containerFacts(lookups, containerName, timeoutMs) {
     imageRef: info.Config?.Image,
     imageId: info.Image,
   });
-  return { status, fallback };
+  return { status, fallback, image: info.Config?.Image || undefined };
 }
 
 async function resolveRow(base, { containerName, primary }, lookups, timeoutMs) {
@@ -130,9 +130,9 @@ async function resolveRow(base, { containerName, primary }, lookups, timeoutMs) 
   if (facts.status === "stopped") return { ...base, status: "stopped", ...NO_VERSION };
 
   const own = primary ? await attempt(() => withTimeout(primary(), timeoutMs)) : null;
-  if (own) return { ...base, status: facts.status, version: own, source: "self" };
+  if (own) return { ...base, status: facts.status, version: own, source: "self", ...(facts.image && { image: facts.image }) };
 
-  return { ...base, status: facts.status, ...facts.fallback };
+  return { ...base, status: facts.status, ...facts.fallback, ...(facts.image && { image: facts.image }) };
 }
 
 export async function collectVersions(input, lookups = defaultLookups, timeoutMs = LOOKUP_TIMEOUT_MS) {

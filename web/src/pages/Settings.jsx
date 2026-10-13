@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout.jsx";
-import { Button, Card, ConfirmDialog, ErrorNote, FIELD } from "../components/common.jsx";
+import { Button, Card, ConfirmDialog, ErrorNote, FIELD, OnOffToggle } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { formatDateTime } from "../lib/format.js";
 
-function Field({ label, hint, children }) {
+// A label forwards clicks on its text to its first button, so a field that holds
+// buttons (an on/off toggle) must not be one: pass as="div".
+function Field({ label, hint, children, as: Tag = "label" }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <Tag className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{label}</span>
       {children}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 
@@ -71,7 +73,7 @@ export default function Settings({ onConfigChanged }) {
       )}
 
       <div className="flex flex-col gap-4">
-        {settings && <GeneralSection settings={settings} onSave={saveSettings} />}
+        {settings && <GeneralSection settings={settings} onSave={saveSettings} onReload={reload} />}
         <PasswordSection />
         <ApiAccessSection />
         <BackupSection />
@@ -80,11 +82,28 @@ export default function Settings({ onConfigChanged }) {
   );
 }
 
-function GeneralSection({ settings, onSave }) {
+function GeneralSection({ settings, onSave, onReload }) {
   const [title, setTitle] = useState(settings.general.title);
   const [pollIntervalMs, setPoll] = useState(settings.general.pollIntervalMs);
   const [instanceTimeoutMs, setTimeout_] = useState(settings.general.instanceTimeoutMs);
+  const [autoUpdateCheck, setAutoUpdateCheck] = useState(settings.general.autoUpdateCheck !== false);
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [checkNote, setCheckNote] = useState(null);
+
+  async function checkNow() {
+    setChecking(true);
+    setCheckNote(null);
+    try {
+      const result = await api.checkForUpdates();
+      setCheckNote(result.complete ? null : "Some checks failed. The Suite retries within the hour.");
+      window.dispatchEvent(new Event("versions:refresh"));
+      await onReload();
+    } catch (err) {
+      setCheckNote(err.message);
+    }
+    setChecking(false);
+  }
 
   return (
     <Section
@@ -97,7 +116,7 @@ function GeneralSection({ settings, onSave }) {
           onClick={async () => {
             setBusy(true);
             await onSave(
-              { general: { title, pollIntervalMs: Number(pollIntervalMs), instanceTimeoutMs: Number(instanceTimeoutMs) } },
+              { general: { title, pollIntervalMs: Number(pollIntervalMs), instanceTimeoutMs: Number(instanceTimeoutMs), autoUpdateCheck } },
               "General settings"
             );
             setBusy(false);
@@ -126,6 +145,24 @@ function GeneralSection({ settings, onSave }) {
             value={instanceTimeoutMs}
             onChange={(e) => setTimeout_(e.target.value)}
           />
+        </Field>
+        <Field
+          as="div"
+          label="Automatically check for updates"
+          hint="Once a day the Suite asks GitHub for the latest release of itself, StreamShare, gluetun and Caddy. Nothing is downloaded or changed."
+        >
+          <OnOffToggle value={autoUpdateCheck} onChange={setAutoUpdateCheck} />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Button tone="ghost" loading={checking} disabled={!autoUpdateCheck} onClick={checkNow}>
+              Check now
+            </Button>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">
+              {settings.general.updateCheckedAt
+                ? `Last checked ${formatDateTime(settings.general.updateCheckedAt)}`
+                : "Not checked yet"}
+            </span>
+          </div>
+          {checkNote && <span className="text-[11px] text-amber-600 dark:text-amber-400">{checkNote}</span>}
         </Field>
       </div>
     </Section>

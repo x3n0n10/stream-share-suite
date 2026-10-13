@@ -19,6 +19,8 @@ import {
 import { getNumber, getSetting, setSettings } from "../store/settings.js";
 import { pingInstance } from "../instanceClient.js";
 import { DEFAULTS } from "../config.js";
+import { AUTO_CHECK_SETTING, isAutoCheckEnabled, lastCheckedAt } from "../updates/check.js";
+import { kickUpdateCheck } from "../updates/scheduler.js";
 import { apiTokenStatus, generateApiToken, revokeApiToken } from "../auth/apiToken.js";
 
 // Rejects anything that isn't an absolute http(s) URL, so a typo surfaces at
@@ -50,7 +52,7 @@ function secretUpdate(value) {
   return String(value);
 }
 
-export function createSettingsRouter() {
+export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
   const router = Router();
 
   router.get("/", (req, res) => {
@@ -61,6 +63,8 @@ export function createSettingsRouter() {
         instanceTimeoutMs: getNumber("general.instance_timeout_ms", DEFAULTS.requestTimeoutMs),
         vodSearchTimeoutMs: getNumber("general.vod_search_timeout_ms", DEFAULTS.vodSearchTimeoutMs),
         vodActorUsername: getSetting("general.vod_actor_username") || DEFAULTS.vodActorUsername,
+        autoUpdateCheck: isAutoCheckEnabled(),
+        updateCheckedAt: lastCheckedAt(),
       },
       gluetun: {
         url: getSetting("gluetun.url") || "",
@@ -122,7 +126,14 @@ export function createSettingsRouter() {
     const apiKey = secretUpdate(gluetun.apiKey);
     if (apiKey !== undefined) updates["gluetun.api_key"] = apiKey;
 
+    if (general.autoUpdateCheck !== undefined) {
+      updates[AUTO_CHECK_SETTING] = general.autoUpdateCheck ? "1" : "0";
+    }
+
+    const wasOn = isAutoCheckEnabled();
     setSettings(updates);
+    // Off -> on: don't make the first result wait for the next hourly tick.
+    if (!wasOn && isAutoCheckEnabled()) kick();
     res.json({ ok: true });
   });
 

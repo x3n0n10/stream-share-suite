@@ -61,6 +61,20 @@ does nothing.
 Nothing is pulled unless you click the button. The plan runs on every page load and
 must have no side effects.
 
+Once a day the Suite also asks `api.github.com` whether a newer version exists. It
+checks the Suite, your instances, gluetun, and Caddy when its image tag is a specific
+version. PostgreSQL is not checked. The request sends no credentials. Only the
+standard images are compared. A fork, a mirror or any other image you chose under
+Advanced shows no hint, because its version numbers are its own.
+
+A newer version shows in the sidebar's version block as `current → latest`. When the
+block is collapsed, a dot appears next to the Suite version instead. The check changes nothing by itself. To
+update, use the button above.
+
+The check is on by default. To turn it off, switch off **Automatically check for
+updates** in Settings → General. The same card has a **Check now** button that runs
+the check straight away and shows when it last ran.
+
 The Suite is allowed to pull images only for component tags it already manages.
 That is the one permission added to the Docker proxy since its first release. See
 [stack management](stack-management.md) for how the proxy is set up.

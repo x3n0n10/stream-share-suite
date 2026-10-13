@@ -49,9 +49,9 @@ test("reports the suite version and degrades every unreachable component to unkn
   const { status, body } = await c.get("/api/stack/versions");
 
   assert.equal(status, 200);
-  assert.deepEqual(body.suite, { version: "9.9.9" });
+  assert.deepEqual(body.suite, { version: "9.9.9", latest: null });
   assert.deepEqual(body.components, [
-    { kind: "postgres", key: "", label: "PostgreSQL", status: "unknown", version: null, source: null },
+    { kind: "postgres", key: "", label: "PostgreSQL", status: "unknown", version: null, source: null, latest: null },
   ]);
 });
 
@@ -63,4 +63,14 @@ test("a second request inside the cache window is served from the cache", async 
   process.env.SUITE_VERSION = "changed";
   const second = await c.get("/api/stack/versions");
   assert.equal(second.body.suite.version, "9.9.9", "cached response, not recomputed");
+});
+
+test("manual update check: refused when anonymous, and when automatic checks are off", async () => {
+  assert.equal((await apiClient(base).post("/api/stack/updates/check")).status, 401);
+
+  const c = await signedInClient(base);
+  setSetting("general.auto_update_check", "0");
+  const { status, body } = await c.post("/api/stack/updates/check");
+  assert.equal(status, 409);
+  assert.match(body.error, /off/);
 });
