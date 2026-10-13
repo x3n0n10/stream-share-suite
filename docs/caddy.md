@@ -41,11 +41,13 @@ sign-in page on the internet.
 
 Choose **Automatic (DNS challenge)** as the HTTPS setting. Then:
 
-1. Enter the **Caddy module** for your DNS provider, pinned to an exact version. For
-   example `github.com/caddy-dns/hetzner@v2.0.1` or
-   `github.com/caddy-dns/cloudflare@v0.2.4`.
-2. Enter the **Directive**: everything after `dns` in the site's `tls` block. For
-   example `hetzner {env.HETZNER_API_TOKEN}`.
+1. Enter the **Caddy module** for your DNS provider. Pick it yourself on the
+   [Caddy download page](https://caddyserver.com/download), then pin it to a
+   specific release, for example `github.com/caddy-dns/<provider>@v1.2.3`. Do not
+   use `latest` or leave the version off.
+2. Enter the **Directive**: everything after `dns` in the site's `tls` block, for
+   example `<provider> {env.<PROVIDER>_API_TOKEN}`. Your module's documentation
+   shows the exact form.
 3. Fill in the **Provider environment variables** that appear for each
    `{env.NAME}` you reference.
 
@@ -57,8 +59,9 @@ else is ignored.
 The token is stored write-only and passed to the Caddy container's environment.
 The Caddyfile only contains the `{env.NAME}` placeholder.
 
-**Always pin the module.** Without a version, `add-package` can build the
-module's unreleased branch instead of a release.
+**Always pin the module to a specific release.** Without a version, or with
+`latest`, `add-package` can build the module's unreleased branch instead of a
+release.
 
 ## How the plugin is installed
 
