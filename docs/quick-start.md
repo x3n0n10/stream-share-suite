@@ -5,21 +5,27 @@ StreamShare instance. You need Docker with the compose plugin.
 
 ## 1. Start it
 
+The repo ships a ready-made [`docker-compose.yml`](../docker-compose.yml). Clone
+the repo, or download that one file, then check these values in it:
+
+- `PUID` and `PGID`: `1000` and `1000` by default. Use `99` and `100` on Unraid.
+- `SUITE_DATA_DIR`: where the Suite keeps its data. See
+  [configuration](configuration.md).
+- The `image:` tag, if you want to stay on one release line instead of
+  following `latest`:
+  - `:1.0.0` for one exact release
+  - `:1.0` for patch updates only
+  - `:1` for any 1.x release
+
+Then start it from the folder that holds the file:
+
 ```sh
 docker compose up -d
 ```
 
 Compose pulls the published image, `ghcr.io/x3n0n10/stream-share-suite:latest`
-(amd64 and arm64).
-
-To stay on one release line instead of following `latest`, pin the tag in the
-compose file:
-
-- `:1.0.0` for one exact release
-- `:1.0` for patch updates only
-- `:1` for any 1.x release
-
-To build from source instead, uncomment the `build: .` line in the compose file.
+(amd64 and arm64). To build from source instead, follow the comment next to the
+`image:` line in the compose file.
 
 ## 2. Create the admin account
 
