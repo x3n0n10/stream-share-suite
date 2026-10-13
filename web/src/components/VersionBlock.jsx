@@ -15,9 +15,12 @@ function versionText(row) {
   return { text: row.version, muted: false };
 }
 
-function Row({ label, text, muted, running }) {
+function Row({ label, text, muted, running, latest }) {
   return (
-    <li className="flex items-center justify-between gap-2">
+    <li
+      title={latest ? `Update available: ${latest}` : undefined}
+      className="flex items-center justify-between gap-2"
+    >
       <span className="flex min-w-0 items-center gap-1.5">
         {running !== undefined && (
           <span
@@ -30,11 +33,17 @@ function Row({ label, text, muted, running }) {
         <span className="truncate text-slate-600 dark:text-slate-400">{label}</span>
       </span>
       <span
-        className={`shrink-0 font-mono ${
+        className={`min-w-0 font-mono ${latest ? "flex flex-col items-end" : "shrink-0"} ${
           muted ? "text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"
         }`}
       >
         {text}
+        {latest && (
+          <span className="max-w-full truncate">
+            <span className="text-slate-400 dark:text-slate-500">→ </span>
+            <span className="text-accent-500">{latest}</span>
+          </span>
+        )}
       </span>
     </li>
   );
@@ -59,6 +68,7 @@ export default function VersionBlock() {
   }
 
   if (!data) return null;
+  const anyUpdate = !!data.suite.latest || (data.components ?? []).some((r) => r.latest);
 
   return (
     // The nav above never shrinks below its content, so this block is what
@@ -80,6 +90,9 @@ export default function VersionBlock() {
             >
               {data.suite.version || "unknown"}
             </span>
+            {anyUpdate && (
+              <span title="Update available" className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-500" />
+            )}
             <IconChevronDown
               className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform dark:text-slate-500 ${
                 expanded ? "" : "-rotate-90"
@@ -89,6 +102,14 @@ export default function VersionBlock() {
         </button>
         {expanded && (
           <ul className="mt-2 min-h-0 max-h-40 space-y-1 overflow-y-auto border-t border-slate-200 pt-2 dark:border-slate-700">
+            {data.suite.latest && (
+              <Row
+                label="Suite"
+                text={data.suite.version || "unknown"}
+                muted={!data.suite.version}
+                latest={data.suite.latest}
+              />
+            )}
             {(data.components ?? []).map((row) => {
               const { text, muted } = versionText(row);
               return (
@@ -98,6 +119,7 @@ export default function VersionBlock() {
                   text={text}
                   muted={muted}
                   running={row.status === "running"}
+                  latest={row.latest}
                 />
               );
             })}

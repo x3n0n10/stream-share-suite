@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout.jsx";
-import { Button, Card, ConfirmDialog, ErrorNote, FIELD } from "../components/common.jsx";
+import { Button, Card, ConfirmDialog, ErrorNote, FIELD, OnOffToggle } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { formatDateTime } from "../lib/format.js";
 
@@ -84,6 +84,7 @@ function GeneralSection({ settings, onSave }) {
   const [title, setTitle] = useState(settings.general.title);
   const [pollIntervalMs, setPoll] = useState(settings.general.pollIntervalMs);
   const [instanceTimeoutMs, setTimeout_] = useState(settings.general.instanceTimeoutMs);
+  const [autoUpdateCheck, setAutoUpdateCheck] = useState(settings.general.autoUpdateCheck !== false);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -97,7 +98,7 @@ function GeneralSection({ settings, onSave }) {
           onClick={async () => {
             setBusy(true);
             await onSave(
-              { general: { title, pollIntervalMs: Number(pollIntervalMs), instanceTimeoutMs: Number(instanceTimeoutMs) } },
+              { general: { title, pollIntervalMs: Number(pollIntervalMs), instanceTimeoutMs: Number(instanceTimeoutMs), autoUpdateCheck } },
               "General settings"
             );
             setBusy(false);
@@ -126,6 +127,12 @@ function GeneralSection({ settings, onSave }) {
             value={instanceTimeoutMs}
             onChange={(e) => setTimeout_(e.target.value)}
           />
+        </Field>
+        <Field
+          label="Automatically check for updates"
+          hint="Once a day the Suite asks GitHub for the latest release of itself, StreamShare, gluetun and Caddy. Nothing is downloaded or changed."
+        >
+          <OnOffToggle value={autoUpdateCheck} onChange={setAutoUpdateCheck} />
         </Field>
       </div>
     </Section>
