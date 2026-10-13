@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
+import { Card, Button, ErrorNote, OnOffToggle } from "../../components/common.jsx";
 import ChannelSearchInput from "../../components/ChannelSearchInput.jsx";
+import ListInput from "../../components/ListInput.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
 
@@ -135,14 +136,14 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
             ))}
           </div>
 
-          <label className="mt-4 flex flex-col gap-1.5">
+          <div className="mt-4 flex flex-col gap-1.5">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Check times (local, HH:MM) — usually twice a day should be enough. 
-              Pick times that are usually outside of your own viewing hours, 
+              Check times (local) — usually twice a day should be enough.
+              Pick times that are usually outside of your own viewing hours,
               so the health check doesn't interfere with you watching.
             </span>
-            <input className={FIELD} value={checkTimes} onChange={(e) => setCheckTimes(e.target.value)} />
-          </label>
+            <ListInput value={checkTimes} onChange={setCheckTimes} itemType="time" sort ariaLabel="Check times" />
+          </div>
         </div>
       )}
 

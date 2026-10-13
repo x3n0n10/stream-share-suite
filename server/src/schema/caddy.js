@@ -116,8 +116,10 @@ export const CADDY_SCHEMA = {
       key: "networks",
       envVar: null,
       label: "Docker networks to join",
+      type: "list",
+      itemType: "text",
       help:
-        "Comma-separated. Must include whatever network gluetun and your instances are reachable on. Defaults " +
+        "Must include whatever network gluetun and your instances are reachable on. Defaults " +
         "to the streamshare network the Suite's own compose file already declares.",
       group: "Container",
       required: true,

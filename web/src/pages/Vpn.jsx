@@ -16,6 +16,8 @@ import {
 import { IconRefresh, IconShield, IconGlobe } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
+import ListInput from "../components/ListInput.jsx";
+import { parseItems } from "../lib/listItems.js";
 import { useJobPolling } from "../lib/useJobPolling.js";
 
 // gluetun's public IP response field names have varied across versions —
@@ -326,6 +328,7 @@ function WatchdogCard() {
     draft.enabled !== settings.enabled ||
     draft.checkTimes !== settings.checkTimes ||
     Number(draft.maxReconnects) !== settings.maxReconnects;
+  const noTimes = parseItems(draft.checkTimes).length === 0;
 
   return (
     <Card className="p-4 sm:p-5">
@@ -349,17 +352,21 @@ function WatchdogCard() {
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Check times (local, HH:MM)
+            Check times (local)
           </span>
-          <input
-            className={FIELD}
+          <ListInput
             value={draft.checkTimes}
-            onChange={(e) => setDraft({ ...draft, checkTimes: e.target.value })}
-            placeholder="04:00,16:00"
+            onChange={(next) => setDraft({ ...draft, checkTimes: next })}
+            itemType="time"
+            sort
+            ariaLabel="Check times"
           />
-        </label>
+          {noTimes && (
+            <span className="text-[11px] text-rose-500">At least one time is required.</span>
+          )}
+        </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
             Max reconnect attempts
@@ -382,7 +389,7 @@ function WatchdogCard() {
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button tone="accent" onClick={save} loading={saving} disabled={saving || !dirty}>
+        <Button tone="accent" onClick={save} loading={saving} disabled={saving || !dirty || noTimes}>
           Save
         </Button>
         <Button tone="ghost" onClick={runNow} loading={running} disabled={running}>

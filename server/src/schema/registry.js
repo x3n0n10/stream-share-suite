@@ -181,6 +181,8 @@ export function toPublicFields(schema, values) {
       type: field.type || "text",
       options: field.options || null,
       optionLabels: field.optionLabels || null,
+      itemType: field.itemType || null,
+      sort: !!field.sort,
       secret: !!field.secret,
       advanced: !!field.advanced,
       required: !!field.required,

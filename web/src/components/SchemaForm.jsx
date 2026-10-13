@@ -4,6 +4,7 @@ import ErrorSlateEditor from "./ErrorSlateEditor.jsx";
 import ProviderCombobox from "./ProviderCombobox.jsx";
 import ChannelSearchInput from "./ChannelSearchInput.jsx";
 import DirectiveEnvEditor from "./DirectiveEnvEditor.jsx";
+import ListInput from "./ListInput.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
 // the point of the schema registry: a new field on the server is a new row
@@ -171,6 +172,7 @@ function FieldInput({ field, value, onChange, extra, componentKey, draft }) {
   // that; it was never a real <label>/<input> pairing for either.
   const multiControl =
     field.type === "select" ||
+    field.type === "list" ||
     field.type === "errorSlates" ||
     field.type === "directiveEnv" ||
     field.type === "combobox" ||
@@ -215,6 +217,18 @@ function renderControl(field, value, onChange, extra, componentKey, draft) {
         directive={draft?.dnsDirective}
         namesSet={field.namesSet}
         onChange={(next) => onChange(field.key, next)}
+      />
+    );
+  }
+
+  if (field.type === "list") {
+    return (
+      <ListInput
+        value={value}
+        onChange={(next) => onChange(field.key, next)}
+        itemType={field.itemType || "text"}
+        sort={field.sort}
+        ariaLabel={field.label}
       />
     );
   }
