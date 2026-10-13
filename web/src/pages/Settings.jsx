@@ -4,13 +4,15 @@ import { Button, Card, ConfirmDialog, ErrorNote, FIELD, OnOffToggle } from "../c
 import { api } from "../lib/api.js";
 import { formatDateTime } from "../lib/format.js";
 
-function Field({ label, hint, children }) {
+// A label forwards clicks on its text to its first button, so a field that holds
+// buttons (an on/off toggle) must not be one: pass as="div".
+function Field({ label, hint, children, as: Tag = "label" }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <Tag className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{label}</span>
       {children}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 
@@ -129,6 +131,7 @@ function GeneralSection({ settings, onSave }) {
           />
         </Field>
         <Field
+          as="div"
           label="Automatically check for updates"
           hint="Once a day the Suite asks GitHub for the latest release of itself, StreamShare, gluetun and Caddy. Nothing is downloaded or changed."
         >
