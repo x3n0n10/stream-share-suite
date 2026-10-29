@@ -3,36 +3,11 @@ import Layout from "../components/Layout.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Button } from "../components/common.jsx";
 import { IconSearch, IconDownload, IconCopy, IconCheck, IconChevronDown } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
+import { copyToClipboard } from "../lib/clipboard.js";
 import { titleCase } from "../lib/format.js";
 
 function resultKey(r) {
   return `${r.instance_id}::${r.StreamType}::${r.StreamID}`;
-}
-
-// navigator.clipboard requires a secure context (https, or localhost) — this
-// dashboard is routinely run over plain http on a LAN, so fall back to the
-// legacy execCommand trick rather than silently failing there.
-async function copyToClipboard(text) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch {
-      // fall through to legacy fallback below
-    }
-  }
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  try {
-    document.execCommand("copy");
-  } finally {
-    document.body.removeChild(ta);
-  }
 }
 
 // Groups the flat result list into movies (unchanged) and series, where every
