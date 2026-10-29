@@ -46,6 +46,21 @@ export function validateWindow(startsAt, endsAt, now) {
   return null;
 }
 
+// A poll that failed, as data of its own instance. The page polls one instance
+// at a time, and a slow answer for the instance just left must never put its
+// error on the tab now showing, so a failure travels with its instanceId
+// instead of being thrown. Rows of the last good poll of the same instance stay
+// on screen next to the error.
+export function failedPoll(instanceId, message, lastGood) {
+  const sameInstance = lastGood?.instanceId === instanceId;
+  return {
+    instanceId,
+    shares: sameInstance ? lastGood.shares : [],
+    publicBaseUrl: sameInstance ? lastGood.publicBaseUrl : null,
+    error: message,
+  };
+}
+
 const pad = (n) => String(n).padStart(2, "0");
 
 // The value format of <input type="datetime-local">, in local time.

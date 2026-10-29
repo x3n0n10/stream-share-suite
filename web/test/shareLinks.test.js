@@ -11,6 +11,7 @@ import {
   validateWindow,
   toDatetimeLocal,
   formatWindow,
+  failedPoll,
 } from "../src/lib/shareLinks.js";
 
 const oct = (day, hour, minute = 0) => new Date(2026, 9, day, hour, minute);
@@ -99,4 +100,26 @@ test("toDatetimeLocal formats local time for a datetime-local input", () => {
 test("formatWindow shows weekday and local times, naming the end day when it differs", () => {
   assert.equal(formatWindow(oct(31, 20), oct(31, 23)), "Sat 20:00 to 23:00");
   assert.equal(formatWindow(oct(31, 22), nov1(1)), "Sat 22:00 to Sun 01:00");
+});
+
+test("failedPoll keeps the last good rows of the same instance and carries the error", () => {
+  const lastGood = { instanceId: "a", shares: [{ token: "tok" }], publicBaseUrl: "https://tv.example.com" };
+  const data = failedPoll("a", "provider unreachable", lastGood);
+  assert.equal(data.instanceId, "a");
+  assert.equal(data.error, "provider unreachable");
+  assert.deepEqual(data.shares, [{ token: "tok" }]);
+  assert.equal(data.publicBaseUrl, "https://tv.example.com");
+});
+
+test("failedPoll with no good poll yet is an empty, instance-scoped error", () => {
+  const data = failedPoll("b", "timed out", null);
+  assert.deepEqual(data, { instanceId: "b", shares: [], publicBaseUrl: null, error: "timed out" });
+});
+
+test("failedPoll never reuses another instance's rows", () => {
+  const otherInstance = { instanceId: "a", shares: [{ token: "tok" }], publicBaseUrl: "https://tv.example.com" };
+  const data = failedPoll("b", "timed out", otherInstance);
+  assert.equal(data.instanceId, "b");
+  assert.deepEqual(data.shares, []);
+  assert.equal(data.publicBaseUrl, null);
 });

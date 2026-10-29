@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import {
@@ -17,7 +17,7 @@ import { api } from "../lib/api.js";
 import { copyToClipboard } from "../lib/clipboard.js";
 import { usePolling } from "../lib/usePolling.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
-import { formatWindow, shareState, sortShares } from "../lib/shareLinks.js";
+import { failedPoll, formatWindow, shareState, sortShares } from "../lib/shareLinks.js";
 import NewShareDialog from "./shareLinks/NewShareDialog.jsx";
 
 const STATE_TONE = { active: "green", scheduled: "amber", ended: "slate", revoked: "slate" };
@@ -47,9 +47,22 @@ export default function ShareLinks({ pollIntervalMs }) {
   const [actionError, setActionError] = useState(null);
   const [copied, setCopied] = useState(""); // `${token}:${kind}` shown as copied
 
-  const { data, error, loading, updatedAt, refresh } = usePolling(() => loadShares(instanceId), pollIntervalMs, [
-    instanceId,
-  ]);
+  // A failed poll comes back as data of its own instance (failedPoll), never as
+  // a thrown error, so a slow answer for the instance just left cannot put its
+  // error — or its "finished loading" — on the tab now showing.
+  const lastGood = useRef(null);
+  const { data, updatedAt, refresh } = usePolling(
+    async () => {
+      try {
+        lastGood.current = await loadShares(instanceId);
+        return lastGood.current;
+      } catch (err) {
+        return failedPoll(instanceId, err.message, lastGood.current);
+      }
+    },
+    pollIntervalMs,
+    [instanceId]
+  );
   // Data of the instance that was selected before a switch must not linger.
   const current = data?.instanceId === instanceId ? data : null;
 
@@ -118,9 +131,9 @@ export default function ShareLinks({ pollIntervalMs }) {
         {!unsupported && instance && <Button onClick={() => setDialogOpen(true)}>+ New link</Button>}
       </div>
 
-      {error && (
+      {current?.error && (
         <div className="mt-3">
-          <ErrorNote message={`Refresh failed: ${error}`} />
+          <ErrorNote message={`Refresh failed: ${current.error}`} />
         </div>
       )}
       {actionError && (
@@ -135,14 +148,14 @@ export default function ShareLinks({ pollIntervalMs }) {
       )}
 
       <div className="mt-4">
-        {loading && !current ? (
+        {!current ? (
           <Skeleton className="h-48" />
         ) : unsupported ? (
           <EmptyState
             title="This instance does not support share links"
             subtitle="Update it to a newer image and reload."
           />
-        ) : !current ? null : rows.length === 0 ? (
+        ) : rows.length === 0 && current.error ? null : rows.length === 0 ? (
           <EmptyState title="No share links yet" subtitle="Create one for a guest to watch a channel for a while." />
         ) : (
           <Card className="overflow-x-auto">
