@@ -7,6 +7,7 @@ import Users from "./pages/Users.jsx";
 import Instances from "./pages/Instances.jsx";
 import Vpn from "./pages/Vpn.jsx";
 import Vod from "./pages/Vod.jsx";
+import ShareLinks from "./pages/ShareLinks.jsx";
 import Aliases from "./pages/Aliases.jsx";
 import Settings from "./pages/Settings.jsx";
 import Stack from "./pages/Stack.jsx";
@@ -107,6 +108,7 @@ export default function App() {
         <Route path="/instances" element={<Instances pollIntervalMs={pollIntervalMs} />} />
         <Route path="/vpn" element={<Vpn pollIntervalMs={pollIntervalMs} />} />
         <Route path="/vod" element={<Vod />} />
+        <Route path="/shares" element={<ShareLinks pollIntervalMs={pollIntervalMs} />} />
         <Route path="/settings" element={<Settings onConfigChanged={loadConfig} />} />
         <Route path="/stack" element={<Stack pollIntervalMs={pollIntervalMs} />} />
         <Route path="/setup" element={<Setup />} />

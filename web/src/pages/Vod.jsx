@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Button } from "../components/common.jsx";
 import { IconSearch, IconDownload, IconCopy, IconCheck, IconChevronDown } from "../components/Icons.jsx";
@@ -140,6 +141,13 @@ export default function Vod() {
 
   return (
     <Layout title="VOD Search">
+      <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
+        Need a live channel link for a time window? Use{" "}
+        <Link to="/shares" className="text-accent-600 hover:underline dark:text-accent-400">
+          Share links
+        </Link>
+        .
+      </p>
       <form onSubmit={runSearch} className="flex gap-2">
         <input
           type="search"
