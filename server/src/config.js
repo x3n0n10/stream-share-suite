@@ -81,6 +81,8 @@ function managedInstances() {
       enabled: true,
       managed: true,
       containerName: instanceContainerName(row.key, values),
+      // What guests reach this instance at; share links are built from it.
+      publicBaseUrl: String(values.publicBaseUrl || "").trim().replace(/\/+$/, ""),
       // Only a Suite-managed instance has these — an externally-added one
       // (store/instances.js, predating the schema system) has no equivalent
       // form and is simply never watched by the VPN watchdog.
