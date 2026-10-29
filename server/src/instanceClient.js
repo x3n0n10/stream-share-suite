@@ -157,6 +157,29 @@ export async function createVODDownload(instance, { username, streamId, title, t
   });
 }
 
+// Live share links: a channel link that only works inside a time window.
+// `username` is the creator label; the instance lists every creator's links
+// when it is not given.
+export async function listShares(instance, { timeoutMs }) {
+  return callInstance(instance, "/shares", { timeoutMs });
+}
+
+export async function createShare(instance, { username, guest, streamId, startsAt, endsAt }, { timeoutMs }) {
+  return callInstance(instance, "/shares", {
+    timeoutMs,
+    method: "POST",
+    body: { username, guest, stream_id: streamId, starts_at: startsAt, ends_at: endsAt },
+  });
+}
+
+export async function revokeShare(instance, token, { timeoutMs }) {
+  return callInstance(instance, `/shares/${encodeURIComponent(token)}`, { timeoutMs, method: "DELETE" });
+}
+
+export async function searchShareChannels(instance, query, { timeoutMs }) {
+  return callInstance(instance, "/shares/channels", { timeoutMs, query: { q: query } });
+}
+
 // IP aliases are per-instance (each instance has its own DB), not shared —
 // an alias set on one instance has no effect on another.
 export async function fetchIPAliases(instance, { timeoutMs }) {
