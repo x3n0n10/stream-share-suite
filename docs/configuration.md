@@ -70,8 +70,8 @@ Paths are validated when you save them. A typo or unmounted path shows up as an
 
 ## Cache paths
 
-Each instance's VOD and catchup cache has a **cache location** on its form (in the
-wizard or on the Stack page).
+Each instance's VOD cache, catchup buffer and (when kept on disk) provider catalogue
+share one **cache location** on its form (in the wizard or on the Stack page).
 
 **Leave it blank** and the cache goes in the data directory, in the instance's own
 `cache/` subfolder. The Suite creates it, like its other folders, so nothing more

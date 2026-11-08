@@ -137,7 +137,7 @@ export async function renderInstanceSpec(values, key) {
   // like every other folder the Suite owns: left to Docker, a missing folder
   // would be created as root and the instance (running as PUID:PGID) could not
   // write to it.
-  const cachingOn = values.vodCacheEnabled === "true" || values.catchupEnabled === "true";
+  const cachingOn = values.vodCacheEnabled === "true" || values.catchupEnabled === "true" || values.catalogStorage === "disk";
   const cacheDir = cachingOn
     ? String(values.cachePath || "").trim() || ensureDirectory(componentDataDir(name), "cache")
     : null;

@@ -243,15 +243,27 @@ export const INSTANCE_SCHEMA = {
       dependsOn: { key: "catchupEnabled", equals: "true" },
     },
     {
+      key: "catalogStorage",
+      envVar: "CATALOG_STORAGE",
+      label: "Keep provider catalogue on",
+      help: "Memory is fastest, but RAM grows with the provider's catalogue (over 700 MB for a very large one). Disk uses far less RAM (around 90 MB) and needs about 2-3 times the catalogue size in the cache folder, with slightly slower searches.",
+      type: "select",
+      options: ["memory", "disk"],
+      optionLabels: { memory: "Memory", disk: "Disk" },
+      default: "memory",
+      group: "Caching",
+    },
+    {
       key: "cachePath",
       envVar: null,
       label: "Cache location on the host",
-      help: "Where this instance's VOD/catchup cache lives on the Docker host. Leave blank to use a folder inside the Suite's data directory, which the Suite creates for you. A cache can grow to tens of gigabytes, so we recommend your own path on a disk meant for caching, with that much space free. The Suite does not create or check a path you enter: it must already exist on the host and be owned by (or writable for) the user the Suite and its components run as, PUID/PGID in the Suite's compose file. Docker creates a missing folder as root, and the instance could not write to it.",
+      help: "Where this instance's VOD, catchup and disk catalogue cache lives on the Docker host. Leave blank to use a folder inside the Suite's data directory, which the Suite creates for you. A cache can grow to tens of gigabytes, so we recommend your own path on a disk meant for caching, with that much space free. The Suite does not create or check a path you enter: it must already exist on the host and be owned by (or writable for) the user the Suite and its components run as, PUID/PGID in the Suite's compose file. Docker creates a missing folder as root, and the instance could not write to it.",
       group: "Caching",
       dependsOn: {
         any: [
           { key: "vodCacheEnabled", equals: "true" },
           { key: "catchupEnabled", equals: "true" },
+          { key: "catalogStorage", equals: "disk" },
         ],
       },
     },
