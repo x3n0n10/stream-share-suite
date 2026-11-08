@@ -352,6 +352,21 @@ test("caching on with no cachePath keeps the cache under the data directory, cre
   }
 });
 
+test("disk catalogue storage alone mounts the cache and sets CACHE_FOLDER; memory does not mount it", async () => {
+  configureStack();
+  vpn(false);
+  const disk = provisionInstance({ ...PROVIDER, catalogStorage: "disk" });
+  const diskSpec = await renderInstanceSpec(getComponentValues("instance", disk.key), disk.key);
+  assert.ok(diskSpec.volumes.some((v) => v.endsWith(":/cache")));
+  assert.equal(diskSpec.env.CATALOG_STORAGE, "disk");
+  assert.equal(diskSpec.env.CACHE_FOLDER, "/cache");
+
+  const mem = provisionInstance(PROVIDER);
+  const memSpec = await renderInstanceSpec(getComponentValues("instance", mem.key), mem.key);
+  assert.equal(memSpec.volumes.some((v) => v.endsWith(":/cache")), false);
+  assert.equal(memSpec.env.CATALOG_STORAGE, "memory");
+});
+
 test("Discord on computes DISCORD_API_URL from publicBaseUrl rather than asking for it twice", async () => {
   configureStack();
   vpn(false);
