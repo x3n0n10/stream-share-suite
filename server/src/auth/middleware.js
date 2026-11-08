@@ -5,7 +5,7 @@
 // which matters for an image that is meant to be easy to audit.
 
 import { randomBytes } from "node:crypto";
-import { sessionCookieName, resolveSession, safeEqual } from "./sessions.js";
+import { sessionCookieName, resolveSession, safeEqual, csrfTokenFor } from "./sessions.js";
 import { countUsers } from "./users.js";
 import { verifyApiToken } from "./apiToken.js";
 
@@ -65,15 +65,15 @@ export function requireAuth(req, res, next) {
 
 // Double-submit CSRF: SameSite=Lax already blocks cross-site POSTs from a
 // plain form, but not a same-site subdomain, so state-changing requests must
-// also echo the session token in a header the browser will not attach for
-// anyone else.
+// also echo a token derived from the session (csrfTokenFor) in a header the
+// browser will not attach for anyone else.
 export function requireCsrf(req, res, next) {
   // A bearer header is never attached by a browser on its own, so the
   // cross-site request CSRF guards against cannot carry one.
   if (req.apiToken) return next();
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
   const header = req.get("X-Suite-CSRF");
-  if (req.sessionToken && safeEqual(header, req.sessionToken)) return next();
+  if (req.sessionToken && safeEqual(header, csrfTokenFor(req.sessionToken))) return next();
   return res.status(403).json({ error: "Invalid or missing CSRF token" });
 }
 

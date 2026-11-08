@@ -10,6 +10,8 @@
 // Those are derived from the instance's own key and generated on first apply,
 // not asked for — see reconcile/database.js.
 
+import { CONTAINER_NAME_RULE } from "./registry.js";
+
 export const POSTGRES_SCHEMA = {
   kind: "postgres",
   label: "PostgreSQL",
@@ -61,6 +63,7 @@ export const POSTGRES_SCHEMA = {
     {
       key: "containerName",
       envVar: null,
+      ...CONTAINER_NAME_RULE,
       label: "Container name",
       help: "Defaults to the Suite's container prefix followed by postgres (streamshare-suite-postgres unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
       group: "Advanced",

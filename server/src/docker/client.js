@@ -135,6 +135,9 @@ export async function inspectImage(idOrName) {
 // isn't one). The tag-separating colon, if any, is always the last one and
 // always comes after the last slash.
 function splitImageTag(image) {
+  // A digest reference (repo@sha256:...) is already complete; its colon is not
+  // a tag separator, and sending a tag as well would break the pull.
+  if (image.includes("@")) return [image, undefined];
   const lastSlash = image.lastIndexOf("/");
   const lastColon = image.lastIndexOf(":");
   if (lastColon > lastSlash) {

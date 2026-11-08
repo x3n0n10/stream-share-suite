@@ -1,5 +1,5 @@
 # --- Stage 1: build the frontend ---
-FROM node:24-alpine AS web-build
+FROM node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 AS web-build
 WORKDIR /app/web
 COPY web/package*.json ./
 RUN npm ci --no-audit --no-fund
@@ -7,7 +7,7 @@ COPY web/ ./
 RUN npm run build
 
 # --- Stage 2: production dependencies for the backend ---
-FROM node:24-alpine AS server-deps
+FROM node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 AS server-deps
 WORKDIR /app/server
 COPY server/package*.json ./
 # express is the only runtime dependency; the store uses node:sqlite, which
@@ -16,7 +16,7 @@ COPY server/package*.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # --- Stage 3: runtime ---
-FROM node:24-alpine
+FROM node:24-alpine@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
 WORKDIR /app
 ENV NODE_ENV=production
 ENV SUITE_DATA_DIR=/data

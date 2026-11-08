@@ -1,0 +1,12 @@
+# Keeps the pinned GitHub Actions (commit SHAs) and the pinned base image
+# (digest) current, so pinning does not mean falling behind on fixes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

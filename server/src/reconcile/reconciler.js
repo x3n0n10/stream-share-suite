@@ -320,6 +320,21 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
     return plan.containerId;
   }
 
+  // Before anything is stopped: a failed pull (mistyped tag, registry down)
+  // must leave the running container alone.
+  // Pull whenever the image value itself is new to this container — a first
+  // create (no runtime to compare against) or an edit that changed the image
+  // field. A mutable tag like ":dev" would otherwise reuse whatever content
+  // happens to already be cached locally under that tag name, which is not
+  // what typing a new image value means. Every other config-only change
+  // (name, port, env, ...) still applies with no network call, same as
+  // before — this only fires when spec.image itself differs from what was
+  // last actually running.
+  if (action === "create" || spec.image !== plan.runtime?.image) {
+    log(`Pulling ${spec.image}...`);
+    await pullImage(spec.image);
+  }
+
   if (action === "adopt" && takeover) {
     log(`Taking over "${spec.name}": stopping and removing the unmanaged container.`);
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
@@ -342,19 +357,6 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
 
   if (plan.prepare) {
     await plan.prepare(key, getComponentValues(kind, key), { log });
-  }
-
-  // Pull whenever the image value itself is new to this container — a first
-  // create (no runtime to compare against) or an edit that changed the image
-  // field. A mutable tag like ":dev" would otherwise reuse whatever content
-  // happens to already be cached locally under that tag name, which is not
-  // what typing a new image value means. Every other config-only change
-  // (name, port, env, ...) still applies with no network call, same as
-  // before — this only fires when spec.image itself differs from what was
-  // last actually running.
-  if (action === "create" || spec.image !== plan.runtime?.image) {
-    log(`Pulling ${spec.image}...`);
-    await pullImage(spec.image);
   }
 
   log(`Creating "${spec.name}"...`);

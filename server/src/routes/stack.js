@@ -92,7 +92,16 @@ function dockerFailure(res, err) {
 // Runs a plan-shaped operation as a background job, answering immediately.
 // Several applies restart the network this very request is being served over,
 // so none of them may be a synchronous held-open request.
+//
+// One at a time: two applies would plan against the same containers and then
+// race to create and remove them.
+let jobRunning = false;
+
 function startJob(res, label, work) {
+  if (jobRunning) {
+    return res.status(409).json({ error: "Another change is still being applied. Wait for it to finish." });
+  }
+  jobRunning = true;
   const job = createJob(label);
   res.status(202).json({ jobId: job.id });
 
@@ -104,6 +113,7 @@ function startJob(res, label, work) {
       appendLog(job, `Error: ${err.message}`);
       finishJob(job, err);
     } finally {
+      jobRunning = false;
       // Whatever the job did, what is running may have changed: the sidebar's
       // versions should reflect it on the next poll, not a minute later.
       invalidateVersions();
@@ -236,6 +246,11 @@ export function createStackRouter() {
   });
 
   router.put("/components/:kind", componentOr404, (req, res) => {
+    // Instances have their own routes, which check the key and the port; this
+    // one would save an unknown key or a clashing port without a word.
+    if (req.params.kind === "instance") {
+      return res.status(400).json({ error: "Edit an instance through /api/stack/instances/:key." });
+    }
     const { schema } = req.componentEntry;
     const existing = getComponentValues(req.params.kind, req.componentKey);
     const next = applyPatch(schema, existing, req.body || {});

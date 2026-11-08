@@ -5,7 +5,7 @@
 
 import { test, before, beforeEach, afterEach, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createApp } from "../src/app.js";
@@ -100,6 +100,18 @@ test("restoring a corrupted file that merely starts with the right header restor
   // The Suite must still be usable afterwards, with what was there before.
   assert.equal(getComponentValues("gluetun").vpnServiceProvider, "nordvpn");
   assert.ok(existsSync(getDatabasePath()));
+});
+
+test("a restore, successful or not, leaves no copy of the old database behind", async () => {
+  const c = await signedInClient(base);
+  const backup = await c.getBuffer("/api/backup");
+  const corrupted = Buffer.concat([Buffer.from("SQLite format 3\0"), Buffer.from("nope".repeat(100))]);
+
+  await c.postBuffer("/api/backup/restore", backup.buffer, "application/octet-stream");
+  await c.postBuffer("/api/backup/restore", corrupted, "application/octet-stream");
+
+  const leftovers = readdirSync(dir).filter((f) => f.includes(".bak-") || f.includes(".restoring-"));
+  assert.deepEqual(leftovers, []);
 });
 
 test("backup endpoints require authentication, same as everything else behind the gate", async () => {

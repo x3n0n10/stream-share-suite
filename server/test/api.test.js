@@ -236,3 +236,22 @@ test("gluetun endpoints report disabled rather than failing when unconfigured", 
   assert.deepEqual((await c.get("/api/gluetun")).body, { enabled: false });
   assert.equal((await c.post("/api/gluetun/reconnect")).status, 404);
 });
+
+test("the CSRF token is not the session token, and the session token is not accepted in its place", async () => {
+  const c = await signedIn();
+  const status = (await c.get("/api/auth/status")).body;
+  const sessionToken = c.sessionToken();
+
+  assert.ok(status.csrfToken);
+  assert.notEqual(status.csrfToken, sessionToken);
+
+  c.useCsrf(sessionToken);
+  assert.equal((await c.post("/api/auth/logout")).status, 403);
+});
+
+test("every response carries the security headers", async () => {
+  const res = await fetch(`${base}/healthz`);
+  assert.match(res.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+  assert.equal(res.headers.get("x-frame-options"), "DENY");
+  assert.equal(res.headers.get("x-content-type-options"), "nosniff");
+});
