@@ -145,6 +145,12 @@ export const api = {
     get(`/api/instances/${instanceKey}/health-check/channels`, { q }),
   vodDownload: (instanceId, streamId, title, type) =>
     post(`/api/instances/${instanceId}/vod/download`, { streamId, title, type }),
+  shares: (instanceId) => get(`/api/instances/${instanceId}/shares`),
+  createShare: (instanceId, { guest, streamId, startsAt, endsAt }) =>
+    post(`/api/instances/${instanceId}/shares`, { guest, streamId, startsAt, endsAt }),
+  revokeShare: (instanceId, token) =>
+    del(`/api/instances/${instanceId}/shares/${encodeURIComponent(token)}`),
+  shareChannels: (instanceId, q) => get(`/api/instances/${instanceId}/shares/channels`, { q }),
   aliases: () => get("/api/aliases"),
   createAlias: (instanceId, ipAddress, alias) =>
     post(`/api/instances/${instanceId}/aliases`, { ipAddress, alias }),
