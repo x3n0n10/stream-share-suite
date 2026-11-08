@@ -51,6 +51,7 @@ Coming from stream-share-dashboard? See [migrating](docs/migrating-from-dashboar
 | [Setup wizard](docs/setup-wizard.md) | Walk through first-time setup |
 | [Stack management](docs/stack-management.md) | Plan and apply changes to the stack |
 | [Instances](docs/instances.md) | Add, edit and remove StreamShare instances |
+| [Share links](docs/share-links.md) | Create, copy and revoke time-limited live channel links |
 | [Caddy](docs/caddy.md) | Publish instances under a hostname with HTTPS |
 | [VPN](docs/vpn.md) | Switch the VPN on or off, and pick a provider |
 | [VPN watchdog](docs/vpn-watchdog.md) | Reconnect automatically when the exit IP is blocked |

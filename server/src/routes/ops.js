@@ -19,7 +19,12 @@ import {
   searchVOD,
   createVODDownload,
   searchChannels,
+  listShares,
+  createShare,
+  revokeShare,
+  searchShareChannels,
 } from "../instanceClient.js";
+import { shapeShare } from "../shareLinks.js";
 import { getVpnStatus, setVpnStatus, getPublicIP, reconnectVpn } from "../gluetunClient.js";
 
 function findInstance(config, id) {
@@ -310,6 +315,77 @@ export function createOpsRouter() {
         timeouts(req)
       );
       res.json(data);
+    } catch (err) {
+      failure(res, err);
+    }
+  });
+
+  // Live share links: channel links that only work inside a time window.
+  // Addresses are built from the instance's public base URL, never from the
+  // `urls` the instance returns (see shareLinks.js). Only the list route can
+  // tell "not supported" from a plain 404; on create and revoke a 404 also
+  // means an unknown channel or link.
+  router.get("/instances/:id/shares", async (req, res) => {
+    const instance = findInstance(req.config, req.params.id);
+    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+
+    try {
+      const raw = await listShares(instance, timeouts(req));
+      const publicBaseUrl = instance.publicBaseUrl || null;
+      res.json({ shares: (raw || []).map((s) => shapeShare(s, publicBaseUrl)), publicBaseUrl });
+    } catch (err) {
+      if (err.status === 404) {
+        return res.status(501).json({
+          error: "This instance does not support share links. Update it to a newer image.",
+          code: "shares_unsupported",
+        });
+      }
+      failure(res, err);
+    }
+  });
+
+  router.post("/instances/:id/shares", async (req, res) => {
+    const instance = findInstance(req.config, req.params.id);
+    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+
+    const { guest, streamId, startsAt, endsAt } = req.body;
+    if (!streamId) return res.status(400).json({ error: "streamId is required" });
+    if (!endsAt) return res.status(400).json({ error: "endsAt is required" });
+
+    try {
+      const created = await createShare(
+        instance,
+        { username: req.config.vodActorUsername, guest, streamId, startsAt, endsAt },
+        timeouts(req)
+      );
+      res.json(shapeShare(created, instance.publicBaseUrl));
+    } catch (err) {
+      failure(res, err);
+    }
+  });
+
+  router.delete("/instances/:id/shares/:token", async (req, res) => {
+    const instance = findInstance(req.config, req.params.id);
+    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+
+    try {
+      const revoked = await revokeShare(instance, req.params.token, timeouts(req));
+      res.json(shapeShare(revoked, instance.publicBaseUrl));
+    } catch (err) {
+      failure(res, err);
+    }
+  });
+
+  router.get("/instances/:id/shares/channels", async (req, res) => {
+    const instance = findInstance(req.config, req.params.id);
+    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+
+    const query = (req.query.q || "").toString().trim();
+    if (!query) return res.json({ results: [] });
+
+    try {
+      const found = await searchShareChannels(instance, query, timeouts(req));
+      res.json({ results: (found || []).map((c) => ({ streamId: c.stream_id, num: c.num, name: c.name })) });
     } catch (err) {
       failure(res, err);
     }

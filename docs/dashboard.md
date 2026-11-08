@@ -19,6 +19,7 @@ as `current → latest`. See
 | **Leaderboard** | Top users and titles by watch time |
 | **Instances** | Per-instance status and provider subscription detail |
 | **VOD search** | Search movies and series across every Xtream instance. Copy the URL or start a download |
+| **Share links** | Create time-limited links to one live channel for a guest. See [share links](share-links.md) |
 | **Aliases** | Give a viewer that shows up as a bare IP address a friendly name |
 | **VPN** | gluetun status, reconnect, and the [VPN watchdog](vpn-watchdog.md) |
 | **Setup wizard** | Guided first-time setup. See [setup wizard](setup-wizard.md) |
@@ -26,5 +27,5 @@ as `current → latest`. See
 | **Settings** | Poll interval, admin password, [API access](api.md), and [backup and restore](backups-and-updates.md) |
 
 Pages with nothing to show stay hidden until they are useful. History, Users,
-Leaderboard, VOD search and Aliases appear once an instance exists. VPN appears
+Leaderboard, VOD search, Share links and Aliases appear once an instance exists. VPN appears
 once the VPN is switched on.
