@@ -21,8 +21,10 @@ Settings has a **Backup & restore** section.
   to you.
 - **Restore from backup** replaces the live file with one you upload. It closes the
   store, swaps the file, and reopens it. The Suite does not restart. A copy of the
-  current file is kept first. If the upload turns out not to be a valid Suite
-  database, that copy is restored, so the Suite keeps running.
+  current file is kept while it swaps. If the upload turns out not to be a valid
+  Suite database, or any step fails, that copy is put back so the Suite keeps
+  running. Once the restore succeeds the copy is deleted, since it holds every
+  secret in the clear.
 
 Restoring an older backup also restores the admin password and sessions that were
 current at the time. You will be signed out. Sign in with that backup's password if

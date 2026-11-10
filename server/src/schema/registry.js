@@ -19,6 +19,8 @@
 //     secret: true,                // write-only: see applyPatch and toPublicFields
 //     advanced: false,             // collapsed behind an "Advanced" toggle
 //     required: true,
+//     pattern: /^[a-z]+$/,         // optional RegExp the value must match, with
+//     patternMessage: "...",       // the message shown when it does not
 //     default: "wireguard",
 //     dependsOn: { key: "vpnType", equals: "wireguard" }, // optional
 //   }
@@ -31,6 +33,14 @@
 // A condition can also be { any: [condition, ...] } — satisfied when at
 // least one of those conditions is, e.g. a field required when either of
 // two independent toggles is on.
+
+// Docker's own rule for a container name. Also what keeps the name safe to use
+// as a folder name under the data directory (no "/", no leading "."), since a
+// component's files live in <data dir>/<container name>.
+export const CONTAINER_NAME_RULE = {
+  pattern: /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/,
+  patternMessage: "Use letters, digits, \"_\", \".\" and \"-\" only, starting with a letter or digit.",
+};
 
 function resolvedValue(field, values) {
   const raw = values[field.key];
@@ -103,6 +113,12 @@ export function validate(schema, values) {
     // wrong whether or not it had to be filled in.
     if (field.type === "select" && !field.options.includes(value)) {
       errors.push({ key: field.key, message: `${field.label} must be one of: ${field.options.join(", ")}.` });
+    }
+
+    // Optional `pattern` (a RegExp) with a `patternMessage`, for free-text
+    // values that end up in a path or a config file.
+    if (field.pattern && !field.pattern.test(String(value))) {
+      errors.push({ key: field.key, message: field.patternMessage || `${field.label} is not valid.` });
     }
 
     // A structured editor (see field.type "errorSlates") can't produce

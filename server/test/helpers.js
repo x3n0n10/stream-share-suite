@@ -51,6 +51,12 @@ export function apiClient(base) {
     dropCsrf: () => {
       csrf = null;
     },
+    // The raw session token from the cookie, and a way to send something else
+    // as the CSRF echo — for proving the two are not interchangeable.
+    sessionToken: () => cookie?.split("=")[1] ?? null,
+    useCsrf: (value) => {
+      csrf = value;
+    },
     hasCookie: () => !!cookie,
 
     // For the one pair of endpoints that isn't JSON in and out — a file

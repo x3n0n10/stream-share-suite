@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { validate, renderEnv, valuesFromEnv, toPublicFields, applyPatch } from "../src/schema/registry.js";
+import { CADDY_SCHEMA } from "../src/schema/caddy.js";
 
 const SCHEMA = {
   kind: "widget",
@@ -340,4 +341,18 @@ test("toPublicFields exposes itemType and sort for list fields", () => {
   assert.equal(times.sort, true);
   assert.equal(names.itemType, null);
   assert.equal(names.sort, false);
+});
+
+test("validate enforces a field's pattern, with its message", () => {
+  const schema = { fields: [{ key: "n", label: "Name", pattern: /^[a-z]+$/, patternMessage: "Letters only." }] };
+
+  assert.deepEqual(validate(schema, { n: "abc" }), []);
+  assert.deepEqual(validate(schema, { n: "a b" }), [{ key: "n", message: "Letters only." }]);
+  assert.deepEqual(validate(schema, {}), [], "an empty optional field is not checked");
+});
+
+test("the ACME email cannot carry a newline into the Caddyfile", () => {
+  const values = { tlsMode: "acme", acmeEmail: "me@example.com\nrespond 200" };
+  assert.ok(validate(CADDY_SCHEMA, values).some((e) => e.key === "acmeEmail"));
+  assert.equal(validate(CADDY_SCHEMA, { tlsMode: "acme", acmeEmail: "me@example.com" }).some((e) => e.key === "acmeEmail"), false);
 });

@@ -134,3 +134,13 @@ test("session cookie name is per host port so two Suites on one host don't colli
   assert.notEqual(name("192.168.1.2:3001"), name("192.168.1.2:3002"));
   assert.equal(name("suite.example.com"), "suite_session");
 });
+
+test("two simultaneous first-run setups create only one admin", async () => {
+  const results = await Promise.allSettled([
+    createUser("first", "a-sufficiently-long-password"),
+    createUser("second", "a-sufficiently-long-password"),
+  ]);
+
+  assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+  assert.equal(countUsers(), 1);
+});

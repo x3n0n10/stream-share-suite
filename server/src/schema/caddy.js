@@ -23,6 +23,8 @@
 // out of the plan entirely until switched on under Stack (see
 // CADDY_ENABLED_SETTING in reconcile/catalog.js).
 
+import { CONTAINER_NAME_RULE } from "./registry.js";
+
 export const CADDY_SCHEMA = {
   kind: "caddy",
   label: "Caddy (reverse proxy)",
@@ -48,6 +50,8 @@ export const CADDY_SCHEMA = {
       key: "acmeEmail",
       envVar: null,
       label: "ACME contact email",
+      pattern: /^[^\s@{}]+@[^\s@{}]+$/,
+      patternMessage: "Enter a plain email address.",
       help: "Sent to your certificate authority for expiry notices only — never published anywhere.",
       group: "HTTPS",
       required: true,
@@ -155,6 +159,7 @@ export const CADDY_SCHEMA = {
     {
       key: "containerName",
       envVar: null,
+      ...CONTAINER_NAME_RULE,
       label: "Container name",
       help:
         "Defaults to the Suite's container prefix followed by caddy (streamshare-suite-caddy unless " +

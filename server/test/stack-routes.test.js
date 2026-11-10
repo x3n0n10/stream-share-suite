@@ -18,6 +18,7 @@ let base;
 let dockerServer;
 let containers;
 let nextId;
+let dockerDelayMs = 0; // slows the fake daemon so a job stays running long enough to race it
 
 before(async () => {
   appServer = createApp({ serveStatic: false }).listen(0);
@@ -28,7 +29,7 @@ before(async () => {
     const url = new URL(req.url, "http://localhost");
     let body = "";
     req.on("data", (c) => (body += c));
-    req.on("end", () => routeDocker(req.method, url, res, body));
+    req.on("end", () => setTimeout(() => routeDocker(req.method, url, res, body), dockerDelayMs));
   });
   await new Promise((resolve) => dockerServer.listen(0, resolve));
   process.env.DOCKER_PROXY_URL = `http://127.0.0.1:${dockerServer.address().port}`;
@@ -45,6 +46,7 @@ beforeEach(() => {
   _clearJobsForTests();
   containers = new Map();
   nextId = 1;
+  dockerDelayMs = 0;
   // Postgres is managed by default and would add a row to every plan these
   // cases assert on; they are about gluetun and the routes themselves, so it
   // is pointed at an external server and drops out of the stack.
@@ -714,4 +716,35 @@ test("applying never touches a container belonging to a switched-off component",
   const job = await waitForJob(c, (await c.post("/api/stack/apply", {})).body.jobId);
   assert.equal(job.status, "success");
   assert.equal(containers.get("streamshare-suite-gluetun").Id, "hand-written");
+});
+
+test("a second change is refused while one is still being applied", async () => {
+  const c = await signedInClient(base);
+  await c.put("/api/stack/components/gluetun", GLUETUN_VALUES);
+  dockerDelayMs = 100;
+
+  const first = await c.post("/api/stack/components/gluetun/apply", {});
+  assert.equal(first.status, 202);
+  const second = await c.post("/api/stack/components/gluetun/apply", {});
+  assert.equal(second.status, 409);
+
+  // Once the first has finished the next one is accepted again.
+  await waitForJob(c, first.body.jobId);
+  assert.equal((await c.post("/api/stack/components/gluetun/apply", {})).status, 202);
+});
+
+test("the generic component route refuses to save an instance", async () => {
+  const c = await signedInClient(base);
+  const res = await c.put("/api/stack/components/instance?key=ghost", { ...PROVIDER, port: "8080" });
+  assert.equal(res.status, 400);
+  assert.equal(getComponentValues("instance", "ghost").displayName, undefined);
+});
+
+test("a container name that could escape the data directory is rejected", async () => {
+  const c = await signedInClient(base);
+  for (const containerName of ["..", "../x", "a/b", ".hidden"]) {
+    const res = await c.post("/api/stack/instances", { ...PROVIDER, containerName });
+    assert.equal(res.status, 400, containerName);
+    assert.ok(res.body.errors.some((e) => e.key === "containerName"), containerName);
+  }
 });

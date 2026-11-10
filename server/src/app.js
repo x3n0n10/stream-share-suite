@@ -16,6 +16,21 @@ export function createApp({ serveStatic = true } = {}) {
   // Cookies must be able to carry Secure when Caddy terminates TLS in front.
   app.set("trust proxy", true);
 
+  // On every response, API and UI alike. Everything the UI loads comes from
+  // this origin; inline styles stay allowed because React sets style props.
+  // frame-ancestors and X-Frame-Options stop another site framing the admin
+  // UI to trick clicks.
+  app.use((req, res, next) => {
+    res.set({
+      "Content-Security-Policy":
+        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'",
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+    });
+    next();
+  });
+
   app.use("/api", express.json({ limit: "256kb" }), attachSession, createApiRouter());
 
   // Liveness only — deliberately unauthenticated, and deliberately not a

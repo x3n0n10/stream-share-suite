@@ -22,6 +22,8 @@
 //                         health checking is on — the VPN watchdog's own
 //                         schedule decides when to probe, not the instance's
 
+import { CONTAINER_NAME_RULE } from "./registry.js";
+
 export const INSTANCE_SCHEMA = {
   kind: "instance",
   label: "StreamShare instance",
@@ -360,6 +362,7 @@ export const INSTANCE_SCHEMA = {
     {
       key: "containerName",
       envVar: null,
+      ...CONTAINER_NAME_RULE,
       label: "Container name",
       help: "Defaults to the Suite's container prefix followed by this instance's slug — see the preview above the Create button. Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
       group: "Container",

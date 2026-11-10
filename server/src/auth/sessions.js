@@ -26,6 +26,13 @@ export function hashToken(token) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+// What the page sends back in X-Suite-CSRF. Derived from the session token
+// rather than equal to it: the cookie is HttpOnly so scripts cannot read the
+// session token, and this value, which scripts can read, must not give it away.
+export function csrfTokenFor(sessionToken) {
+  return hashToken(`${sessionToken}:csrf`);
+}
+
 export function createSession(userId, { userAgent } = {}) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
@@ -97,7 +104,7 @@ export function pruneExpiredSessions() {
   getDatabase().prepare("DELETE FROM sessions WHERE expires_at <= datetime('now')").run();
 }
 
-// Constant-time compare for the CSRF double-submit check below.
+// Constant-time compare, used for the CSRF check and the API token.
 export function safeEqual(a, b) {
   const bufA = Buffer.from(String(a || ""));
   const bufB = Buffer.from(String(b || ""));

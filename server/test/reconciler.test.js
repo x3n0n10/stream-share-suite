@@ -16,6 +16,7 @@ let requests;
 let containers; // name -> { Id, Config: { Labels }, running: bool }
 let nextId;
 let pulledImageId; // what the next pull "produces" for images/{name}/json
+let pullError; // when set, pulls report this error the way Docker does
 
 before(async () => {
   server = createServer((req, res) => {
@@ -39,6 +40,7 @@ beforeEach(() => {
   containers = new Map();
   nextId = 1;
   pulledImageId = "sha256:unchanged";
+  pullError = null;
 });
 
 function json(res, status, body) {
@@ -111,7 +113,7 @@ function route(method, url, res, body) {
 
   if (method === "POST" && url.pathname === "/v1.43/images/create") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "Status: Downloaded newer image" }));
+    res.end(JSON.stringify(pullError ? { error: pullError } : { status: "Status: Downloaded newer image" }));
     return;
   }
 
@@ -355,6 +357,23 @@ test("applying a 'recreate' plan stops and removes the old container before crea
   const deleteIdx = order.findIndex((r) => r === "DELETE /v1.43/containers/old-id");
   const createIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
   assert.ok(stopIdx >= 0 && deleteIdx > stopIdx && createIdx > deleteIdx);
+});
+
+test("a failed pull leaves the running container alone", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "old-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "stale-hash") },
+    running: true,
+    image: "qmcgaw/gluetun:v3.39", // differs from SPEC.image, so a pull is attempted
+  });
+  pullError = "manifest unknown";
+
+  const plan = await planComponent(NODE, SPEC);
+  await assert.rejects(applyPlan(plan, { log: () => {} }), /manifest unknown/);
+
+  assert.equal(containers.get("stream-share-gluetun")?.running, true, "the old container must still be running");
+  assert.equal(requests.some((r) => r.method === "DELETE"), false, "nothing may be removed before the pull succeeds");
 });
 
 test("plans 'adopt' when a container exists under the name but carries none of our labels", async () => {

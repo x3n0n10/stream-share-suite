@@ -10,6 +10,7 @@ import {
   createSession,
   destroyAllSessions,
   destroySession,
+  csrfTokenFor,
 } from "../auth/sessions.js";
 import {
   clearLoginAttempts,
@@ -47,7 +48,7 @@ export function createAuthRouter() {
       authenticated: !!req.user,
       username: req.user ? req.user.username : null,
       // The frontend echoes this on state-changing requests; see requireCsrf.
-      csrfToken: req.sessionToken || null,
+      csrfToken: req.sessionToken ? csrfTokenFor(req.sessionToken) : null,
     });
   });
 
@@ -77,7 +78,7 @@ export function createAuthRouter() {
 
     const session = createSession(user.id, { userAgent: req.get("User-Agent") });
     setSessionCookie(req, res, session);
-    res.json({ username: user.username, csrfToken: session.token });
+    res.json({ username: user.username, csrfToken: csrfTokenFor(session.token) });
   });
 
   router.post("/login", throttleLogin, async (req, res) => {
@@ -99,7 +100,7 @@ export function createAuthRouter() {
     clearLoginAttempts(req);
     const session = createSession(user.id, { userAgent: req.get("User-Agent") });
     setSessionCookie(req, res, session);
-    res.json({ username: user.username, csrfToken: session.token });
+    res.json({ username: user.username, csrfToken: csrfTokenFor(session.token) });
   });
 
   router.post("/logout", requireCsrf, (req, res) => {

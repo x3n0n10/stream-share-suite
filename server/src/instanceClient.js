@@ -1,6 +1,8 @@
 // Thin client for a single stream-share instance's internal API.
 // Every call is made fresh at request time — nothing is persisted here.
 
+import { withTimeout } from "./http.js";
+
 class InstanceError extends Error {
   constructor(message, status) {
     super(message);
@@ -19,10 +21,7 @@ async function callInstance(instance, path, { timeoutMs, query, method, body } =
     }
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
+  return withTimeout(timeoutMs, InstanceError, async (signal) => {
     const res = await fetch(url, {
       method: method || "GET",
       headers: {
@@ -30,7 +29,7 @@ async function callInstance(instance, path, { timeoutMs, query, method, body } =
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
+      signal,
     });
 
     let responseBody;
@@ -45,15 +44,7 @@ async function callInstance(instance, path, { timeoutMs, query, method, body } =
     }
 
     return responseBody.data;
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new InstanceError(`Timed out after ${timeoutMs}ms`, 504);
-    }
-    if (err instanceof InstanceError) throw err;
-    throw new InstanceError(err.message || "Request failed", 502);
-  } finally {
-    clearTimeout(timer);
-  }
+  });
 }
 
 // Reads an instance's provider subscription. Normally that is a cache read on
@@ -210,14 +201,9 @@ export async function deleteIPAlias(instance, ipAddress, { timeoutMs }) {
 // read normally; anything else really is a failure to reach the instance.
 export async function fetchHealth(instance, { timeoutMs }) {
   const url = `${instance.url}/api/internal/health`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const res = await fetch(url, {
-      headers: { "X-API-Key": instance.apiKey },
-      signal: controller.signal,
-    });
+  return withTimeout(timeoutMs, InstanceError, async (signal) => {
+    const res = await fetch(url, { headers: { "X-API-Key": instance.apiKey }, signal });
 
     let body;
     try {
@@ -231,15 +217,7 @@ export async function fetchHealth(instance, { timeoutMs }) {
     }
 
     return { status: body.status || "unknown", detail: body.detail || null };
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new InstanceError(`Timed out after ${timeoutMs}ms`, 504);
-    }
-    if (err instanceof InstanceError) throw err;
-    throw new InstanceError(err.message || "Request failed", 502);
-  } finally {
-    clearTimeout(timer);
-  }
+  });
 }
 
 // Asks the instance itself which version it is running. Older stream-share
@@ -247,14 +225,9 @@ export async function fetchHealth(instance, { timeoutMs }) {
 // back to what the image says" rather than as an error worth showing.
 export async function fetchVersion(instance, { timeoutMs }) {
   const url = `${instance.url}/api/internal/version`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const res = await fetch(url, {
-      headers: { "X-API-Key": instance.apiKey },
-      signal: controller.signal,
-    });
+  return withTimeout(timeoutMs, InstanceError, async (signal) => {
+    const res = await fetch(url, { headers: { "X-API-Key": instance.apiKey }, signal });
     if (!res.ok) throw new InstanceError(`HTTP ${res.status}`, res.status);
 
     let body;
@@ -267,15 +240,7 @@ export async function fetchVersion(instance, { timeoutMs }) {
     const version = typeof body?.data?.version === "string" ? body.data.version.trim() : "";
     if (!version) throw new InstanceError("Response carried no version", 502);
     return version;
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new InstanceError(`Timed out after ${timeoutMs}ms`, 504);
-    }
-    if (err instanceof InstanceError) throw err;
-    throw new InstanceError(err.message || "Request failed", 502);
-  } finally {
-    clearTimeout(timer);
-  }
+  });
 }
 
 export { InstanceError };

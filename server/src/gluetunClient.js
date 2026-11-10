@@ -2,6 +2,7 @@
 // https://github.com/qdm12/gluetun-wiki/blob/main/setup/advanced/control-server.md
 
 import { setTimeout as sleep } from "node:timers/promises";
+import { withTimeout } from "./http.js";
 
 class GluetunError extends Error {
   constructor(message, status) {
@@ -26,10 +27,8 @@ function authHeaders(gluetun) {
 
 async function request(gluetun, path, options = {}) {
   const url = `${gluetun.url}${path}`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), gluetun.timeoutMs);
 
-  try {
+  return withTimeout(gluetun.timeoutMs, GluetunError, async (signal) => {
     const res = await fetch(url, {
       ...options,
       headers: {
@@ -37,7 +36,7 @@ async function request(gluetun, path, options = {}) {
         ...authHeaders(gluetun),
         ...(options.headers || {}),
       },
-      signal: controller.signal,
+      signal,
     });
 
     const text = await res.text();
@@ -52,15 +51,7 @@ async function request(gluetun, path, options = {}) {
       throw new GluetunError(body.error || body.message || `HTTP ${res.status}`, res.status);
     }
     return body;
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new GluetunError(`Timed out after ${gluetun.timeoutMs}ms`, 504);
-    }
-    if (err instanceof GluetunError) throw err;
-    throw new GluetunError(err.message || "Request failed", 502);
-  } finally {
-    clearTimeout(timer);
-  }
+  });
 }
 
 export async function getVpnStatus(gluetun) {

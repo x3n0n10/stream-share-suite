@@ -76,6 +76,8 @@ const PROVIDER_NOTES = {
   windscribe: NEEDS_WIREGUARD_ADDRESS,
 };
 
+import { CONTAINER_NAME_RULE } from "./registry.js";
+
 export const GLUETUN_SCHEMA = {
   kind: "gluetun",
   label: "Gluetun (VPN)",
@@ -198,6 +200,7 @@ export const GLUETUN_SCHEMA = {
     {
       key: "containerName",
       envVar: null,
+      ...CONTAINER_NAME_RULE,
       label: "Container name",
       help: "Defaults to the Suite's container prefix followed by gluetun (streamshare-suite-gluetun unless overridden). Point it at a container you already run and the Suite will adopt that one instead of creating a second.",
       group: "Advanced",

@@ -10,7 +10,9 @@ do. Drag the divider to resize the panes. The Suite remembers the position.
 Saving a configuration under **Stack** does not change Docker straight away. The
 Suite renders a container spec, hashes it, and compares the hash with what is
 deployed. Applying runs whatever the comparison calls for, as a background job
-with a log you can watch.
+with a log you can watch. Only one runs at a time: starting another while one is
+still going is refused until it finishes. An image is pulled before the old
+container is stopped, so a failed pull leaves the running one alone.
 
 Changes are reviewed across the whole stack, not one component at a time. Order
 matters once components depend on each other. The plan is sorted by dependency,

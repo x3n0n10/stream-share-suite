@@ -248,3 +248,27 @@ test("an unreachable proxy is reported as a DockerError, not a raw fetch failure
     process.env.DOCKER_PROXY_URL = original;
   }
 });
+
+test("pullImage sends a digest reference whole, with no tag", async () => {
+  const { pullImage } = await client();
+  queue((res) => json(res, 200, { status: "ok" }));
+
+  await pullImage("ghcr.io/x3n0n10/stream-share@sha256:abc123");
+
+  assert.equal(requests[0].query.get("fromImage"), "ghcr.io/x3n0n10/stream-share@sha256:abc123");
+  assert.equal(requests[0].query.has("tag"), false);
+});
+
+test("pullImage still splits a tag, and ignores a registry port", async () => {
+  const { pullImage } = await client();
+  queue((res) => json(res, 200, { status: "ok" }));
+  queue((res) => json(res, 200, { status: "ok" }));
+
+  await pullImage("myregistry:5000/repo:v2");
+  await pullImage("myregistry:5000/repo");
+
+  assert.equal(requests[0].query.get("fromImage"), "myregistry:5000/repo");
+  assert.equal(requests[0].query.get("tag"), "v2");
+  assert.equal(requests[1].query.get("fromImage"), "myregistry:5000/repo");
+  assert.equal(requests[1].query.get("tag"), "latest");
+});
