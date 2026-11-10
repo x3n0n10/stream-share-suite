@@ -356,3 +356,8 @@ test("the ACME email cannot carry a newline into the Caddyfile", () => {
   assert.ok(validate(CADDY_SCHEMA, values).some((e) => e.key === "acmeEmail"));
   assert.equal(validate(CADDY_SCHEMA, { tlsMode: "acme", acmeEmail: "me@example.com" }).some((e) => e.key === "acmeEmail"), false);
 });
+
+test("toPublicFields passes requiredWhen through so the form can show the asterisk only when it applies", () => {
+  const schema = { fields: [{ key: "t", label: "Token", required: true, requiredWhen: { key: "on", equals: "true" } }] };
+  assert.deepEqual(toPublicFields(schema, {})[0].requiredWhen, { key: "on", equals: "true" });
+});

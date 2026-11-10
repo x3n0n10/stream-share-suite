@@ -202,6 +202,7 @@ export function toPublicFields(schema, values) {
       secret: !!field.secret,
       advanced: !!field.advanced,
       required: !!field.required,
+      requiredWhen: field.requiredWhen || null,
       dependsOn: field.dependsOn || null,
     };
     if (field.type === "directiveEnv") {
