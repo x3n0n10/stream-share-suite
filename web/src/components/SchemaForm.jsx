@@ -52,6 +52,16 @@ export default function SchemaForm({
     return conditions.every(conditionMet);
   }
 
+  // A field with `requiredWhen` is only mandatory while that condition holds
+  // (a Discord token only with Discord on), so the asterisk must follow it
+  // rather than the bare `required` flag.
+  function isRequired(field) {
+    if (!field.required) return false;
+    if (!field.requiredWhen) return true;
+    const conditions = Array.isArray(field.requiredWhen) ? field.requiredWhen : [field.requiredWhen];
+    return conditions.every(conditionMet);
+  }
+
   function set(key, value) {
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
@@ -94,6 +104,7 @@ export default function SchemaForm({
                   {beforeField?.[field.key]}
                   <FieldInput
                     field={field}
+                    required={isRequired(field)}
                     value={draft[field.key]}
                     onChange={set}
                     extra={
@@ -117,6 +128,7 @@ export default function SchemaForm({
                     <FieldInput
                       key={field.key}
                       field={field}
+                      required={isRequired(field)}
                       value={draft[field.key]}
                       onChange={set}
                       componentKey={componentKey}
@@ -154,7 +166,7 @@ export default function SchemaForm({
   );
 }
 
-function FieldInput({ field, value, onChange, extra, componentKey, draft }) {
+function FieldInput({ field, required, value, onChange, extra, componentKey, draft }) {
   const hint =
     field.type === "directiveEnv"
       ? field.help
@@ -187,7 +199,7 @@ function FieldInput({ field, value, onChange, extra, componentKey, draft }) {
     >
       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
         {field.label}
-        {field.required && <span className="text-rose-500"> *</span>}
+        {required && <span className="text-rose-500"> *</span>}
       </span>
       {renderControl(field, value, onChange, extra, componentKey, draft)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
