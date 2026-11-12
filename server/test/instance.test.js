@@ -25,6 +25,7 @@ import { VPN_ENABLED_SETTING } from "../src/reconcile/catalog.js";
 import { setSetting } from "../src/store/settings.js";
 import { saveComponentValues, getComponentValues } from "../src/store/components.js";
 import { managedLabels } from "../src/docker/labels.js";
+import { computeSpecHash } from "../src/docker/spec.js";
 import { loadConfig } from "../src/config.js";
 import { freshDatabase } from "./helpers.js";
 import { INSTANCE_SCHEMA } from "../src/schema/instance.js";
@@ -742,6 +743,20 @@ test("error slates on with custom messages: written into the config mount, path 
   assert.equal(spec.env.ERROR_SLATE_MESSAGES_FILE, "/root/error-slate-messages.json");
   const written = readFileSync(`${configMountPath(spec)}/error-slate-messages.json`, "utf8");
   assert.equal(written, messages);
+});
+
+test("editing the custom messages changes the container's spec hash, so Apply recreates it", async () => {
+  configureStack();
+  vpn(false);
+  const { key } = provisionInstance({ ...PROVIDER, errorSlateEnabled: "true", errorSlateMessages: '{"404":{"message":"one"}}' });
+  const hashWith = async (messages) => {
+    saveComponentValues("instance", { ...getComponentValues("instance", key), errorSlateMessages: messages }, key);
+    return computeSpecHash(await renderInstanceSpec(getComponentValues("instance", key), key));
+  };
+
+  const first = await hashWith('{"404":{"message":"one"}}');
+  assert.equal(await hashWith('{"404":{"message":"one"}}'), first, "same messages, same hash");
+  assert.notEqual(await hashWith('{"404":{"message":"two"}}'), first, "different messages, different hash");
 });
 
 test("error slates enabled but messages left blank writes no file", async () => {
