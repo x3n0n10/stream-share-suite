@@ -68,7 +68,8 @@ The form is grouped. Each group maps to something StreamShare can do:
 - **Error slates:** instead of a frozen picture or a dropped connection, viewers
   see the reason on screen when the provider fails. Override the message per HTTP
   status code, or per connection failure (`UNREACHABLE`, `TIMEOUT`, `DNS`, `TLS`),
-  and adjust the retry window.
+  or for catchup with no recording at the requested time (`NO_RECORDING`), and
+  adjust the retry window.
 - **Container:** image, container name, port, and extra environment variables
   (under Advanced).
 

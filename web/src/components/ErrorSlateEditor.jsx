@@ -39,7 +39,7 @@ function Label({ children }) {
 // Alongside any numeric HTTP status code, stream-share also accepts these
 // synthetic codes for connection-level failures that never got a status code
 // in the first place.
-const SYNTHETIC_CODES = ["UNREACHABLE", "TIMEOUT", "DNS", "TLS"];
+const SYNTHETIC_CODES = ["UNREACHABLE", "TIMEOUT", "DNS", "TLS", "NO_RECORDING"];
 const CODE_LIST_ID = "error-slate-synthetic-codes";
 
 export default function ErrorSlateEditor({ value, onChange }) {
