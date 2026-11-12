@@ -6,6 +6,7 @@
 // binding host ports, so gluetun publishes on its behalf (see gluetun.js).
 // With it off the instance sits on an ordinary network and publishes its own.
 
+import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { INSTANCE_SCHEMA } from "../schema/instance.js";
@@ -166,6 +167,11 @@ export async function renderInstanceSpec(values, key) {
   if (values.errorSlateEnabled === "true" && String(values.errorSlateMessages || "").trim()) {
     writeFileSync(path.join(configDir, "error-slate-messages.json"), values.errorSlateMessages);
     env.ERROR_SLATE_MESSAGES_FILE = `${CONFIG_MOUNT}/error-slate-messages.json`;
+    // Not read by stream-share, which loads the file once at startup. The spec
+    // hash covers env but not file contents, so without this an edit to the
+    // messages would plan as "no change" and never reach the running container
+    // (the same reason Caddy carries CADDY_CONFIG_HASH).
+    env.ERROR_SLATE_MESSAGES_HASH = createHash("sha256").update(values.errorSlateMessages).digest("hex");
   }
 
   // Fixed rather than asked, once health checking is on: the VPN watchdog
