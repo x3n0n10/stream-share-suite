@@ -8,6 +8,7 @@
 import { Router } from "express";
 import {
   fetchInstanceSnapshot,
+  fetchStatus,
   fetchHistory,
   fetchStats,
   fetchUsers,
@@ -88,6 +89,20 @@ export function createOpsRouter() {
       )
     );
     res.json({ hours, instances: snapshots });
+  });
+
+  // Just the number of streams playing right now, for the sidebar badge, which
+  // polls from every page: one /status call per instance instead of the whole
+  // overview snapshot. An instance that cannot answer counts as zero.
+  router.get("/active-streams", async (req, res) => {
+    const results = await Promise.allSettled(
+      req.config.instances.map((instance) => fetchStatus(instance, timeouts(req)))
+    );
+    const activeStreams = results.reduce(
+      (sum, r) => sum + (r.status === "fulfilled" ? Number(r.value?.streams_count) || 0 : 0),
+      0
+    );
+    res.json({ activeStreams });
   });
 
   // Chronological watch history merged across every instance, newest first.

@@ -1,13 +1,11 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-import HoursSelect from "../components/HoursSelect.jsx";
-import { Card, StatTile, Badge, StatusDot, EmptyState, ErrorNote, Skeleton, TechSummary, RefreshButton, PollStatus } from "../components/common.jsx";
+import { Card, Badge, StatusDot, EmptyState, ErrorNote, Skeleton, TechSummary, RefreshButton, PollStatus } from "../components/common.jsx";
 import { SubscriptionSummary } from "../components/Subscription.jsx";
-import { IconOverview, IconPlay, IconUsers, IconHistory, IconTag } from "../components/Icons.jsx";
+import { IconUsers, IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatNumber, titleCase } from "../lib/format.js";
+import { formatDuration, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
 
 // stream-share instances running the IP-alias feature return viewers as
@@ -24,26 +22,9 @@ function isAliasable(v) {
 }
 
 export default function Overview({ pollIntervalMs }) {
-  const [hours, setHours] = useState(24);
-  const { data, error, loading, updatedAt, refresh } = usePolling(
-    () => api.overview(hours),
-    pollIntervalMs,
-    [hours]
-  );
+  const { data, error, loading, updatedAt, refresh } = usePolling(() => api.overview(), pollIntervalMs);
 
   const instances = data?.instances || [];
-  const online = instances.filter((i) => i.online);
-
-  const totals = instances.reduce(
-    (acc, i) => {
-      acc.activeStreams += i.stats?.active_streams ?? i.status?.streams_count ?? 0;
-      acc.activeViewers += i.stats?.active_viewers ?? i.status?.users_count_active ?? 0;
-      acc.sessions += i.stats?.sessions ?? 0;
-      acc.watchSeconds += i.stats?.watch_seconds ?? 0;
-      return acc;
-    },
-    { activeStreams: 0, activeViewers: 0, sessions: 0, watchSeconds: 0 }
-  );
 
   const nowPlaying = instances
     .flatMap((i) =>
@@ -54,12 +35,7 @@ export default function Overview({ pollIntervalMs }) {
   return (
     <Layout
       title="Overview"
-      headerExtra={
-        <>
-          <HoursSelect hours={hours} onChange={setHours} />
-          <RefreshButton onClick={refresh} />
-        </>
-      }
+      headerExtra={<RefreshButton onClick={refresh} />}
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <PollStatus updatedAt={updatedAt} />
@@ -67,68 +43,10 @@ export default function Overview({ pollIntervalMs }) {
       </div>
 
       {loading && !data ? (
-        <SkeletonGrid />
+        <PageSkeleton />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <StatTile
-              label="Instances online"
-              value={`${online.length}/${instances.length}`}
-              icon={IconOverview}
-              tone={online.length === instances.length ? "green" : "amber"}
-            />
-            <StatTile label="Active streams" value={formatNumber(totals.activeStreams)} icon={IconPlay} tone="accent" />
-            <StatTile label="Active viewers" value={formatNumber(totals.activeViewers)} icon={IconUsers} tone="default" />
-            <StatTile
-              label="Watch time (window)"
-              value={formatDuration(totals.watchSeconds)}
-              sublabel={`${formatNumber(totals.sessions)} sessions`}
-              icon={IconHistory}
-              tone="default"
-            />
-          </div>
-
-          <section className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Instances</h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {instances.map((i) => (
-                <Card key={i.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <StatusDot online={i.online} />
-                      <span className="truncate font-medium text-slate-900 dark:text-white">{i.name}</span>
-                    </div>
-                    <Badge tone={i.online ? "green" : "rose"}>{i.online ? "online" : "offline"}</Badge>
-                  </div>
-                  {i.online ? (
-                    <>
-                      <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-sm">
-                        <dt className="text-slate-400">Streams</dt>
-                        <dd className="text-right font-medium text-slate-700 dark:text-slate-200">
-                          {i.stats?.active_streams ?? i.status?.streams_count ?? 0}
-                        </dd>
-                        <dt className="text-slate-400">Viewers</dt>
-                        <dd className="text-right font-medium text-slate-700 dark:text-slate-200">
-                          {i.stats?.active_viewers ?? i.status?.users_count_active ?? 0}
-                        </dd>
-                        <dt className="text-slate-400">Uptime</dt>
-                        <dd className="text-right font-medium text-slate-700 dark:text-slate-200">
-                          {i.instance ? formatDuration(i.instance.uptime_seconds) : "—"}
-                        </dd>
-                      </dl>
-                      {/* Renders nothing for instances with no Xtream provider,
-                          or running a stream-share without the endpoint. */}
-                      <SubscriptionSummary provider={i.provider} />
-                    </>
-                  ) : (
-                    <p className="mt-3 text-xs text-rose-500 dark:text-rose-400">{i.error || "Unreachable"}</p>
-                  )}
-                </Card>
-              ))}
-            </div>
-          </section>
-
-          <section className="mt-8">
+          <section>
             <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Now playing</h2>
             {nowPlaying.length === 0 ? (
               <EmptyState title="Nothing is playing" subtitle="Active streams across every instance will show up here." />
@@ -202,18 +120,60 @@ export default function Overview({ pollIntervalMs }) {
               </Card>
             )}
           </section>
+
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Instances</h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {instances.map((i) => (
+                <Card key={i.id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <StatusDot online={i.online} />
+                      <span className="truncate font-medium text-slate-900 dark:text-white">{i.name}</span>
+                    </div>
+                    <Badge tone={i.online ? "green" : "rose"}>{i.online ? "online" : "offline"}</Badge>
+                  </div>
+                  {i.online ? (
+                    <>
+                      <dl className="mt-3 grid grid-cols-2 gap-y-1.5 text-sm">
+                        <dt className="text-slate-400">Streams</dt>
+                        <dd className="text-right font-medium text-slate-700 dark:text-slate-200">
+                          {i.stats?.active_streams ?? i.status?.streams_count ?? 0}
+                        </dd>
+                        <dt className="text-slate-400">Viewers</dt>
+                        <dd className="text-right font-medium text-slate-700 dark:text-slate-200">
+                          {i.stats?.active_viewers ?? i.status?.users_count_active ?? 0}
+                        </dd>
+                        <dt className="text-slate-400">Uptime</dt>
+                        <dd className="text-right font-medium text-slate-700 dark:text-slate-200">
+                          {i.instance ? formatDuration(i.instance.uptime_seconds) : "—"}
+                        </dd>
+                      </dl>
+                      {/* Renders nothing for instances with no Xtream provider,
+                          or running a stream-share without the endpoint. */}
+                      <SubscriptionSummary provider={i.provider} />
+                    </>
+                  ) : (
+                    <p className="mt-3 text-xs text-rose-500 dark:text-rose-400">{i.error || "Unreachable"}</p>
+                  )}
+                </Card>
+              ))}
+            </div>
+          </section>
         </>
       )}
     </Layout>
   );
 }
 
-function SkeletonGrid() {
+function PageSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-24" />
-      ))}
+    <div className="flex flex-col gap-8">
+      <Skeleton className="h-40" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+      </div>
     </div>
   );
 }

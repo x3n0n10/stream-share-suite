@@ -38,37 +38,6 @@ export function Card({ children, className = "" }) {
   );
 }
 
-export function StatTile({ label, value, sublabel, icon: Icon, tone = "default" }) {
-  const toneClasses = {
-    default: "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/30",
-    green: "text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/30",
-    amber: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30",
-    rose: "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30",
-  };
-  return (
-    <Card className="p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            {label}
-          </p>
-          <p className="mt-1.5 font-display text-2xl font-bold tabular-nums text-slate-900 dark:text-white sm:text-3xl">
-            {value}
-          </p>
-          {sublabel && (
-            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">{sublabel}</p>
-          )}
-        </div>
-        {Icon && (
-          <div className={`shrink-0 rounded-xl p-2.5 ${toneClasses[tone]}`}>
-            <Icon className="h-5 w-5" />
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
-
 export function Badge({ children, tone = "slate" }) {
   const toneClasses = {
     slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",

@@ -25,10 +25,11 @@ import {
 } from "./Icons.jsx";
 import { useTheme } from "../lib/useTheme.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
+import { useActiveStreams } from "../lib/ActiveStreamsContext.jsx";
 import { api } from "../lib/api.js";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Overview", icon: IconOverview, end: true },
+  { to: "/", label: "Overview", icon: IconOverview, end: true, badge: "activeStreams" },
   { to: "/users", label: "Users", icon: IconUsers, requiresInstances: true },
   { to: "/history", label: "History", icon: IconHistory, requiresInstances: true },
   { to: "/leaderboard", label: "Leaderboard", icon: IconTrophy, requiresInstances: true },
@@ -58,6 +59,24 @@ function isNavItemVisible(item, { hasInstances, vpnAvailable }) {
   return true;
 }
 
+// A nav icon, with a count bubble on its corner when the item has a badge and
+// the count is above zero. The count is also read out for screen readers.
+function NavIcon({ item }) {
+  const activeStreams = useActiveStreams();
+  const count = item.badge === "activeStreams" ? activeStreams : 0;
+  return (
+    <span className="relative shrink-0">
+      <item.icon className="h-5 w-5" />
+      {count > 0 && (
+        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[10px] font-bold leading-none text-white">
+          {count > 99 ? "99+" : count}
+          <span className="sr-only"> active streams</span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 function NavList({ items, onNavigate, collapsed = false }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
@@ -81,7 +100,7 @@ function NavList({ items, onNavigate, collapsed = false }) {
               }`
             }
           >
-            <item.icon className="h-5 w-5 shrink-0" />
+            <NavIcon item={item} />
             <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
           </NavLink>
         )
@@ -237,11 +256,11 @@ export default function Layout({ title, children, headerExtra }) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
-        {mobileNavItems.map(({ to, label, icon: Icon, end }) => (
+        {mobileNavItems.map((item) => (
           <NavLink
-            key={to}
-            to={to}
-            end={end}
+            key={item.to}
+            to={item.to}
+            end={item.end}
             className={({ isActive }) =>
               `flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
                 isActive
@@ -250,8 +269,8 @@ export default function Layout({ title, children, headerExtra }) {
               }`
             }
           >
-            <Icon className="h-5 w-5" />
-            {label}
+            <NavIcon item={item} />
+            {item.label}
           </NavLink>
         ))}
       </nav>
