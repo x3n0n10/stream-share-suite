@@ -125,6 +125,7 @@ export const api = {
       throw err;
     }
   },
+  activeStreams: () => get("/api/active-streams"),
   history: (hours, limit) => get("/api/history", { hours, limit }),
   leaderboard: (hours) => get("/api/leaderboard", { hours }),
   users: () => get("/api/users"),

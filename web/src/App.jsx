@@ -15,6 +15,7 @@ import Setup from "./pages/Setup.jsx";
 import SignIn from "./pages/SignIn.jsx";
 import { api, setCsrfToken, setUnauthorizedHandler } from "./lib/api.js";
 import { ConfigProvider } from "./lib/ConfigContext.jsx";
+import { ActiveStreamsProvider } from "./lib/ActiveStreamsContext.jsx";
 
 // Four states, and they have to be distinguished: still checking, no admin
 // exists yet, signed out, signed in. Collapsing the first into the third
@@ -99,20 +100,22 @@ export default function App() {
 
   return (
     <ConfigProvider config={config}>
-      <Routes>
-        <Route path="/" element={<Overview pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/history" element={<History pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/leaderboard" element={<Leaderboard pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/users" element={<Users pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/aliases" element={<Aliases pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/instances" element={<Instances pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/vpn" element={<Vpn pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/vod" element={<Vod />} />
-        <Route path="/shares" element={<ShareLinks pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/settings" element={<Settings onConfigChanged={loadConfig} />} />
-        <Route path="/stack" element={<Stack pollIntervalMs={pollIntervalMs} />} />
-        <Route path="/setup" element={<Setup />} />
-      </Routes>
+      <ActiveStreamsProvider pollIntervalMs={pollIntervalMs}>
+        <Routes>
+          <Route path="/" element={<Overview pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/history" element={<History pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/leaderboard" element={<Leaderboard pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/users" element={<Users pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/aliases" element={<Aliases pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/instances" element={<Instances pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/vpn" element={<Vpn pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/vod" element={<Vod />} />
+          <Route path="/shares" element={<ShareLinks pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/settings" element={<Settings onConfigChanged={loadConfig} />} />
+          <Route path="/stack" element={<Stack pollIntervalMs={pollIntervalMs} />} />
+          <Route path="/setup" element={<Setup />} />
+        </Routes>
+      </ActiveStreamsProvider>
     </ConfigProvider>
   );
 }

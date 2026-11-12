@@ -13,7 +13,7 @@ as `current → latest`. See
 
 | Page | What it does |
 | --- | --- |
-| **Overview** | Live status of every instance: active streams and users, subscription status |
+| **Overview** | What is playing right now across every instance, then each instance's status, streams, viewers and subscription. A badge on the menu icon counts the active streams, on every page |
 | **Users** | Known sessions: who is connected, and what they are playing |
 | **History** | Searchable watch history across instances |
 | **Leaderboard** | Top users and titles by watch time |

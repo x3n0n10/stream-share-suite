@@ -64,13 +64,19 @@ async function fetchProviderInfo(instance, { timeoutMs, refresh }) {
   }
 }
 
+// Live status only (stream and viewer counts): one request, for callers that
+// poll often and need nothing else, like the sidebar's active-streams badge.
+export async function fetchStatus(instance, { timeoutMs }) {
+  return callInstance(instance, "/status", { timeoutMs });
+}
+
 // Fetches the small set of endpoints the Overview page needs in one shot.
 // Failures are captured per-call (Promise.allSettled) so a partially-broken
 // instance (e.g. DB down but sessions up) still surfaces what it can.
 export async function fetchInstanceSnapshot(instance, { timeoutMs, hours, refreshProvider }) {
   const [instanceInfo, status, stats, provider] = await Promise.allSettled([
     callInstance(instance, "/instance", { timeoutMs }),
-    callInstance(instance, "/status", { timeoutMs }),
+    fetchStatus(instance, { timeoutMs }),
     callInstance(instance, "/stats", { timeoutMs, query: { hours } }),
     fetchProviderInfo(instance, { timeoutMs, refresh: refreshProvider }),
   ]);
