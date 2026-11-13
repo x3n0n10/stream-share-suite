@@ -15,6 +15,7 @@ import { INSTANCE_SCHEMA } from "../src/schema/instance.js";
 import { validate } from "../src/schema/registry.js";
 import { createApp } from "../src/app.js";
 import { _resetLoginThrottle } from "../src/auth/middleware.js";
+import { createInstance } from "../src/store/instances.js";
 import { freshDatabase, signedInClient } from "./helpers.js";
 
 let root;
@@ -115,6 +116,7 @@ test("GET /failover-support lists only instances that answer failover: true", as
   add("a", 8081);
   add("b", 8082);
   add("c", 8083);
+  createInstance({ name: "Ext", url: "http://127.0.0.1:8081", apiKey: "k" });
   const server = createApp({ serveStatic: false }).listen(0);
   await new Promise((resolve) => server.once("listening", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -134,4 +136,12 @@ test("GET /failover-support lists only instances that answer failover: true", as
     globalThis.fetch = realFetch;
     server.close();
   }
+});
+
+test("a peer without a valid port is skipped, not sent as http://host:NaN", () => {
+  add("a", 8081, { fallbacks: "b,c" });
+  add("b", "");
+  add("c", 8083);
+  const peers = JSON.parse(envOf("a").FAILOVER_INSTANCES);
+  assert.deepEqual(peers.map((p) => p.name), ["C"]);
 });

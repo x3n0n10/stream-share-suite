@@ -25,7 +25,7 @@ export function failoverEnv(key, values, instances) {
   const peers = [];
   for (const k of new Set(keysOf(values))) {
     const peer = byKey.get(k);
-    if (k === key || !peer?._apiKey) continue;
+    if (k === key || !peer?._apiKey || !(Number(peer.port) > 0)) continue;
     peers.push({ name: peer.displayName || k, url: peerUrl(k, peer), key: failoverKey(peer._apiKey) });
   }
 

@@ -156,10 +156,12 @@ export function createStackRouter() {
   // Which instances run a StreamShare with failover, for the fallback picker.
   // An instance that errors or stays silent is simply not listed.
   router.get("/failover-support", async (req, res) => {
+    // Managed only: external slugs share the id space with managed keys.
+    const managed = req.config.instances.filter((i) => i.managed);
     const answers = await Promise.all(
-      req.config.instances.map((i) => fetchFailoverSupport(i, { timeoutMs: 3000 }).catch(() => false))
+      managed.map((i) => fetchFailoverSupport(i, { timeoutMs: 3000 }).catch(() => false))
     );
-    res.json({ supported: req.config.instances.filter((_, n) => answers[n]).map((i) => i.id) });
+    res.json({ supported: managed.filter((_, n) => answers[n]).map((i) => i.id) });
   });
 
   // Runs the update check now instead of waiting for the daily tick. Awaits the

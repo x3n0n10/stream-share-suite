@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FIELD } from "./common.jsx";
+import { FIELD, ErrorNote } from "./common.jsx";
 import { api } from "../lib/api.js";
 import { parseItems, removeItem, joinItems } from "../lib/listItems.js";
 import { moveItem, fallbackChoices } from "../lib/failover.js";
@@ -17,11 +17,16 @@ const ICON_BUTTON =
 export default function FallbackPicker({ value, onChange, componentKey }) {
   const items = parseItems(value);
   const [instances, setInstances] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
   const [supported, setSupported] = useState(null);
 
   useEffect(() => {
     let live = true;
-    api.stackInstances().then((r) => live && setInstances(r.instances || [])).catch(() => {});
+    api
+      .stackInstances()
+      .then((r) => live && (setInstances(r.instances || []), setLoaded(true)))
+      .catch((e) => live && setError(e.message || "Could not load instances"));
     api.failoverSupport().then((r) => live && setSupported(r.supported || [])).catch(() => {});
     return () => {
       live = false;
@@ -35,7 +40,7 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
     <div className="flex flex-col gap-2" role="group" aria-label="Fallback instances">
       {items.map((key, i) => {
         const inst = instances.find((x) => x.key === key);
-        const name = inst ? inst.displayName : `${key} (removed)`;
+        const name = inst ? inst.displayName : loaded ? `${key} (removed)` : key;
         return (
           <div key={key} className={ROW}>
             <span className="min-w-0 flex-1 truncate">
@@ -58,14 +63,15 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
           </div>
         );
       })}
+      <ErrorNote message={error && `Could not load instances: ${error}`} />
       <select
         className={`${FIELD} !w-auto !py-1`}
         aria-label="Add fallback instance"
         value=""
-        disabled={choices.length === 0}
+        disabled={choices.length === 0 || !loaded}
         onChange={(e) => e.target.value && emit([...items, e.target.value])}
       >
-        <option value="">{choices.length === 0 ? "No instance to add" : "Add fallback…"}</option>
+        <option value="">{!loaded && !error ? "Loading…" : choices.length === 0 ? "No instance to add" : "Add fallback…"}</option>
         {choices.map((c) => (
           <option key={c.key} value={c.key}>
             {c.displayName}
