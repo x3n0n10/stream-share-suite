@@ -249,6 +249,21 @@ export async function fetchVersion(instance, { timeoutMs }) {
   });
 }
 
+// Whether the instance's StreamShare version supports failover; same request
+// as fetchVersion, which an old release answers without the flag.
+export async function fetchFailoverSupport(instance, { timeoutMs }) {
+  const url = `${instance.url}/api/internal/version`;
+
+  return withTimeout(timeoutMs, InstanceError, async (signal) => {
+    const res = await fetch(url, { headers: { "X-API-Key": instance.apiKey }, signal });
+    if (!res.ok) throw new InstanceError(`HTTP ${res.status}`, res.status);
+    const body = await res.json().catch(() => {
+      throw new InstanceError(`Non-JSON response (HTTP ${res.status})`, res.status);
+    });
+    return body?.data?.failover === true;
+  });
+}
+
 export { InstanceError };
 
 // Verifies a URL + API key pair against a live instance, used by the "Test

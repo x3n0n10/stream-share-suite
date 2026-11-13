@@ -224,6 +224,18 @@ test("importing an instance recovers its provider and access fields, never regen
   assert.equal(values._dbPassword, "real-db-password");
 });
 
+test("importing an instance never puts the failover variables into extraEnv", async () => {
+  const c = addContainer({
+    name: "tv3",
+    image: "ghcr.io/x3n0n10/stream-share:latest",
+    env: ["INSTANCE_NAME=P3", "FAILOVER_INSTANCES=[]", "FAILOVER_KEY=abc", "FREE_ONE=on"],
+  });
+  const { key } = await importCandidate(c.Id, "instance");
+  const { extraEnv } = getComponentValues("instance", key);
+  assert.match(extraEnv, /FREE_ONE=on/);
+  assert.doesNotMatch(extraEnv, /FAILOVER_/);
+});
+
 test("importing an instance infers LDAP auth mode from LDAP_ENABLED", async () => {
   const c = addContainer({
     name: "tv2",

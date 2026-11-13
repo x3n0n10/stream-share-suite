@@ -68,9 +68,18 @@ The form is grouped. Each group maps to something StreamShare can do:
 - **Error slates:** instead of a frozen picture or a dropped connection, viewers
   see the reason on screen when the provider fails. Override the message per HTTP
   status code, or per connection failure (`UNREACHABLE`, `TIMEOUT`, `DNS`, `TLS`),
-  or for catchup with no recording at the requested time (`NO_RECORDING`), and
+  or for catchup with no recording at the requested time (`NO_RECORDING`), or for every connection being taken by other viewers
+  (`IN_USE`), and
   adjust the retry window. StreamShare reads the messages only when it starts, so
   after changing them Apply recreates the instance.
+- **Failover:** an ordered list of other instances to try when a live channel
+  cannot start on this one, because its provider fails or all its connections are
+  in use by other viewers. Order matters: the first fallback is tried first. It
+  applies to live channels only; catchup and VOD behave as before. Each instance
+  stays within its own connection limit, so a fallback serves the channel only
+  while it has a free provider connection of its own. A fallback needs a
+  StreamShare version with failover support. Apply recreates the instances whose
+  environment changes.
 - **Container:** image, container name, port, and extra environment variables
   (under Advanced).
 

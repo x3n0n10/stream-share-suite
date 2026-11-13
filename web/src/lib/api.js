@@ -176,6 +176,7 @@ export const api = {
   saveStackSettings: (payload) => put("/api/stack/settings", payload),
   stackPlan: () => get("/api/stack/plan"),
   stackInstances: () => get("/api/stack/instances"),
+  failoverSupport: () => get("/api/stack/failover-support"),
   stackVersions: () => get("/api/stack/versions"),
   checkForUpdates: () => post("/api/stack/updates/check"),
   createStackInstance: (payload) => post("/api/stack/instances", payload),

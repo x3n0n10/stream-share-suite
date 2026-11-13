@@ -53,6 +53,7 @@ import { provisionInstance, deprovisionInstance } from "../reconcile/provisionin
 import { connectionTarget } from "../reconcile/postgres.js";
 import { testConnection } from "../reconcile/database.js";
 import { listImportCandidates, importCandidate } from "../reconcile/import.js";
+import { fetchFailoverSupport } from "../instanceClient.js";
 import { getVersions, invalidateVersions } from "../reconcile/versions.js";
 import { isAutoCheckEnabled, lastCheckedAt, withUpdates } from "../updates/check.js";
 import { kickUpdateCheck } from "../updates/scheduler.js";
@@ -150,6 +151,17 @@ export function createStackRouter() {
     } catch (err) {
       res.status(500).json({ error: `Could not read versions: ${err.message}` });
     }
+  });
+
+  // Which instances run a StreamShare with failover, for the fallback picker.
+  // An instance that errors or stays silent is simply not listed.
+  router.get("/failover-support", async (req, res) => {
+    // Managed only: external slugs share the id space with managed keys.
+    const managed = req.config.instances.filter((i) => i.managed);
+    const answers = await Promise.all(
+      managed.map((i) => fetchFailoverSupport(i, { timeoutMs: 3000 }).catch(() => false))
+    );
+    res.json({ supported: managed.filter((_, n) => answers[n]).map((i) => i.id) });
   });
 
   // Runs the update check now instead of waiting for the daily tick. Awaits the
