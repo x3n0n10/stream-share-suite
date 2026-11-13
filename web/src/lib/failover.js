@@ -1,4 +1,4 @@
-// Pure logic behind FallbackPicker and the "Lent to" labels.
+// Pure logic behind FallbackPicker and the "Through" labels.
 
 export function moveItem(items, index, delta) {
   const to = index + delta;

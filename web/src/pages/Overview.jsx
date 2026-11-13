@@ -17,7 +17,7 @@ function viewerId(v) {
 }
 function viewerLabel(v) {
   const lent = lentTo(viewerId(v));
-  if (lent) return `Lent to ${lent}`;
+  if (lent) return `Through ${lent}`;
   return typeof v === "string" ? v : v.display_name || v.id;
 }
 function isAliasable(v) {

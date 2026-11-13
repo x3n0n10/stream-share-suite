@@ -123,7 +123,7 @@ export default function History({ pollIntervalMs }) {
                           : formatDateTime(e.start_time)}
                       </td>
                       <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-100">
-                        {lentTo(e.username) ? `Lent to ${lentTo(e.username)}` : e.display_name || e.username}
+                        {lentTo(e.username) ? `Through ${lentTo(e.username)}` : e.display_name || e.username}
                         {!lentTo(e.username) && e.display_name && e.display_name !== e.username && (
                           <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                             {e.username}

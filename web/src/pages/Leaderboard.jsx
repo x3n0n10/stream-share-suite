@@ -89,7 +89,7 @@ export default function Leaderboard({ pollIntervalMs }) {
                 {users.map((u, idx) => (
                   <BarRow
                     key={`${u.username}-${idx}`}
-                    primary={lentTo(u.username) ? `Lent to ${lentTo(u.username)}` : u.username}
+                    primary={lentTo(u.username) ? `Through ${lentTo(u.username)}` : u.username}
                     secondary={u.instances.join(", ")}
                     meta={`${formatDuration(u.watch_seconds)} · ${formatNumber(u.sessions)} sessions`}
                     value={u.watch_seconds}
