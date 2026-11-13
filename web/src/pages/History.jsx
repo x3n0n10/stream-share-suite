@@ -103,17 +103,21 @@ export default function History({ pollIntervalMs }) {
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100 bg-accent-50 text-left text-xs uppercase tracking-wide text-accent-700 dark:border-slate-800 dark:bg-accent-900/20 dark:text-accent-300">
                   <tr>
+                    <th className="px-4 py-2.5 font-medium">Instance</th>
+                    <th className="px-4 py-2.5 font-medium">Type</th>
                     <th className="px-4 py-2.5 font-medium">When</th>
                     <th className="px-4 py-2.5 font-medium">User</th>
                     <th className="px-4 py-2.5 font-medium">Title</th>
-                    <th className="px-4 py-2.5 font-medium">Type</th>
-                    <th className="px-4 py-2.5 font-medium">Instance</th>
                     <th className="px-4 py-2.5 font-medium">Duration</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 [&>tr:nth-child(even)]:bg-accent-50/50 dark:[&>tr:nth-child(even)]:bg-accent-900/10">
                   {filtered.map((e, idx) => (
                     <tr key={`${e.instance_id}-${idx}-${e.start_time}`}>
+                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{e.instance_name}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge tone="slate">{titleCase(e.stream_type)}</Badge>
+                      </td>
                       <td
                         className="whitespace-nowrap px-4 py-2.5 text-slate-500 dark:text-slate-400"
                         title={relativeTime ? formatDateTime(e.start_time) : undefined}
@@ -145,10 +149,6 @@ export default function History({ pollIntervalMs }) {
                           <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">via {e.via}</span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5">
-                        <Badge tone="slate">{titleCase(e.stream_type)}</Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{e.instance_name}</td>
                       <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">
                         {formatDuration(e.duration_sec)}
                       </td>
