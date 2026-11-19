@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FIELD, ErrorNote } from "./common.jsx";
 import { api } from "../lib/api.js";
 import { parseItems, removeItem, joinItems } from "../lib/listItems.js";
-import { moveItem, fallbackChoices } from "../lib/failover.js";
+import { moveItem, fallbackChoices, unsupportedReason, needsRecheck } from "../lib/failover.js";
 
 const ROW =
   "flex items-center gap-2 rounded-lg bg-slate-100 py-1 pl-2.5 pr-1 text-xs font-medium " +
@@ -13,13 +13,15 @@ const ICON_BUTTON =
 
 // Ordered fallback instances, stored as one comma-separated string of keys
 // (first = tried first). Loads the instance list and failover support itself;
-// until then the add-select offers nothing.
+// until then the add-select offers nothing. Support is checked again when the
+// tab regains focus, and every few seconds while some instance cannot be
+// picked yet (still starting after Apply), so the list never goes stale.
 export default function FallbackPicker({ value, onChange, componentKey }) {
   const items = parseItems(value);
   const [instances, setInstances] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  const [supported, setSupported] = useState(null);
+  const [support, setSupport] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -27,29 +29,45 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
       .stackInstances()
       .then((r) => live && (setInstances(r.instances || []), setLoaded(true)))
       .catch((e) => live && setError(e.message || "Could not load instances"));
-    api.failoverSupport().then((r) => live && setSupported(r.supported || [])).catch(() => {});
     return () => {
       live = false;
     };
   }, []);
 
+  const checkSupport = useCallback(() => {
+    api.failoverSupport().then(setSupport).catch(() => {});
+  }, []);
+  useEffect(() => {
+    checkSupport();
+    window.addEventListener("focus", checkSupport);
+    return () => window.removeEventListener("focus", checkSupport);
+  }, [checkSupport]);
+
+  const waiting = needsRecheck(instances, componentKey, support);
+  useEffect(() => {
+    if (!waiting) return;
+    const timer = setInterval(checkSupport, 5000);
+    return () => clearInterval(timer);
+  }, [waiting, checkSupport]);
+
   const emit = (next) => onChange(joinItems(next));
-  const choices = fallbackChoices(instances, componentKey, items, supported);
+  const choices = fallbackChoices(instances, componentKey, items, support);
+  let placeholder = "Add fallback…";
+  if (!loaded && !error) placeholder = "Loading…";
+  else if (choices.length === 0) placeholder = "No instance to add";
+  else if (choices.every((c) => c.reason)) placeholder = "No instance to add yet";
 
   return (
     <div className="flex flex-col gap-2" role="group" aria-label="Fallback instances">
       {items.map((key, i) => {
         const inst = instances.find((x) => x.key === key);
         const name = inst ? inst.displayName : loaded ? `${key} (removed)` : key;
+        const reason = inst && unsupportedReason(key, support);
         return (
           <div key={key} className={ROW}>
             <span className="min-w-0 flex-1 truncate">
               {name}
-              {inst && supported && !supported.includes(key) && (
-                <span className="ml-1.5 font-normal text-amber-600 dark:text-amber-400">
-                  needs a newer StreamShare version
-                </span>
-              )}
+              {reason && <span className="ml-1.5 font-normal text-amber-600 dark:text-amber-400">{reason}</span>}
             </span>
             <button type="button" className={ICON_BUTTON} disabled={i === 0} aria-label={`Move ${name} up`} onClick={() => emit(moveItem(items, i, -1))}>
               ↑
@@ -71,10 +89,10 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
         disabled={choices.length === 0 || !loaded}
         onChange={(e) => e.target.value && emit([...items, e.target.value])}
       >
-        <option value="">{!loaded && !error ? "Loading…" : choices.length === 0 ? "No instance to add" : "Add fallback…"}</option>
+        <option value="">{placeholder}</option>
         {choices.map((c) => (
-          <option key={c.key} value={c.key}>
-            {c.displayName}
+          <option key={c.key} value={c.key} disabled={Boolean(c.reason)}>
+            {c.reason ? `${c.displayName} (${c.reason})` : c.displayName}
           </option>
         ))}
       </select>

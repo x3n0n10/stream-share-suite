@@ -154,14 +154,17 @@ export function createStackRouter() {
   });
 
   // Which instances run a StreamShare with failover, for the fallback picker.
-  // An instance that errors or stays silent is simply not listed.
+  // An instance that cannot be reached or times out (not created or still
+  // starting) is listed as unreachable, so the picker can say why it cannot be
+  // picked yet. One that answers with an HTTP error counts as unsupported.
   router.get("/failover-support", async (req, res) => {
     // Managed only: external slugs share the id space with managed keys.
     const managed = req.config.instances.filter((i) => i.managed);
     const answers = await Promise.all(
-      managed.map((i) => fetchFailoverSupport(i, { timeoutMs: 3000 }).catch(() => false))
+      managed.map((i) => fetchFailoverSupport(i, { timeoutMs: 3000 }).catch((e) => (e.status === 502 || e.status === 504 ? null : false)))
     );
-    res.json({ supported: managed.filter((_, n) => answers[n]).map((i) => i.id) });
+    const idsWhere = (answer) => managed.filter((_, n) => answers[n] === answer).map((i) => i.id);
+    res.json({ supported: idsWhere(true), unreachable: idsWhere(null) });
   });
 
   // Runs the update check now instead of waiting for the daily tick. Awaits the

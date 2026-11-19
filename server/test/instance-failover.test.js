@@ -112,10 +112,11 @@ test("peer address: loopback with the VPN on, container name with it off", () =>
   assert.equal(peerUrl("b", values), "http://127.0.0.1:8082");
 });
 
-test("GET /failover-support lists only instances that answer failover: true", async () => {
+test("GET /failover-support lists supporting instances, and unreachable ones apart", async () => {
   add("a", 8081);
   add("b", 8082);
   add("c", 8083);
+  add("d", 8084);
   createInstance({ name: "Ext", url: "http://127.0.0.1:8081", apiKey: "k" });
   const server = createApp({ serveStatic: false }).listen(0);
   await new Promise((resolve) => server.once("listening", resolve));
@@ -127,11 +128,12 @@ test("GET /failover-support lists only instances that answer failover: true", as
       if (u.startsWith(base)) return realFetch(url, init);
       if (u.includes(":8081/")) return Response.json({ data: { version: "1.0.0", failover: true } });
       if (u.includes(":8082/")) return Response.json({ data: { version: "1.0.0" } });
+      if (u.includes(":8084/")) return new Response("not found", { status: 404 });
       throw new Error("unreachable");
     };
     const { status, body } = await c.get("/api/stack/failover-support");
     assert.equal(status, 200);
-    assert.deepEqual(body, { supported: ["a"] });
+    assert.deepEqual(body, { supported: ["a"], unreachable: ["c"] });
   } finally {
     globalThis.fetch = realFetch;
     server.close();
