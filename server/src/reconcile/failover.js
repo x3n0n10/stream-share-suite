@@ -36,3 +36,18 @@ export function failoverEnv(key, values, instances) {
   }
   return env;
 }
+
+// Mirrors stream-share's session.FailoverIdentityPrefix.
+export const isLentViewer = (id) => String(id ?? "").startsWith("failover:");
+
+// The lender reports a stand-in viewer for a connection it lent out; the
+// borrower already shows the real viewer, so drop the stand-ins to count once.
+export function withoutLentViewers(summary) {
+  if (!Array.isArray(summary)) return [];
+  return summary.flatMap((stream) => {
+    if (!Array.isArray(stream?.viewers)) return [stream];
+    const viewers = stream.viewers.filter((v) => !isLentViewer(v?.id ?? v));
+    if (viewers.length === stream.viewers.length) return [stream];
+    return viewers.length ? [{ ...stream, viewers, viewer_count: viewers.length }] : [];
+  });
+}

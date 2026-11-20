@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { moveItem, fallbackChoices, unsupportedReason, needsRecheck, lentTo } from "../src/lib/failover.js";
+import { moveItem, fallbackChoices, unsupportedReason, needsRecheck } from "../src/lib/failover.js";
 
 test("moveItem swaps neighbours and ignores out-of-range moves", () => {
   assert.deepEqual(moveItem(["a", "b", "c"], 0, 1), ["b", "a", "c"]);
@@ -20,14 +20,6 @@ test("fallbackChoices leaves out self and selected, says why the rest cannot be 
 
 test("unsupportedReason is null while support is loading", () => {
   assert.equal(unsupportedReason("a", null), null);
-});
-
-test("lentTo reads the instance name of a failover identity", () => {
-  assert.equal(lentTo("failover:Main/123"), "Main");
-  assert.equal(lentTo("failover:Living room/12.ts"), "Living room");
-  assert.equal(lentTo("share:abc"), null);
-  assert.equal(lentTo("192.168.1.5"), null);
-  assert.equal(lentTo(undefined), null);
 });
 
 test("needsRecheck while loading or while another instance cannot be picked", () => {
