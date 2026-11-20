@@ -8,6 +8,7 @@ import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, formatDateTime, formatRelativeTime, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
+import { failoverNote } from "../lib/failover.js";
 
 export default function History({ pollIntervalMs }) {
   const [hours, setHours] = useState(24);
@@ -36,7 +37,8 @@ export default function History({ pollIntervalMs }) {
         e.display_name?.toLowerCase().includes(q) ||
         e.stream_title?.toLowerCase().includes(q) ||
         e.instance_name?.toLowerCase().includes(q) ||
-        e.via?.toLowerCase().includes(q)
+        e.via?.toLowerCase().includes(q) ||
+        e.via_channel?.toLowerCase().includes(q)
     );
   }, [feed, search]);
 
@@ -150,7 +152,7 @@ export default function History({ pollIntervalMs }) {
                       <td className="max-w-[16rem] px-4 py-2.5">
                         <p className="truncate">{e.stream_title}</p>
                         {e.via && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">Used {e.via}'s connection</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">{failoverNote(e, false)}</p>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">

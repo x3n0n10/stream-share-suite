@@ -1,4 +1,4 @@
-// Pure logic behind FallbackPicker.
+// Pure failover logic: FallbackPicker helpers and the fallback note on Overview and History.
 
 export function moveItem(items, index, delta) {
   const to = index + delta;
@@ -30,4 +30,11 @@ export function fallbackChoices(instances, selfKey, selected, support) {
   return instances
     .filter((i) => i.key !== selfKey && !selected.includes(i.key))
     .map((i) => ({ ...i, reason: unsupportedReason(i.key, support) }));
+}
+
+// The amber line under a stream served through a fallback instance. live is
+// true on Overview (now playing), false on History (past tense).
+export function failoverNote({ via, via_channel }, live) {
+  if (via_channel) return live ? `Showing ${via}'s ${via_channel} instead` : `Used ${via}'s ${via_channel}`;
+  return live ? `Using ${via}'s connection` : `Used ${via}'s connection`;
 }
