@@ -18,6 +18,7 @@ import { componentDataDir, ensureDirectory, ownershipString } from "../store/pat
 import { isVpnEnabled } from "./catalog.js";
 import { gluetunContainerName } from "./gluetun.js";
 import { connectionTarget } from "./postgres.js";
+import { failoverEnv } from "./failover.js";
 import { parseExtraEnv } from "./env.js";
 import { containerPrefix } from "./prefix.js";
 
@@ -155,6 +156,7 @@ export async function renderInstanceSpec(values, key) {
   if (cachingOn) env.CACHE_FOLDER = CACHE_MOUNT;
   env.LDAP_ENABLED = values.authMode === "ldap" ? "true" : "false";
   if (values._apiKey) env.INTERNAL_API_KEY = values._apiKey;
+  Object.assign(env, failoverEnv(key, values, listComponents("instance")));
   // Discord needs the same externally-reachable address stream-share's own
   // players already use — see schema/instance.js's Discord group header for
   // why this isn't a field asked for a second time.

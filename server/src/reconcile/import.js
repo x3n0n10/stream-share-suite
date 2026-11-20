@@ -39,6 +39,8 @@ const INSTANCE_COMPUTED_VARS = new Set([
   "DB_NAME",
   "DB_USER",
   "DB_PASSWORD",
+  "FAILOVER_INSTANCES",
+  "FAILOVER_KEY",
 ]);
 
 function parseEnvArray(envArray) {

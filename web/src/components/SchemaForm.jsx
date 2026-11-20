@@ -5,6 +5,7 @@ import ProviderCombobox from "./ProviderCombobox.jsx";
 import ChannelSearchInput from "./ChannelSearchInput.jsx";
 import DirectiveEnvEditor from "./DirectiveEnvEditor.jsx";
 import ListInput from "./ListInput.jsx";
+import FallbackPicker from "./FallbackPicker.jsx";
 
 // Renders a form from field metadata rather than hand-coded JSX — this is
 // the point of the schema registry: a new field on the server is a new row
@@ -188,7 +189,8 @@ function FieldInput({ field, required, value, onChange, extra, componentKey, dra
     field.type === "errorSlates" ||
     field.type === "directiveEnv" ||
     field.type === "combobox" ||
-    field.type === "channelSearch";
+    field.type === "channelSearch" ||
+    field.type === "fallbacks";
   const Wrapper = multiControl ? "div" : "label";
 
   return (
@@ -243,6 +245,10 @@ function renderControl(field, value, onChange, extra, componentKey, draft) {
         ariaLabel={field.label}
       />
     );
+  }
+
+  if (field.type === "fallbacks") {
+    return <FallbackPicker value={value} onChange={(next) => onChange(field.key, next)} componentKey={componentKey} />;
   }
 
   if (field.type === "checkbox") {

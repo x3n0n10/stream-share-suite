@@ -4,6 +4,7 @@ import HoursSelect from "../components/HoursSelect.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
+import { lentTo } from "../lib/failover.js";
 import { formatDuration, formatNumber, titleCase } from "../lib/format.js";
 
 function BarRow({ primary, secondary, meta, value, max }) {
@@ -88,7 +89,7 @@ export default function Leaderboard({ pollIntervalMs }) {
                 {users.map((u, idx) => (
                   <BarRow
                     key={`${u.username}-${idx}`}
-                    primary={u.username}
+                    primary={lentTo(u.username) ? `Through ${lentTo(u.username)}` : u.username}
                     secondary={u.instances.join(", ")}
                     meta={`${formatDuration(u.watch_seconds)} · ${formatNumber(u.sessions)} sessions`}
                     value={u.watch_seconds}
