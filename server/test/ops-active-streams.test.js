@@ -1,5 +1,6 @@
 // The sidebar badge's count: one cheap /status call per instance, summed.
 // An instance that cannot answer is left out rather than failing the number.
+// Overview, History and Top viewers also leave out lent (failover:) stand-in rows.
 
 import { test, before, beforeEach, after } from "node:test";
 import assert from "node:assert/strict";
@@ -84,4 +85,26 @@ test("overview leaves lent-only streams out of each instance's summary", async (
   const res = await c.get("/api/overview");
   assert.deepEqual(res.body.instances[0].status.summary, []);
   assert.equal(res.body.instances[0].status.streams_count, 1); // cards keep the instance's own count
+});
+
+test("history drops lent rows before cutting to limit", async () => {
+  const c = await signedInClient(base);
+  const t = (m) => new Date(Date.UTC(2026, 0, 1, 12, m)).toISOString();
+  await addInstance("Main", { feed: [
+    { username: "alice", start_time: t(3), via: "Spare" },
+    { username: "bob", start_time: t(1) },
+  ] });
+  await addInstance("Spare", { feed: [{ username: "failover:Main/1", start_time: t(4) }] });
+  const res = await c.get("/api/history?limit=2");
+  assert.deepEqual(res.body.feed.map((e) => e.username), ["alice", "bob"]);
+});
+
+test("top viewers leave lent users out before the top-10 cut", async () => {
+  const c = await signedInClient(base);
+  const users = Array.from({ length: 10 }, (_, i) => ({ username: `u${i}`, sessions: 1, watch_seconds: 100 + i }));
+  await addInstance("Main", { top_titles: [], top_users: users });
+  await addInstance("Spare", { top_titles: [], top_users: [{ username: "failover:Main/1", sessions: 5, watch_seconds: 9999 }] });
+  const res = await c.get("/api/leaderboard");
+  assert.equal(res.body.top_users.length, 10);
+  assert.ok(res.body.top_users.every((u) => !u.username.startsWith("failover:")));
 });

@@ -25,7 +25,7 @@ import {
   revokeShare,
   searchShareChannels,
 } from "../instanceClient.js";
-import { withoutLentViewers } from "../reconcile/failover.js";
+import { isLentViewer, withoutLentViewers } from "../reconcile/failover.js";
 import { shapeShare } from "../shareLinks.js";
 import { getVpnStatus, setVpnStatus, getPublicIP, reconnectVpn } from "../gluetunClient.js";
 
@@ -132,6 +132,7 @@ export function createOpsRouter() {
     const merged = [];
     const errors = collect(req.config, results, (instance, value) => {
       for (const item of value.feed || []) {
+        if (isLentViewer(item.username)) continue;
         merged.push({ ...item, instance_id: instance.id, instance_name: instance.name });
       }
     });
@@ -167,6 +168,7 @@ export function createOpsRouter() {
       }
 
       for (const u of data.top_users || []) {
+        if (isLentViewer(u.username)) continue;
         const existing = users.get(u.username) || {
           username: u.username,
           sessions: 0,
