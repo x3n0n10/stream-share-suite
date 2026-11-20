@@ -7,7 +7,6 @@ import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
-import { lentTo } from "../lib/failover.js";
 
 // stream-share instances running the IP-alias feature return viewers as
 // {id, display_name} objects instead of plain username/IP strings — support
@@ -16,12 +15,10 @@ function viewerId(v) {
   return typeof v === "string" ? v : v.id;
 }
 function viewerLabel(v) {
-  const lent = lentTo(viewerId(v));
-  if (lent) return `Through ${lent}`;
   return typeof v === "string" ? v : v.display_name || v.id;
 }
 function isAliasable(v) {
-  return !lentTo(viewerId(v)) && isAliasableId(viewerId(v), viewerLabel(v));
+  return isAliasableId(viewerId(v), viewerLabel(v));
 }
 
 export default function Overview({ pollIntervalMs }) {
@@ -69,20 +66,18 @@ export default function Overview({ pollIntervalMs }) {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {nowPlaying.map((s, idx) => (
                         <tr key={`${s.instanceId}-${s.stream_id}-${idx}`}>
-                          <td className="max-w-[16rem] px-4 py-2.5">
+                          <td className={`max-w-[16rem] px-4 py-2.5${s.via ? " border-l-[3px] border-amber-500" : ""}`}>
                             <p className="truncate font-medium text-slate-800 dark:text-slate-100">
                               {s.stream_title || s.stream_id}
-                              {s.via && (
-                                <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
-                                  via {s.via}
-                                </span>
-                              )}
                               {s.epg_channel_id && (
                                 <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                                   {s.epg_channel_id}
                                 </span>
                               )}
                             </p>
+                            {s.via && (
+                              <p className="text-xs text-amber-600 dark:text-amber-400">Using {s.via}'s connection</p>
+                            )}
                             <TechSummary tech={s.tech} className="truncate" />
                           </td>
                           <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{s.instanceName}</td>

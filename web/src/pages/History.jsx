@@ -8,7 +8,6 @@ import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, formatDateTime, formatRelativeTime, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
-import { lentTo } from "../lib/failover.js";
 
 export default function History({ pollIntervalMs }) {
   const [hours, setHours] = useState(24);
@@ -36,7 +35,8 @@ export default function History({ pollIntervalMs }) {
         e.username?.toLowerCase().includes(q) ||
         e.display_name?.toLowerCase().includes(q) ||
         e.stream_title?.toLowerCase().includes(q) ||
-        e.instance_name?.toLowerCase().includes(q)
+        e.instance_name?.toLowerCase().includes(q) ||
+        e.via?.toLowerCase().includes(q)
     );
   }, [feed, search]);
 
@@ -114,7 +114,11 @@ export default function History({ pollIntervalMs }) {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 [&>tr:nth-child(even)]:bg-accent-50/50 dark:[&>tr:nth-child(even)]:bg-accent-900/10">
                   {filtered.map((e, idx) => (
                     <tr key={`${e.instance_id}-${idx}-${e.start_time}`}>
-                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">{e.instance_name}</td>
+                      <td
+                        className={`px-4 py-2.5 text-slate-500 dark:text-slate-400${e.via ? " border-l-[3px] border-amber-500" : ""}`}
+                      >
+                        {e.instance_name}
+                      </td>
                       <td className="px-4 py-2.5">
                         <Badge tone="slate">{titleCase(e.stream_type)}</Badge>
                       </td>
@@ -127,8 +131,8 @@ export default function History({ pollIntervalMs }) {
                           : formatDateTime(e.start_time)}
                       </td>
                       <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-100">
-                        {lentTo(e.username) ? `Through ${lentTo(e.username)}` : e.display_name || e.username}
-                        {!lentTo(e.username) && e.display_name && e.display_name !== e.username && (
+                        {e.display_name || e.username}
+                        {e.display_name && e.display_name !== e.username && (
                           <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">
                             {e.username}
                           </span>
@@ -143,10 +147,10 @@ export default function History({ pollIntervalMs }) {
                           </Link>
                         )}
                       </td>
-                      <td className="max-w-[16rem] truncate px-4 py-2.5">
-                        {e.stream_title}
+                      <td className="max-w-[16rem] px-4 py-2.5">
+                        <p className="truncate">{e.stream_title}</p>
                         {e.via && (
-                          <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">via {e.via}</span>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">Used {e.via}'s connection</p>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">

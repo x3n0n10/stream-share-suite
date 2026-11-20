@@ -79,7 +79,9 @@ The form is grouped. Each group maps to something StreamShare can do:
   stays within its own connection limit, so a fallback serves the channel only
   while it has a free provider connection of its own. A fallback needs a
   StreamShare version with failover support. Apply recreates the instances whose
-  environment changes.
+  environment changes. A viewing that uses a
+  fallback's connection shows once, on the instance the viewer watches, marked
+  "Using <fallback>'s connection"; the fallback's own copy is not listed.
 - **Container:** image, container name, port, and extra environment variables
   (under Advanced).
 

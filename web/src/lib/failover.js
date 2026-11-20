@@ -1,4 +1,4 @@
-// Pure logic behind FallbackPicker and the "Through" labels.
+// Pure logic behind FallbackPicker.
 
 export function moveItem(items, index, delta) {
   const to = index + delta;
@@ -30,10 +30,4 @@ export function fallbackChoices(instances, selfKey, selected, support) {
   return instances
     .filter((i) => i.key !== selfKey && !selected.includes(i.key))
     .map((i) => ({ ...i, reason: unsupportedReason(i.key, support) }));
-}
-
-// A viewer forwarded from another instance is named "failover:<instance name>/<stream id>".
-export function lentTo(name) {
-  const m = /^failover:(.+)\/[^/]*$/.exec(String(name ?? ""));
-  return m ? m[1] : null;
 }
