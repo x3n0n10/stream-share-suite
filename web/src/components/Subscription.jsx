@@ -1,5 +1,6 @@
 import { Badge } from "./common.jsx";
 import { IconAlert } from "./Icons.jsx";
+import { connectionUsage } from "../lib/connections.js";
 import { formatDate, formatRelativeTime } from "../lib/format.js";
 
 // Renders the upstream IPTV provider's own view of an instance's subscription,
@@ -70,12 +71,10 @@ function expiryParts(provider) {
 // Connection usage as words. The meter below repeats this visually; the words
 // are what actually carry it.
 function connectionsText(provider) {
-  const used = provider.active_connections ?? 0;
-  const max = provider.max_connections;
-  const here = provider.local_upstream_connections;
+  const { used, here, max } = connectionUsage(provider);
 
   const total = max ? `${used} of ${max} connections in use` : `${used} connection${used === 1 ? "" : "s"} in use`;
-  return typeof here === "number" ? `${total} · ${here} here` : total;
+  return here !== null ? `${total} · ${here} here` : total;
 }
 
 // Meter ramps. Each is one hue in three steps — track, and two fill shades far
@@ -113,11 +112,10 @@ const METER_RAMPS = {
 // connections against everything else on the account — because they measure the
 // same thing; the caption beneath names both, so hue is never the only channel.
 function ConnectionMeter({ provider }) {
-  const max = provider.max_connections;
+  const { used, here: liveHere, max } = connectionUsage(provider);
   if (!max) return null;
 
-  const used = Math.max(0, provider.active_connections ?? 0);
-  const here = Math.min(Math.max(0, provider.local_upstream_connections ?? 0), used);
+  const here = liveHere ?? 0;
   const elsewhere = used - here;
 
   const ramp =
@@ -178,7 +176,7 @@ export function SubscriptionSummary({ provider }) {
       <ConnectionMeter provider={provider} />
       <p
         className="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
-        title={provider.checked_at ? `Read from the provider ${formatRelativeTime(provider.checked_at)}` : undefined}
+        title={provider.checked_at ? `Provider total read ${formatRelativeTime(provider.checked_at)}; "here" is live` : undefined}
       >
         {connectionsText(provider)}
       </p>
@@ -201,6 +199,7 @@ export function SubscriptionSummary({ provider }) {
 export function SubscriptionDetail({ provider }) {
   if (!hasSubscription(provider)) return null;
   const state = statusOf(provider);
+  const { used, here, max } = connectionUsage(provider);
 
   return (
     <div className="mt-4 rounded-xl border border-slate-200/70 p-3 dark:border-slate-800">
@@ -218,16 +217,8 @@ export function SubscriptionDetail({ provider }) {
         <Fact label="Expires" {...expiryParts(provider)} />
         <Fact
           label="Connections"
-          value={
-            provider.max_connections
-              ? `${provider.active_connections ?? 0} of ${provider.max_connections}`
-              : String(provider.active_connections ?? 0)
-          }
-          sub={
-            typeof provider.local_upstream_connections === "number"
-              ? `${provider.local_upstream_connections} from this instance`
-              : null
-          }
+          value={max ? `${used} of ${max}` : String(used)}
+          sub={here !== null ? `${here} from this instance` : null}
         />
         <Fact label="Checked" value={provider.checked_at ? formatRelativeTime(provider.checked_at) : "—"} />
       </dl>
