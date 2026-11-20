@@ -25,6 +25,7 @@ import {
   revokeShare,
   searchShareChannels,
 } from "../instanceClient.js";
+import { withoutLentViewers } from "../reconcile/failover.js";
 import { shapeShare } from "../shareLinks.js";
 import { getVpnStatus, setVpnStatus, getPublicIP, reconnectVpn } from "../gluetunClient.js";
 
@@ -88,18 +89,30 @@ export function createOpsRouter() {
         fetchInstanceSnapshot(instance, { ...timeouts(req), hours, refreshProvider })
       )
     );
-    res.json({ hours, instances: snapshots });
+    // Lent stand-in viewers would show the same viewing twice (see failover.js).
+    const instances = snapshots.map((s) =>
+      Array.isArray(s.status?.summary)
+        ? { ...s, status: { ...s.status, summary: withoutLentViewers(s.status.summary) } }
+        : s
+    );
+    res.json({ hours, instances });
   });
 
   // Just the number of streams playing right now, for the sidebar badge, which
   // polls from every page: one /status call per instance instead of the whole
-  // overview snapshot. An instance that cannot answer counts as zero.
+  // overview snapshot. Streams carried only by lent stand-in viewers are not
+  // counted (the borrower counts them); an instance without a summary falls back
+  // to its own streams_count. An instance that cannot answer counts as zero.
   router.get("/active-streams", async (req, res) => {
     const results = await Promise.allSettled(
       req.config.instances.map((instance) => fetchStatus(instance, timeouts(req)))
     );
     const activeStreams = results.reduce(
-      (sum, r) => sum + (r.status === "fulfilled" ? Number(r.value?.streams_count) || 0 : 0),
+      (sum, r) => {
+        if (r.status !== "fulfilled") return sum;
+        const { summary, streams_count } = r.value ?? {};
+        return sum + (Array.isArray(summary) ? withoutLentViewers(summary).length : Number(streams_count) || 0);
+      },
       0
     );
     res.json({ activeStreams });
