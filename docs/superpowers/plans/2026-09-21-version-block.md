@@ -14,10 +14,10 @@
 
 ## Global Constraints
 
-- Branch `claude/version-block` in `/Users/jorislankhorst/Claude/stream-share-suite`. Do not push the branch or any tag; the controller does that.
+- Branch `claude/version-block` in `~/Claude/stream-share-suite`. Do not push the branch or any tag; the controller does that.
 - Server tests: `cd server && npm test` (node's built-in runner, 423 passing before this plan). Zero failures is required after every task that touches `server/`.
 - Frontend has no test framework. Web verification is `cd web && npm run build` succeeding. Do not add a test framework.
-- If `npm ci`/`npm install` is ever needed and fails on `~/.npm` permissions, use `--cache /private/tmp/claude-501/-Users-jorislankhorst-Claude/83ef7f57-0172-4320-ba0f-424f637c7b19/scratchpad/npm-cache`. Do not run `npm ci` in `web/` unless it is genuinely required: it deletes `node_modules` first.
+- If `npm ci`/`npm install` is ever needed and fails on `~/.npm` permissions, use `--cache <scratchpad>/npm-cache`. Do not run `npm ci` in `web/` unless it is genuinely required: it deletes `node_modules` first.
 - Match existing style: ES modules, double quotes, 2-space indent. Comments explain *why*, not *what*; no multi-paragraph comment blocks.
 - Fallback chain for a version, first hit wins: image label `org.opencontainers.image.version` (source `image-label`), then a specific image tag i.e. not `latest` (source `tag`), then the first 12 hex characters of the image ID without `sha256:` (source `image-id`). Own report from the component has source `self`.
 - Response contract of `GET /api/stack/versions` (must match exactly; the frontend consumes it): `{ suite: { version }, components: [{ kind, key, label, status, version, source }] }`. `status` is `running`, `stopped` or `unknown`. `version` is a string or `null`. `source` is `self`, `image-label`, `tag`, `image-id` or `null` (null exactly when `version` is null).
@@ -40,7 +40,7 @@
   git show --stat HEAD            # confirm the commit contains your files
   ```
 - Do not stage `.claude/settings.json` or `CLAUDE.md` (untracked, not part of this work).
-- `docker` and `actionlint` are not installed. Workflow/Dockerfile checks use Ruby (`ruby -ryaml`) assertions written to a scratch file outside the repo (scratch dir: `/private/tmp/claude-501/-Users-jorislankhorst-Claude/83ef7f57-0172-4320-ba0f-424f637c7b19/scratchpad`). The CI `docker-build` job covers the real Dockerfile build once the PR is open.
+- `docker` and `actionlint` are not installed. Workflow/Dockerfile checks use Ruby (`ruby -ryaml`) assertions written to a scratch file outside the repo (scratch dir: `<scratchpad>`). The CI `docker-build` job covers the real Dockerfile build once the PR is open.
 
 ## File Structure
 
