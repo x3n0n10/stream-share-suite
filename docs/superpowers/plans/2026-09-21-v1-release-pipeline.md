@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Work on branch `claude/v1-release-pipeline` in `/Users/jorislankhorst/Claude/stream-share-suite`. Do not push tags. Do not push the branch; the controller does that.
+- Work on branch `claude/v1-release-pipeline` in `~/Claude/stream-share-suite`. Do not push tags. Do not push the branch; the controller does that.
 - Image name is exactly `ghcr.io/x3n0n10/stream-share-suite` (lowercase, no variables).
 - Action versions, verified against each repo's latest release on 2026-09-21. Use these majors exactly: `actions/checkout@v7`, `actions/setup-node@v7`, `docker/setup-qemu-action@v4`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/metadata-action@v6`, `docker/build-push-action@v7`.
 - Node version in workflows: `'24'` (matches `ci.yml` and the Dockerfile).
@@ -61,7 +61,7 @@
 
 - [ ] **Step 1: Write the failing assertion**
 
-Save as `/private/tmp/claude-501/-Users-jorislankhorst-Claude/83ef7f57-0172-4320-ba0f-424f637c7b19/scratchpad/check-cd.rb` (or any scratch path outside the repo):
+Save as `<scratchpad>/check-cd.rb` (or any scratch path outside the repo):
 
 ```ruby
 require "yaml"

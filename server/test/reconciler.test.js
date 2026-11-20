@@ -546,8 +546,8 @@ test("checkForUpdate never pulls for an adopted, orphaned, or switched-off row",
 // orphaned gluetun before anything else in the same apply is what makes
 // turning the VPN off actually work in one apply.
 
-const TIVI_SPEC = {
-  name: "streamshare-suite-tivi",
+const MAIN_SPEC = {
+  name: "streamshare-suite-main",
   image: "ghcr.io/x3n0n10/stream-share:latest",
   env: {},
   ports: [{ host: 8200, container: 8200, protocol: "tcp" }],
@@ -570,8 +570,8 @@ test("applyStack stops an orphaned, still-running gluetun before applying anythi
     runtime: { status: "running", health: null, restartCount: null, image: null },
   };
   const instancePlan = await planComponent(
-    { id: "instance:tivi", kind: "instance", key: "tivi", label: "Tivi", namespaceHost: null },
-    TIVI_SPEC
+    { id: "instance:main", kind: "instance", key: "main", label: "Main", namespaceHost: null },
+    MAIN_SPEC
   );
 
   const { log, lines } = collectLog();
@@ -579,9 +579,9 @@ test("applyStack stops an orphaned, still-running gluetun before applying anythi
 
   const order = requests.map((r) => `${r.method} ${r.path}`);
   const gluetunStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/gluetun-id/stop");
-  const tiviCreateIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
+  const mainCreateIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
   assert.ok(gluetunStopIdx >= 0, "expected the orphaned gluetun to be stopped");
-  assert.ok(tiviCreateIdx > gluetunStopIdx, "gluetun must be stopped before the instance is created");
+  assert.ok(mainCreateIdx > gluetunStopIdx, "gluetun must be stopped before the instance is created");
   assert.equal(containers.get("stream-share-gluetun").running, false);
   assert.ok(lines.some((l) => /gluetun/i.test(l) && /stop/i.test(l)));
 });
@@ -601,8 +601,8 @@ test("applyStack does not try to stop an orphaned gluetun that is already stoppe
     runtime: { status: "exited", health: null, restartCount: null, image: null },
   };
   const instancePlan = await planComponent(
-    { id: "instance:tivi", kind: "instance", key: "tivi", label: "Tivi", namespaceHost: null },
-    { ...TIVI_SPEC, name: "streamshare-suite-tivi-2" }
+    { id: "instance:main", kind: "instance", key: "main", label: "Main", namespaceHost: null },
+    { ...MAIN_SPEC, name: "streamshare-suite-main-2" }
   );
 
   const { log } = collectLog();
@@ -616,14 +616,14 @@ test("applyStack does not try to stop an orphaned gluetun that is already stoppe
 
 test("applyStack does nothing extra when there is no orphaned gluetun in the plan", async () => {
   const instancePlan = await planComponent(
-    { id: "instance:tivi", kind: "instance", key: "tivi", label: "Tivi", namespaceHost: null },
-    { ...TIVI_SPEC, name: "streamshare-suite-tivi-3" }
+    { id: "instance:main", kind: "instance", key: "main", label: "Main", namespaceHost: null },
+    { ...MAIN_SPEC, name: "streamshare-suite-main-3" }
   );
 
   const { log } = collectLog();
   await applyStack([instancePlan], { log });
 
-  assert.ok(containers.get("streamshare-suite-tivi-3"), "the instance should still have been created normally");
+  assert.ok(containers.get("streamshare-suite-main-3"), "the instance should still have been created normally");
 });
 
 // --- applyStack: freeing an instance's own port when the VPN is switched back on ------
@@ -645,10 +645,10 @@ test("applyStack stops a still-running instance cascading from gluetun before gl
     Config: { Labels: managedLabels("gluetun", "whatever-hash") },
     running: false,
   });
-  containers.set("streamshare-suite-tivi", {
-    Id: "tivi-id",
-    name: "streamshare-suite-tivi",
-    Config: { Labels: managedLabels("instance", "whatever-hash", "tivi") },
+  containers.set("streamshare-suite-main", {
+    Id: "main-id",
+    name: "streamshare-suite-main",
+    Config: { Labels: managedLabels("instance", "whatever-hash", "main") },
     running: true,
   });
 
@@ -665,15 +665,15 @@ test("applyStack stops a still-running instance cascading from gluetun before gl
     runtime: { status: "exited", health: null, restartCount: null, image: null },
   };
   const instancePlan = {
-    id: "instance:tivi",
+    id: "instance:main",
     kind: "instance",
-    key: "tivi",
-    label: "Tivi",
+    key: "main",
+    label: "Main",
     action: "recreate",
     cascadedFrom: "gluetun",
-    containerId: "tivi-id",
-    spec: TIVI_SPEC,
-    desiredHash: computeSpecHash(TIVI_SPEC),
+    containerId: "main-id",
+    spec: MAIN_SPEC,
+    desiredHash: computeSpecHash(MAIN_SPEC),
     runtime: { status: "running", health: null, restartCount: null, image: null },
   };
 
@@ -681,11 +681,11 @@ test("applyStack stops a still-running instance cascading from gluetun before gl
   await applyStack([gluetunPlan, instancePlan], { log });
 
   const order = requests.map((r) => `${r.method} ${r.path}`);
-  const tiviStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/tivi-id/stop");
+  const mainStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/main-id/stop");
   const gluetunCreateIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
-  assert.ok(tiviStopIdx >= 0, "expected the still-running instance to be stopped");
-  assert.ok(gluetunCreateIdx > tiviStopIdx, "the instance must let go of its port before gluetun is created");
-  assert.ok(lines.some((l) => /tivi/i.test(l) && /stop/i.test(l)));
+  assert.ok(mainStopIdx >= 0, "expected the still-running instance to be stopped");
+  assert.ok(gluetunCreateIdx > mainStopIdx, "the instance must let go of its port before gluetun is created");
+  assert.ok(lines.some((l) => /main/i.test(l) && /stop/i.test(l)));
 });
 
 test("applyStack does not try to stop a cascaded instance that is already stopped", async () => {
@@ -695,10 +695,10 @@ test("applyStack does not try to stop a cascaded instance that is already stoppe
     Config: { Labels: managedLabels("gluetun", "whatever-hash") },
     running: false,
   });
-  containers.set("streamshare-suite-tivi", {
-    Id: "tivi-id",
-    name: "streamshare-suite-tivi",
-    Config: { Labels: managedLabels("instance", "whatever-hash", "tivi") },
+  containers.set("streamshare-suite-main", {
+    Id: "main-id",
+    name: "streamshare-suite-main",
+    Config: { Labels: managedLabels("instance", "whatever-hash", "main") },
     running: false,
   });
 
@@ -715,15 +715,15 @@ test("applyStack does not try to stop a cascaded instance that is already stoppe
     runtime: { status: "exited", health: null, restartCount: null, image: null },
   };
   const instancePlan = {
-    id: "instance:tivi",
+    id: "instance:main",
     kind: "instance",
-    key: "tivi",
-    label: "Tivi",
+    key: "main",
+    label: "Main",
     action: "recreate",
     cascadedFrom: "gluetun",
-    containerId: "tivi-id",
-    spec: TIVI_SPEC,
-    desiredHash: computeSpecHash(TIVI_SPEC),
+    containerId: "main-id",
+    spec: MAIN_SPEC,
+    desiredHash: computeSpecHash(MAIN_SPEC),
     runtime: { status: "exited", health: null, restartCount: null, image: null },
   };
 
@@ -734,19 +734,19 @@ test("applyStack does not try to stop a cascaded instance that is already stoppe
   // point is that nothing stops it early, before gluetun even gets a chance
   // to create.
   const order = requests.map((r) => `${r.method} ${r.path}`);
-  const tiviStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/tivi-id/stop");
+  const mainStopIdx = order.findIndex((r) => r === "POST /v1.43/containers/main-id/stop");
   const gluetunCreateIdx = order.findIndex((r) => r === "POST /v1.43/containers/create");
-  assert.ok(gluetunCreateIdx < tiviStopIdx, "an already-stopped instance must not be stopped again before gluetun");
+  assert.ok(gluetunCreateIdx < mainStopIdx, "an already-stopped instance must not be stopped again before gluetun");
 });
 
 test("applyStack does nothing extra when gluetun is not create/recreate", async () => {
   const instancePlan = await planComponent(
-    { id: "instance:tivi", kind: "instance", key: "tivi", label: "Tivi", namespaceHost: null },
-    { ...TIVI_SPEC, name: "streamshare-suite-tivi-4" }
+    { id: "instance:main", kind: "instance", key: "main", label: "Main", namespaceHost: null },
+    { ...MAIN_SPEC, name: "streamshare-suite-main-4" }
   );
 
   const { log } = collectLog();
   await applyStack([instancePlan], { log });
 
-  assert.ok(containers.get("streamshare-suite-tivi-4"), "the instance should still have been created normally");
+  assert.ok(containers.get("streamshare-suite-main-4"), "the instance should still have been created normally");
 });
