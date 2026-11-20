@@ -497,6 +497,8 @@ test("checkForUpdate recreates when the pull produced a different image than wha
   const current = containers.get("stream-share-gluetun");
   assert.equal(current.Id, newId);
   assert.ok(lines.some((l) => /newer image was pulled/i.test(l)));
+  assert.ok(lines.some((l) => /^Recreating .* — a newer image was pulled\.$/.test(l)));
+  assert.ok(!lines.some((l) => l.includes("configuration changed")));
 
   const order = requests.map((r) => `${r.method} ${r.path}`);
   const stopIdx = order.findIndex((r) => r.includes("/old-id/stop"));

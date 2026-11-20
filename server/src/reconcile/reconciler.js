@@ -347,6 +347,8 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
       ? `${plan.cascadedFrom} was replaced, taking its network namespace with it`
       : plan.stoppedOutsideSuite
       ? "it was stopped outside the Suite"
+      : plan.imagePulled
+      ? "a newer image was pulled"
       : `configuration changed (${(plan.previousHash || "").slice(0, 12)} -> ${desiredHash.slice(0, 12)})`;
     log(`Recreating "${spec.name}" — ${why}.`);
     log("Stopping the current container...");
@@ -399,7 +401,7 @@ export async function checkForUpdate(node, spec, { log = () => {} } = {}) {
     if (pulledId && pulledId !== plan.runtime?.imageId) {
       log(`A newer image was pulled for ${spec.image}.`);
       return applyPlan(
-        { ...plan, action: "recreate", reason: "A newer image was pulled", previousHash: plan.desiredHash },
+        { ...plan, action: "recreate", reason: "A newer image was pulled", previousHash: plan.desiredHash, imagePulled: true },
         { log }
       );
     }
