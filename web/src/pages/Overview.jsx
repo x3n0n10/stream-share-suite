@@ -7,6 +7,7 @@ import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
+import { sortNowPlaying } from "../lib/nowPlaying.js";
 
 // stream-share instances running the IP-alias feature return viewers as
 // {id, display_name} objects instead of plain username/IP strings — support
@@ -26,11 +27,11 @@ export default function Overview({ pollIntervalMs }) {
 
   const instances = data?.instances || [];
 
-  const nowPlaying = instances
-    .flatMap((i) =>
+  const nowPlaying = sortNowPlaying(
+    instances.flatMap((i) =>
       (i.status?.summary || []).map((s) => ({ ...s, instanceName: i.name, instanceId: i.id }))
     )
-    .sort((a, b) => b.viewer_count - a.viewer_count);
+  );
 
   return (
     <Layout
