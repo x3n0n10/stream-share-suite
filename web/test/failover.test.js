@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { moveItem, fallbackChoices, unsupportedReason, needsRecheck } from "../src/lib/failover.js";
+import { moveItem, fallbackChoices, unsupportedReason, needsRecheck, failoverNote } from "../src/lib/failover.js";
 
 test("moveItem swaps neighbours and ignores out-of-range moves", () => {
   assert.deepEqual(moveItem(["a", "b", "c"], 0, 1), ["b", "a", "c"]);
@@ -32,3 +32,12 @@ test("needsRecheck while loading or while another instance cannot be picked", ()
   assert.equal(needsRecheck(instances, "b", { supported: ["b"], unreachable: [] }), true);
   assert.equal(needsRecheck([{ key: "a" }], "a", { supported: [], unreachable: ["a"] }), false);
 });
+
+test("failoverNote: live, with channel", () =>
+  assert.equal(failoverNote({ via: "Spare", via_channel: "Channel X" }, true), "Showing Spare's Channel X instead"));
+test("failoverNote: live, older fallback without channel", () =>
+  assert.equal(failoverNote({ via: "Spare" }, true), "Using Spare's connection"));
+test("failoverNote: history, with channel", () =>
+  assert.equal(failoverNote({ via: "Spare", via_channel: "Channel X" }, false), "Used Spare's Channel X"));
+test("failoverNote: history, old row without channel", () =>
+  assert.equal(failoverNote({ via: "Spare", via_channel: "" }, false), "Used Spare's connection"));

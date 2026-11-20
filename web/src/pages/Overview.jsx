@@ -8,6 +8,7 @@ import { usePolling } from "../lib/usePolling.js";
 import { formatDuration, titleCase } from "../lib/format.js";
 import { isAliasableId } from "../lib/aliasing.js";
 import { sortNowPlaying } from "../lib/nowPlaying.js";
+import { failoverNote } from "../lib/failover.js";
 
 // stream-share instances running the IP-alias feature return viewers as
 // {id, display_name} objects instead of plain username/IP strings — support
@@ -77,7 +78,7 @@ export default function Overview({ pollIntervalMs }) {
                               )}
                             </p>
                             {s.via && (
-                              <p className="text-xs text-amber-600 dark:text-amber-400">Using {s.via}'s connection</p>
+                              <p className="text-xs text-amber-600 dark:text-amber-400">{failoverNote(s, true)}</p>
                             )}
                             <TechSummary tech={s.tech} className="truncate" />
                           </td>
