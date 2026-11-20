@@ -25,4 +25,5 @@ test("withoutLentViewers drops lent-only streams, keeps mixed and empty ones", (
     { stream_id: "6", viewer_count: 1, viewers: ["carol"], via: "Spare" },
   ]);
   assert.deepEqual(withoutLentViewers(undefined), []);
+  assert.deepEqual(withoutLentViewers([null]), [null]);
 });

@@ -66,7 +66,7 @@ export default function Overview({ pollIntervalMs }) {
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {nowPlaying.map((s, idx) => (
                         <tr key={`${s.instanceId}-${s.stream_id}-${idx}`}>
-                          <td className={`max-w-[16rem] px-4 py-2.5${s.via ? " border-l-[3px] border-amber-500" : ""}`}>
+                          <td className={`max-w-[16rem] px-4 py-2.5${s.via ? " shadow-[inset_3px_0_0_theme(colors.amber.500)]" : ""}`}>
                             <p className="truncate font-medium text-slate-800 dark:text-slate-100">
                               {s.stream_title || s.stream_id}
                               {s.epg_channel_id && (

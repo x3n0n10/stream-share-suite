@@ -115,7 +115,7 @@ export default function History({ pollIntervalMs }) {
                   {filtered.map((e, idx) => (
                     <tr key={`${e.instance_id}-${idx}-${e.start_time}`}>
                       <td
-                        className={`px-4 py-2.5 text-slate-500 dark:text-slate-400${e.via ? " border-l-[3px] border-amber-500" : ""}`}
+                        className={`px-4 py-2.5 text-slate-500 dark:text-slate-400${e.via ? " shadow-[inset_3px_0_0_theme(colors.amber.500)]" : ""}`}
                       >
                         {e.instance_name}
                       </td>
