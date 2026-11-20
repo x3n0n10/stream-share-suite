@@ -14,3 +14,8 @@ test("older instances without a live count, and no limit", () => {
   assert.deepEqual(connectionUsage({ active_connections: 1 }), { used: 1, here: null, max: undefined });
   assert.deepEqual(connectionUsage({}), { used: 0, here: null, max: undefined });
 });
+
+test("zero live count stays 0, negatives count as 0", () => {
+  assert.deepEqual(connectionUsage({ active_connections: 1, local_upstream_connections: 0, max_connections: 2 }), { used: 1, here: 0, max: 2 });
+  assert.deepEqual(connectionUsage({ active_connections: -1, local_upstream_connections: -2 }), { used: 0, here: 0, max: undefined });
+});

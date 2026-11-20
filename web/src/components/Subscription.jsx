@@ -176,7 +176,7 @@ export function SubscriptionSummary({ provider }) {
       <ConnectionMeter provider={provider} />
       <p
         className="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
-        title={provider.checked_at ? `Read from the provider ${formatRelativeTime(provider.checked_at)}` : undefined}
+        title={provider.checked_at ? `Provider total read ${formatRelativeTime(provider.checked_at)}; "here" is live` : undefined}
       >
         {connectionsText(provider)}
       </p>
