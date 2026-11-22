@@ -131,6 +131,83 @@ gluetun's `FIREWALL_OUTBOUND_SUBNETS` must include the subnet the Suite reaches
 an existing instance on. The Suite sets this for gluetun it manages, but for an
 existing instance to reach the database, it must already be true.
 
+## Using an external PostgreSQL server
+
+Pick **External server** on the wizard's Database step, or on the PostgreSQL
+card of the Stack page, to use a server you already run instead of the one the
+Suite manages. Enter its host, port, an admin user and the admin password.
+
+### What the Suite creates
+
+For each instance the Suite creates one role and one database on the server,
+both named `streamshare_<key>` after the instance key (`test-a` becomes
+`streamshare_test_a`). The role gets a generated password, which the instance
+container receives. If the role already exists, the Suite updates its password
+to the stored one. On PostgreSQL 16 and later, this needs the admin user to
+have created that role itself or to hold `ADMIN OPTION` on it. If the database already exists, it is used as it is.
+
+### Admin user privileges
+
+The admin user needs `CREATEDB` and `CREATEROLE`, or superuser. To create a
+database owned by an instance role, the admin user makes itself a member of that
+role (with `SET` on PostgreSQL 16 and later). Expect the admin user to be listed
+as a member of each `streamshare_<key>` role afterwards.
+
+Without these privileges the apply fails with the server's own message, for
+example `permission denied to create role` or `permission denied to create
+database`. A missing `CREATEDB` can leave the new role behind on the server.
+
+### Reaching the server
+
+Both the Suite and every instance must reach the server. The Suite creates the
+databases, the instances use them.
+
+- **Container name.** Works when the server's container is on a network the
+  instances join. By default that is `streamshare`. Add the network to the
+  server's container, or add your server's network to each instance's
+  **Docker networks to join** (see [networks](#networks)).
+- **Host IP and published port.** Also works. Instances reach the host's
+  published ports through the Docker bridge, so `<host-ip>` with the published
+  port is enough. This was tested with the VPN off. With the VPN on, instances
+  share gluetun's network, whose outbound firewall may block a host LAN IP. That
+  is untested, so a container name on `streamshare` is the safer choice there. A host firewall that blocks traffic from Docker bridges might
+  break this for the instances. That case is untested, so check it if instances
+  cannot connect.
+
+There is no connection test in the UI. A wrong setting shows up when you apply,
+and the apply log shows the server's error unchanged. A wrong password fails
+within a second or two. An unknown or mistyped hostname makes the apply wait
+about 60 s before it fails, so check the host name first.
+
+If an apply fails at the database step, the running instance is left as it was.
+A stack apply stops at the first component that fails, so later instances are
+not attempted in that apply.
+
+### No admin password (trust auth)
+
+The admin password is optional. If the server uses `trust` authentication, it is
+ignored. The form cannot clear a password you have already stored: an empty
+field means "unchanged". With `trust` auth the stored value does no harm.
+
+### Removing an instance
+
+By default the instance's database and role stay on the server, and the apply
+log says so. Creating an instance with the same name later reattaches to that
+database, history included. Choose **drop data** when removing to drop the
+database and the role as well.
+
+### Switching from the managed server
+
+The Suite does not move data. Switching from the managed PostgreSQL to an
+external server recreates each instance against a new, empty database on the
+external server. The old data stays on the managed server, and nothing in the
+UI says so.
+
+The managed container keeps running and is listed in the Stack plan as
+**Orphaned**. Removing it removes the container only. Its data directory under
+the Suite's data folder stays on disk. Copying data over is up to you, for
+example with `pg_dump` and `pg_restore` per instance database.
+
 ## Running more than one Suite
 
 Change `SUITE_CONTAINER_PREFIX` only to run two Suites on one Docker host. Each

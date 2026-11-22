@@ -15,7 +15,8 @@ Steps, in order:
    address.
 3. **Features:** VOD caching and live catchup buffering, with an optional cache
    location per instance. See [cache paths](configuration.md#cache-paths).
-4. **Database:** PostgreSQL run by the Suite, or an external server.
+4. **Database:** PostgreSQL run by the Suite, or an external server. See
+   [using an external PostgreSQL server](configuration.md#using-an-external-postgresql-server).
 5. **External access:** Caddy for a public hostname, and the Discord bot.
 6. **VPN:** gluetun on or off, with a searchable provider picker.
 7. **Health check:** a probe channel per instance for the
