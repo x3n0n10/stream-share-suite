@@ -109,7 +109,7 @@ export async function serverVersion(target) {
   return withAdminClient(target, async (client) => {
     const result = await client.query("SHOW server_version");
     return parseServerVersion(result.rows[0]?.server_version);
-  });
+  }, { retry: false });
 }
 
 // Identifiers cannot be parameterised in Postgres, so they are quoted rather
@@ -161,7 +161,7 @@ export async function dropDatabase(target, { database, user }, { log = () => {} 
     log(`Dropping role ${user}...`);
     await client.query(`DROP ROLE IF EXISTS ${quoteIdent(user)}`);
     log("Done.");
-  });
+  }, { log });
 }
 
 // Used by the instance form's "test connection" equivalent: proves the admin
