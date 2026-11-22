@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FIELD } from "./common.jsx";
 import { IconTrash } from "./Icons.jsx";
 
@@ -43,6 +44,7 @@ const SYNTHETIC_CODES = ["UNREACHABLE", "TIMEOUT", "DNS", "TLS", "NO_RECORDING",
 const CODE_LIST_ID = "error-slate-synthetic-codes";
 
 export default function ErrorSlateEditor({ value, onChange }) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState(() => parseRows(value));
 
   function commit(next) {
@@ -58,7 +60,7 @@ export default function ErrorSlateEditor({ value, onChange }) {
     <div className="flex flex-col gap-2">
       {rows.length === 0 && (
         <p className="text-xs text-slate-400 dark:text-slate-500">
-          No overrides — every code shows its default message.
+          {t("errorSlates.empty")}
         </p>
       )}
       {rows.map((row, i) => (
@@ -66,11 +68,11 @@ export default function ErrorSlateEditor({ value, onChange }) {
           <div className="grid flex-1 gap-2 sm:grid-cols-[7rem_1fr_2fr]">
             <label className="flex flex-col gap-1">
               <Label>
-                Code<span className="text-rose-500"> *</span>
+                {t("errorSlates.code")}<span className="text-rose-500"> *</span>
               </Label>
               <input
                 className={`${FIELD} font-mono text-xs`}
-                placeholder="404, UNREACHABLE"
+                placeholder={t("errorSlates.codePlaceholder")}
                 list={CODE_LIST_ID}
                 required
                 value={row.code}
@@ -78,21 +80,21 @@ export default function ErrorSlateEditor({ value, onChange }) {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <Label>Meaning (optional)</Label>
+              <Label>{t("errorSlates.meaning")}</Label>
               <input
                 className={`${FIELD} text-xs`}
-                placeholder="Channel problem"
+                placeholder={t("errorSlates.meaningPlaceholder")}
                 value={row.meaning}
                 onChange={(e) => setRow(i, { meaning: e.target.value })}
               />
             </label>
             <label className="flex flex-col gap-1">
               <Label>
-                Message shown to viewers<span className="text-rose-500"> *</span>
+                {t("errorSlates.message")}<span className="text-rose-500"> *</span>
               </Label>
               <input
                 className={`${FIELD} text-xs`}
-                placeholder="This channel doesn't exist anymore."
+                placeholder={t("errorSlates.messagePlaceholder")}
                 required
                 value={row.message}
                 onChange={(e) => setRow(i, { message: e.target.value })}
@@ -102,8 +104,8 @@ export default function ErrorSlateEditor({ value, onChange }) {
           <button
             type="button"
             onClick={() => commit(rows.filter((_, idx) => idx !== i))}
-            aria-label="Remove"
-            title="Remove"
+            aria-label={t("common.remove")}
+            title={t("common.remove")}
             className="mt-4 shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-900/20 dark:hover:text-rose-400"
           >
             <IconTrash className="h-4 w-4" />
@@ -115,7 +117,7 @@ export default function ErrorSlateEditor({ value, onChange }) {
         onClick={() => commit([...rows, { code: "", meaning: "", message: "" }])}
         className="self-start rounded-lg px-3 py-1.5 text-xs font-medium text-accent-600 hover:bg-accent-50 dark:text-accent-400 dark:hover:bg-accent-900/20"
       >
-        + Add entry
+        {t("errorSlates.addEntry")}
       </button>
       <datalist id={CODE_LIST_ID}>
         {SYNTHETIC_CODES.map((code) => (

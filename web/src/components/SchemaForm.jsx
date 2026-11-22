@@ -19,7 +19,7 @@ export default function SchemaForm({
   onSave,
   saving,
   error,
-  submitLabel = "Save",
+  submitLabel,
   preview,
   secondaryAction,
   extraOptions,
@@ -127,7 +127,7 @@ export default function SchemaForm({
             {advanced.length > 0 && (
               <details className="group">
                 <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
-                  Advanced
+                  {t("schemaForm.advanced")}
                 </summary>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {advanced.map((field) => (
@@ -158,14 +158,14 @@ export default function SchemaForm({
           {secondaryAction}
           <div className="ml-auto">
             <Button type="submit" tone="accent" loading={saving} disabled={saving}>
-              {submitLabel}
+              {submitLabel ?? t("common.save")}
             </Button>
           </div>
         </div>
       ) : (
         <div>
           <Button type="submit" tone="accent" loading={saving} disabled={saving}>
-            {submitLabel}
+            {submitLabel ?? t("common.save")}
           </Button>
         </div>
       )}
@@ -182,6 +182,7 @@ function FieldInput({ kind, field, required, value, onChange, extra, componentKe
   const shown = {
     ...field,
     label,
+    placeholder: field.secret && field.valueSet ? t("common.unchanged") : "",
     ...(field.type === "select" && field.optionLabels && {
       optionLabels: Object.fromEntries(
         Object.entries(field.optionLabels).map(([opt, fallback]) => [opt, text(`options.${opt}`, fallback)])
@@ -193,8 +194,8 @@ function FieldInput({ kind, field, required, value, onChange, extra, componentKe
       ? help
       : field.secret
         ? field.valueSet
-          ? "Set. Leave blank to keep it."
-          : "Not set."
+          ? t("common.secretSet")
+          : t("common.secretNotSet")
         : help;
 
   // A <label> wraps a single control by convention — fine for a lone
@@ -324,7 +325,7 @@ function renderControl(field, value, onChange, extra, componentKey, draft) {
       className={FIELD}
       type={field.secret ? "password" : "text"}
       value={value ?? ""}
-      placeholder={field.secret && field.valueSet ? "••••••••  (unchanged)" : ""}
+      placeholder={field.placeholder}
       onChange={(e) => onChange(field.key, e.target.value)}
       autoComplete={field.secret ? "new-password" : "off"}
     />

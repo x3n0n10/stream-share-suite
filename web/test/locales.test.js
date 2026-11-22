@@ -24,6 +24,12 @@ test("checkLocales catches each kind of problem", () => {
   assert.deepEqual(checkLocales(en, {}, { requireAll: true }), ["a: missing", "t: missing"]);
 });
 
+test("checkLocales accepts extra plural forms only when en has the plural", () => {
+  const en = { d_one: "{{count}} day", d_other: "{{count}} days", s: "x" };
+  assert.deepEqual(checkLocales(en, { d_one: "{{count}} jour", d_many: "{{count}} jours", d_other: "{{count}} jours" }), []);
+  assert.deepEqual(checkLocales(en, { s_many: "x", e_many: "y" }), ["s_many: not in en", "e_many: not in en"]);
+});
+
 test("detects regional and unsupported languages", () => {
   assert.equal(resolveLanguage("nl-BE"), "nl");
   assert.equal(resolveLanguage("de"), "de");

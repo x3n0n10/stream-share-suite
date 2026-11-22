@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
 import { ConfirmDialog } from "./common.jsx";
 import VersionBlock from "./VersionBlock.jsx";
@@ -30,19 +31,19 @@ import { api } from "../lib/api.js";
 import LanguagePicker from "./LanguagePicker.jsx";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Overview", icon: IconOverview, end: true, badge: "activeStreams" },
-  { to: "/users", label: "Users", icon: IconUsers, requiresInstances: true },
-  { to: "/history", label: "History", icon: IconHistory, requiresInstances: true },
-  { to: "/leaderboard", label: "Leaderboard", icon: IconTrophy, requiresInstances: true },
-  { to: "/instances", label: "Instances", icon: IconServer },
-  { to: "/vod", label: "VOD search", icon: IconSearch, requiresInstances: true },
-  { to: "/shares", label: "Share links", icon: IconGlobe, requiresInstances: true },
+  { to: "/", labelKey: "nav.overview", icon: IconOverview, end: true, badge: "activeStreams" },
+  { to: "/users", labelKey: "nav.users", icon: IconUsers, requiresInstances: true },
+  { to: "/history", labelKey: "nav.history", icon: IconHistory, requiresInstances: true },
+  { to: "/leaderboard", labelKey: "nav.leaderboard", icon: IconTrophy, requiresInstances: true },
+  { to: "/instances", labelKey: "nav.instances", icon: IconServer },
+  { to: "/vod", labelKey: "nav.vod", icon: IconSearch, requiresInstances: true },
+  { to: "/shares", labelKey: "nav.shares", icon: IconGlobe, requiresInstances: true },
   { separator: true },
-  { to: "/aliases", label: "Aliases", icon: IconTag, requiresInstances: true },
-  { to: "/vpn", label: "VPN", icon: IconShield, requiresVpn: true },
-  { to: "/setup", label: "Setup wizard", icon: IconWand },
-  { to: "/stack", label: "Stack", icon: IconStack },
-  { to: "/settings", label: "Settings", icon: IconSettings },
+  { to: "/aliases", labelKey: "nav.aliases", icon: IconTag, requiresInstances: true },
+  { to: "/vpn", labelKey: "nav.vpn", icon: IconShield, requiresVpn: true },
+  { to: "/setup", labelKey: "nav.setup", icon: IconWand },
+  { to: "/stack", labelKey: "nav.stack", icon: IconStack },
+  { to: "/settings", labelKey: "nav.settings", icon: IconSettings },
 ];
 
 // Mobile bottom nav only has room for a handful of items — the rest stay
@@ -63,6 +64,7 @@ function isNavItemVisible(item, { hasInstances, vpnAvailable }) {
 // A nav icon, with a count bubble on its corner when the item has a badge and
 // the count is above zero. The count is also read out for screen readers.
 function NavIcon({ item }) {
+  const { t } = useTranslation();
   const activeStreams = useActiveStreams();
   const count = item.badge === "activeStreams" ? activeStreams : 0;
   return (
@@ -71,7 +73,7 @@ function NavIcon({ item }) {
       {count > 0 && (
         <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-500 px-1 text-[10px] font-bold leading-none text-white">
           {count > 99 ? "99+" : count}
-          <span className="sr-only"> active streams</span>
+          <span className="sr-only"> {t("nav.activeStreams")}</span>
         </span>
       )}
     </span>
@@ -79,6 +81,7 @@ function NavIcon({ item }) {
 }
 
 function NavList({ items, onNavigate, collapsed = false }) {
+  const { t } = useTranslation();
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
       {items.map((item, index) =>
@@ -90,7 +93,7 @@ function NavList({ items, onNavigate, collapsed = false }) {
             to={item.to}
             end={item.end}
             onClick={onNavigate}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? t(item.labelKey) : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                 collapsed ? "justify-center" : ""
@@ -102,7 +105,7 @@ function NavList({ items, onNavigate, collapsed = false }) {
             }
           >
             <NavIcon item={item} />
-            <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
+            <span className={collapsed ? "sr-only" : ""}>{t(item.labelKey)}</span>
           </NavLink>
         )
       )}
@@ -111,6 +114,7 @@ function NavList({ items, onNavigate, collapsed = false }) {
 }
 
 export default function Layout({ title, children, headerExtra }) {
+  const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const drawerMounted = useDelayedUnmount(drawerOpen, 220);
   const [theme, toggleTheme] = useTheme();
@@ -161,23 +165,23 @@ export default function Layout({ title, children, headerExtra }) {
         <div className="px-3 pt-4">
           <button
             onClick={() => setSignOutOpen(true)}
-            title={collapsed ? "Sign out" : undefined}
+            title={collapsed ? t("nav.signOut") : undefined}
             className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60 ${
               collapsed ? "justify-center" : ""
             }`}
           >
             <IconSignOut className="h-5 w-5 shrink-0" />
-            <span className={collapsed ? "sr-only" : ""}>Sign out</span>
+            <span className={collapsed ? "sr-only" : ""}>{t("nav.signOut")}</span>
           </button>
           <button
             onClick={() => setCollapsed((c) => !c)}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? t("nav.expandSidebar") : t("nav.collapseSidebar")}
             className={`mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60 ${
               collapsed ? "justify-center" : ""
             }`}
           >
             <IconChevronDown className={`h-5 w-5 shrink-0 transition-transform ${collapsed ? "-rotate-90" : "rotate-90"}`} />
-            <span className={collapsed ? "sr-only" : ""}>Collapse</span>
+            <span className={collapsed ? "sr-only" : ""}>{t("nav.collapse")}</span>
           </button>
         </div>
       </aside>
@@ -222,7 +226,7 @@ export default function Layout({ title, children, headerExtra }) {
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/60"
               >
                 <IconSignOut className="h-5 w-5 shrink-0" />
-                Sign out
+                {t("nav.signOut")}
               </button>
             </div>
           </div>
@@ -246,7 +250,7 @@ export default function Layout({ title, children, headerExtra }) {
             <button
               onClick={toggleTheme}
               className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              aria-label="Toggle theme"
+              aria-label={t("nav.toggleTheme")}
             >
               {theme === "dark" ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
             </button>
@@ -272,16 +276,16 @@ export default function Layout({ title, children, headerExtra }) {
             }
           >
             <NavIcon item={item} />
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
       </nav>
 
       <ConfirmDialog
         open={signOutOpen}
-        title="Sign out?"
-        body="You'll need to sign in again to get back in."
-        confirmLabel="Sign out"
+        title={t("nav.signOutTitle")}
+        body={t("nav.signOutBody")}
+        confirmLabel={t("nav.signOut")}
         onConfirm={signOut}
         onCancel={() => setSignOutOpen(false)}
       />

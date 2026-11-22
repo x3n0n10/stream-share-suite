@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FIELD } from "./common.jsx";
 import { parseItems, addItems, removeItem, joinItems } from "../lib/listItems.js";
 
@@ -13,6 +14,7 @@ const SMALL_BUTTON =
 // stays the source of truth (value in, value out), so callers keep their
 // existing storage and API shapes.
 export default function ListInput({ value, onChange, itemType = "text", sort = false, placeholder, ariaLabel }) {
+  const { t } = useTranslation();
   const items = parseItems(value);
   const [draft, setDraft] = useState("");
   const [adding, setAdding] = useState(false); // time mode: entry input is hidden until "+ Add time"
@@ -56,7 +58,7 @@ export default function ListInput({ value, onChange, itemType = "text", sort = f
           <button
             type="button"
             onClick={() => emit(removeItem(items, item))}
-            aria-label={`Remove ${item}`}
+            aria-label={t("common.removeItem", { name: item })}
             className="rounded-md px-1.5 py-0.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"
           >
             ×
@@ -76,12 +78,12 @@ export default function ListInput({ value, onChange, itemType = "text", sort = f
               onKeyDown={onKeyDown}
             />
             <button type="button" className={SMALL_BUTTON} onClick={() => draft && commit(draft)}>
-              Add
+              {t("common.add")}
             </button>
           </span>
         ) : (
           <button type="button" className={SMALL_BUTTON} onClick={() => setAdding(true)}>
-            + Add time
+            {t("list.addTime")}
           </button>
         )
       ) : (
@@ -89,7 +91,7 @@ export default function ListInput({ value, onChange, itemType = "text", sort = f
           className={`${FIELD} !w-auto min-w-[10rem] flex-1 !py-1`}
           value={draft}
           inputMode={itemType === "number" ? "numeric" : undefined}
-          placeholder={items.length === 0 ? placeholder : "Add…"}
+          placeholder={items.length === 0 ? placeholder : t("list.addPlaceholder")}
           onChange={onChangeText}
           onKeyDown={onKeyDown}
           onBlur={() => draft && commit(draft)}

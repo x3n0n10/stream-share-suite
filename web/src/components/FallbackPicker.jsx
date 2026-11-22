@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FIELD, ErrorNote } from "./common.jsx";
+import { errorText } from "../lib/serverText.js";
 import { api } from "../lib/api.js";
 import { parseItems, removeItem, joinItems } from "../lib/listItems.js";
 import { moveItem, fallbackChoices, unsupportedReason, needsRecheck } from "../lib/failover.js";
@@ -17,10 +19,11 @@ const ICON_BUTTON =
 // tab regains focus, and every few seconds while some instance cannot be
 // picked yet (still starting after Apply), so the list never goes stale.
 export default function FallbackPicker({ value, onChange, componentKey }) {
+  const { t } = useTranslation();
   const items = parseItems(value);
   const [instances, setInstances] = useState([]);
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [support, setSupport] = useState(null);
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
     api
       .stackInstances()
       .then((r) => live && (setInstances(r.instances || []), setLoaded(true)))
-      .catch((e) => live && setError(e.message || "Could not load instances"));
+      .catch((e) => live && setError(e));
     return () => {
       live = false;
     };
@@ -50,41 +53,43 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
     return () => clearInterval(timer);
   }, [waiting, checkSupport]);
 
+  const reasonText = (code) => t(`fallbacks.reason.${code}`);
   const emit = (next) => onChange(joinItems(next));
   const choices = fallbackChoices(instances, componentKey, items, support);
-  let placeholder = "Add fallback…";
-  if (!loaded && !error) placeholder = "Loading…";
-  else if (choices.length === 0) placeholder = "No instance to add";
-  else if (choices.every((c) => c.reason)) placeholder = "No instance to add yet";
+  let placeholder = t("fallbacks.add");
+  if (!loaded && !error) placeholder = t("common.loading");
+  else if (choices.length === 0) placeholder = t("fallbacks.none");
+  else if (choices.every((c) => c.reason)) placeholder = t("fallbacks.noneYet");
 
   return (
-    <div className="flex flex-col gap-2" role="group" aria-label="Fallback instances">
+    <div className="flex flex-col gap-2" role="group" aria-label={t("fallbacks.group")}>
       {items.map((key, i) => {
         const inst = instances.find((x) => x.key === key);
-        const name = inst ? inst.displayName : loaded ? `${key} (removed)` : key;
-        const reason = inst && unsupportedReason(key, support);
+        const name = inst ? inst.displayName : loaded ? t("fallbacks.removed", { key }) : key;
+        const reasonCode = inst && unsupportedReason(key, support);
+        const reason = reasonCode && reasonText(reasonCode);
         return (
           <div key={key} className={ROW}>
             <span className="min-w-0 flex-1 truncate">
               {name}
               {reason && <span className="ml-1.5 font-normal text-amber-600 dark:text-amber-400">{reason}</span>}
             </span>
-            <button type="button" className={ICON_BUTTON} disabled={i === 0} aria-label={`Move ${name} up`} onClick={() => emit(moveItem(items, i, -1))}>
+            <button type="button" className={ICON_BUTTON} disabled={i === 0} aria-label={t("fallbacks.moveUp", { name })} onClick={() => emit(moveItem(items, i, -1))}>
               ↑
             </button>
-            <button type="button" className={ICON_BUTTON} disabled={i === items.length - 1} aria-label={`Move ${name} down`} onClick={() => emit(moveItem(items, i, 1))}>
+            <button type="button" className={ICON_BUTTON} disabled={i === items.length - 1} aria-label={t("fallbacks.moveDown", { name })} onClick={() => emit(moveItem(items, i, 1))}>
               ↓
             </button>
-            <button type="button" className={ICON_BUTTON} aria-label={`Remove ${name}`} onClick={() => emit(removeItem(items, key))}>
+            <button type="button" className={ICON_BUTTON} aria-label={t("common.removeItem", { name })} onClick={() => emit(removeItem(items, key))}>
               ×
             </button>
           </div>
         );
       })}
-      <ErrorNote message={error && `Could not load instances: ${error}`} />
+      <ErrorNote message={error && t("fallbacks.loadFailedDetail", { detail: errorText(error, t) || t("fallbacks.loadFailed") })} />
       <select
         className={`${FIELD} !w-auto !py-1`}
-        aria-label="Add fallback instance"
+        aria-label={t("fallbacks.addLabel")}
         value=""
         disabled={choices.length === 0 || !loaded}
         onChange={(e) => e.target.value && emit([...items, e.target.value])}
@@ -92,7 +97,7 @@ export default function FallbackPicker({ value, onChange, componentKey }) {
         <option value="">{placeholder}</option>
         {choices.map((c) => (
           <option key={c.key} value={c.key} disabled={Boolean(c.reason)}>
-            {c.reason ? `${c.displayName} (${c.reason})` : c.displayName}
+            {c.reason ? `${c.displayName} (${reasonText(c.reason)})` : c.displayName}
           </option>
         ))}
       </select>

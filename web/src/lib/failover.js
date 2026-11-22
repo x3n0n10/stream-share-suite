@@ -8,11 +8,11 @@ export function moveItem(items, index, delta) {
   return next;
 }
 
-// Why an instance cannot be a fallback right now, or null when it can.
+// Why an instance cannot be a fallback right now (a fallbacks.reason.* key), or null when it can.
 // support is the /failover-support answer; null while it is still loading.
 export function unsupportedReason(key, support) {
   if (!support || support.supported.includes(key)) return null;
-  return support.unreachable.includes(key) ? "not running yet" : "needs a newer StreamShare version";
+  return support.unreachable.includes(key) ? "notRunning" : "needsNewer";
 }
 
 // Whether to keep rechecking support: while it loads, or while some other

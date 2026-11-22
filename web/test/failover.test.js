@@ -13,7 +13,7 @@ test("fallbackChoices leaves out self and selected, says why the rest cannot be 
   const support = { supported: ["a", "b", "c"], unreachable: ["e"] };
   assert.deepEqual(
     fallbackChoices(instances, "a", ["b"], support).map((i) => [i.key, i.reason]),
-    [["c", null], ["d", "needs a newer StreamShare version"], ["e", "not running yet"]]
+    [["c", null], ["d", "needsNewer"], ["e", "notRunning"]]
   );
   assert.deepEqual(fallbackChoices(instances, "a", [], null), []);
 });

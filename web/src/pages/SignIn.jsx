@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { errorText } from "../lib/serverText.js";
 import { api } from "../lib/api.js";
 import LanguagePicker from "../components/LanguagePicker.jsx";
 import { Button, ErrorNote, FIELD } from "../components/common.jsx";
@@ -7,6 +9,7 @@ import { Button, ErrorNote, FIELD } from "../components/common.jsx";
 // field and differ only in the copy and which endpoint they post to, so
 // splitting them would duplicate the form for nothing.
 export default function SignIn({ setupRequired, onAuthenticated }) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -18,7 +21,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
     setError(null);
 
     if (setupRequired && password !== confirm) {
-      setError("The two passwords do not match.");
+      setError(t("signIn.mismatch"));
       return;
     }
 
@@ -29,7 +32,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
         : await api.login(username, password);
       onAuthenticated(result);
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
       setBusy(false);
     }
   }
@@ -49,17 +52,15 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
           <h1 className="text-base font-semibold text-slate-900 dark:text-white">
-            {setupRequired ? "Create your admin account" : "Sign in"}
+            {setupRequired ? t("signIn.createTitle") : t("signIn.signInTitle")}
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {setupRequired
-              ? "This is the only account. Nothing else works until it exists."
-              : "Enter your credentials to continue."}
+            {setupRequired ? t("signIn.createIntro") : t("signIn.signInIntro")}
           </p>
 
           <form onSubmit={submit} className="mt-5 flex flex-col gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Username</span>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{t("signIn.username")}</span>
               <input
                 className={FIELD}
                 value={username}
@@ -71,7 +72,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
             </label>
 
             <label className="flex flex-col gap-1.5">
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Password</span>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{t("signIn.password")}</span>
               <input
                 className={FIELD}
                 type="password"
@@ -82,7 +83,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
               />
               {setupRequired && (
                 <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                  At least 12 characters. There is no recovery — store it somewhere safe.
+                  {t("signIn.passwordHint")}
                 </span>
               )}
             </label>
@@ -90,7 +91,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
             {setupRequired && (
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Confirm password
+                  {t("signIn.confirmPassword")}
                 </span>
                 <input
                   className={FIELD}
@@ -107,7 +108,7 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
 
             <div className="mt-1">
               <Button type="submit" tone="accent" loading={busy} disabled={busy}>
-                {setupRequired ? "Create account" : "Sign in"}
+                {setupRequired ? t("signIn.createAccount") : t("signIn.signInTitle")}
               </Button>
             </div>
           </form>

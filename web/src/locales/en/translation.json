@@ -2,7 +2,30 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "failedOn": "Failed on {{list}}"
+    "failedOn": "Failed on {{list}}",
+    "updated": "Updated {{when}}",
+    "loading": "Loading…",
+    "refresh": "Refresh",
+    "on": "On",
+    "off": "Off",
+    "add": "Add",
+    "remove": "Remove",
+    "removeItem": "Remove {{name}}",
+    "secretSet": "Set. Leave blank to keep it.",
+    "secretNotSet": "Not set.",
+    "unchanged": "••••••••  (unchanged)",
+    "tech": {
+      "audio": "Audio: {{list}}",
+      "subs": "Subs: {{list}}",
+      "subsCount": "Subs: {{count}}"
+    },
+    "hours": {
+      "last1": "Last hour",
+      "last24": "Last 24h",
+      "last168": "Last 7 days",
+      "last720": "Last 30 days",
+      "all": "All time"
+    }
   },
   "language": {
     "label": "Language"
@@ -537,5 +560,144 @@
       "label": "Caddy (reverse proxy)",
       "description": "Publishes any instance with a public base URL under a real hostname, with HTTPS handled for you."
     }
+  },
+  "nav": {
+    "overview": "Overview",
+    "users": "Users",
+    "history": "History",
+    "leaderboard": "Leaderboard",
+    "instances": "Instances",
+    "vod": "VOD search",
+    "shares": "Share links",
+    "aliases": "Aliases",
+    "vpn": "VPN",
+    "setup": "Setup wizard",
+    "stack": "Stack",
+    "settings": "Settings",
+    "activeStreams": "active streams",
+    "signOut": "Sign out",
+    "signOutTitle": "Sign out?",
+    "signOutBody": "You'll need to sign in again to get back in.",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar",
+    "collapse": "Collapse",
+    "toggleTheme": "Toggle theme"
+  },
+  "signIn": {
+    "createTitle": "Create your admin account",
+    "signInTitle": "Sign in",
+    "createIntro": "This is the only account. Nothing else works until it exists.",
+    "signInIntro": "Enter your credentials to continue.",
+    "username": "Username",
+    "password": "Password",
+    "passwordHint": "At least 12 characters. There is no recovery — store it somewhere safe.",
+    "confirmPassword": "Confirm password",
+    "mismatch": "The two passwords do not match.",
+    "createAccount": "Create account"
+  },
+  "schemaForm": {
+    "advanced": "Advanced"
+  },
+  "subscription": {
+    "title": "Subscription",
+    "providerTitle": "Provider subscription",
+    "trial": "trial",
+    "status": {
+      "rejected": "Rejected",
+      "expired": "Expired",
+      "inactive": "Inactive",
+      "active": "Active"
+    },
+    "rejectedNote": "The provider is rejecting this instance's credentials",
+    "expiry": {
+      "expired": "Expired",
+      "expiredAgo": "Expired {{when}}",
+      "none": "No expiry date",
+      "on": "Expires {{date}}",
+      "today": "Expires today ({{date}})",
+      "daysLeft_one": "{{count}} day left ({{date}})",
+      "daysLeft_other": "{{count}} days left ({{date}})"
+    },
+    "expiryParts": {
+      "none": "No expiry",
+      "today": "Today",
+      "daysLeft_one": "{{count}} day left",
+      "daysLeft_other": "{{count}} days left"
+    },
+    "connections": {
+      "ofMax_one": "{{used}} of {{count}} connection in use",
+      "ofMax_other": "{{used}} of {{count}} connections in use",
+      "noMax_one": "{{count}} connection in use",
+      "noMax_other": "{{count}} connections in use",
+      "withHere": "{{total}} · {{here}} here",
+      "meter": "Provider connections in use",
+      "usedOfMax": "{{used}} of {{max}}",
+      "fromInstance": "{{here}} from this instance"
+    },
+    "checkedTitle": "Provider total read {{when}}; \"here\" is live",
+    "lastRead": "Last read {{when}}",
+    "lastReadError": "Last read {{when}} — {{error}}",
+    "lastGood": "Showing the last successful read",
+    "lastGoodError": "Showing the last successful read — refresh failed: {{error}}",
+    "facts": {
+      "expires": "Expires",
+      "connections": "Connections",
+      "checked": "Checked"
+    }
+  },
+  "channelSearch": {
+    "selected": "Selected: {{caption}}"
+  },
+  "directiveEnv": {
+    "hint": "Reference a credential in Directive above as {{ref}} to get a box for it here."
+  },
+  "errorSlates": {
+    "empty": "No overrides — every code shows its default message.",
+    "code": "Code",
+    "codePlaceholder": "404, UNREACHABLE",
+    "meaning": "Meaning (optional)",
+    "meaningPlaceholder": "Channel problem",
+    "message": "Message shown to viewers",
+    "messagePlaceholder": "This channel doesn't exist anymore.",
+    "addEntry": "+ Add entry"
+  },
+  "fallbacks": {
+    "group": "Fallback instances",
+    "removed": "{{key}} (removed)",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "loadFailed": "Could not load instances",
+    "loadFailedDetail": "Could not load instances: {{detail}}",
+    "addLabel": "Add fallback instance",
+    "add": "Add fallback…",
+    "none": "No instance to add",
+    "noneYet": "No instance to add yet",
+    "reason": {
+      "notRunning": "not running yet",
+      "needsNewer": "needs a newer StreamShare version"
+    }
+  },
+  "list": {
+    "addTime": "+ Add time",
+    "addPlaceholder": "Add…"
+  },
+  "providerCombobox": {
+    "placeholder": "Start typing to search…"
+  },
+  "providerCredentials": {
+    "button": "Use provider credentials",
+    "needXtream": "Enter the Xtream username and password first",
+    "confirmTitle": "Use provider credentials?",
+    "confirmBody": "Sets this instance's sign-in to the same username and password as its Xtream provider account immediately, no need to hit Save afterwards. Any custom username/password stops working right away."
+  },
+  "versions": {
+    "stopped": "stopped",
+    "unknown": "unknown",
+    "image": "image {{version}}",
+    "running": "running",
+    "notRunning": "not running",
+    "updateAvailable": "Update available",
+    "updateAvailableVersion": "Update available: {{latest}}",
+    "suite": "Suite"
   }
 }

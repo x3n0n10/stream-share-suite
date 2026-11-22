@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ConfirmDialog } from "./common.jsx";
 import { api } from "../lib/api.js";
 
@@ -11,6 +12,7 @@ const PILL =
 // the wizard's version; editing the Xtream password afterwards doesn't
 // follow through.
 export function CopyProviderCredentialsButton({ draft, set }) {
+  const { t } = useTranslation();
   if (draft.providerType !== "xtream") return null;
   const ready = Boolean(draft.xtreamUser && draft.xtreamPassword);
 
@@ -18,7 +20,7 @@ export function CopyProviderCredentialsButton({ draft, set }) {
     <button
       type="button"
       disabled={!ready}
-      title={ready ? undefined : "Enter the Xtream username and password first"}
+      title={ready ? undefined : t("providerCredentials.needXtream")}
       onClick={() => {
         set("authMode", "basic");
         set("authUser", draft.xtreamUser);
@@ -26,7 +28,7 @@ export function CopyProviderCredentialsButton({ draft, set }) {
       }}
       className={PILL}
     >
-      Use provider credentials
+      {t("providerCredentials.button")}
     </button>
   );
 }
@@ -36,6 +38,7 @@ export function CopyProviderCredentialsButton({ draft, set }) {
 // sign-in option, even though picking it fires an action instead of setting
 // a draft value.
 export default function UseProviderCredentialsButton({ instanceKey, onDone }) {
+  const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -58,13 +61,13 @@ export default function UseProviderCredentialsButton({ instanceKey, onDone }) {
         disabled={busy}
         className={PILL}
       >
-        Use provider credentials
+        {t("providerCredentials.button")}
       </button>
       <ConfirmDialog
         open={confirming}
-        title="Use provider credentials?"
-        body="Sets this instance's sign-in to the same username and password as its Xtream provider account immediately, no need to hit Save afterwards. Any custom username/password stops working right away."
-        confirmLabel="Use provider credentials"
+        title={t("providerCredentials.confirmTitle")}
+        body={t("providerCredentials.confirmBody")}
+        confirmLabel={t("providerCredentials.button")}
         tone="accent"
         onConfirm={confirm}
         onCancel={() => setConfirming(false)}
