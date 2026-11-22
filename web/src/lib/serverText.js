@@ -25,9 +25,9 @@ export function errorText(err, t) {
   return serverText(t, "errors", err.body, err.message);
 }
 
-// The { code, params } of an API error, for storing next to its English message.
-export function errorI18n(err) {
-  return err.body?.code ? { code: err.body.code, params: err.body.params } : undefined;
+// Text for an ErrorNote: strings pass through, error objects are translated.
+export function messageText(message, t) {
+  return typeof message === "string" ? message : errorText(message, t);
 }
 
 export function jobLine(t, entry) {

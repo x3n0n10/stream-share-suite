@@ -185,7 +185,7 @@ export default function Vpn({ pollIntervalMs }) {
               <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
                 {t("vpn.reconnectNote")}
               </p>
-              {actionError && <div className="mt-2"><ErrorNote message={actionError} /></div>}
+              {actionError && <div className="mt-2"><ErrorNote message={errorText(actionError, t)} /></div>}
             </Card>
 
             <Card className="p-4 sm:p-5">

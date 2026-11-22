@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { serverText, errorText, jobLine } from "../src/lib/serverText.js";
+import { serverText, errorText, jobLine, messageText } from "../src/lib/serverText.js";
 import { describeFailures } from "../src/lib/applyToAll.js";
 
 const dict = {
@@ -23,6 +23,13 @@ test("serverText translates a known code with params", () => {
 test("serverText falls back to the server's English", () => {
   assert.equal(serverText(t, "validation", { code: "nope" }, "English"), "English");
   assert.equal(serverText(t, "validation", undefined, "English"), "English");
+});
+
+test("messageText passes strings through and translates error objects", () => {
+  assert.equal(messageText("Plain", t), "Plain");
+  assert.equal(messageText(apiError("Boom", { error: "Boom" }), t), "Boom");
+  const err = apiError("x", { errors: [{ key: "username", code: "username_too_short", params: { min: 3 }, message: "x" }] });
+  assert.equal(messageText(err, t), "Gebruikersnaam moet minstens 3 tekens hebben.");
 });
 
 test("errorText without code", () => {

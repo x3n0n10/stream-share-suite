@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
-import { serverText, jobLine } from "../../lib/serverText.js";
+import { serverText, jobLine, errorText } from "../../lib/serverText.js";
 import { useFormat } from "../../lib/useFormat.js";
 import { catalogText } from "../../lib/schemaKeys.js";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../../components/common.jsx";
@@ -151,6 +151,9 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
 
 function JobLog({ job }) {
   const { t } = useTranslation();
+  const failureText = job.failure
+    ? errorText(job.failure, t)
+    : job.error && serverText(t, "errors", job.errorI18n, job.error);
   return (
     <Card className="p-5">
       <div className="mb-2 flex items-center gap-2">
@@ -162,9 +165,7 @@ function JobLog({ job }) {
         {(job.log || []).map((entry, i) => (
           <div key={i}>{jobLine(t, entry)}</div>
         ))}
-        {job.error && (
-          <div className="text-rose-600 dark:text-rose-400">{serverText(t, "errors", job.errorI18n, job.error)}</div>
-        )}
+        {failureText && <div className="text-rose-600 dark:text-rose-400">{failureText}</div>}
       </div>
     </Card>
   );
