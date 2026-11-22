@@ -5,9 +5,13 @@
 // still owned by 0:0 — never a folder that has data or another owner, never
 // recursively. The helper has no managed labels, so plans never see it.
 
-import { createContainer, startContainer, waitContainer, removeContainer } from "../docker/client.js";
+import { createContainer, startContainer, waitContainer, removeContainer, inspectContainer } from "../docker/client.js";
 import { ownership as realOwnership } from "../store/paths.js";
 import { customCachePath, instanceContainerName, instanceImage } from "./instance.js";
+
+// Not one of the managed labels, so plans never see the helper; it only marks
+// a leftover as ours, so a foreign container of the same name is never removed.
+const HELPER_LABEL = "streamshare.suite.cache-init";
 
 // Exit 10 means "changed": the proxy does not grant container logs, so the
 // exit code is the only channel back.
@@ -20,14 +24,23 @@ export async function prepareCacheFolder(key, values, { log = () => {}, ownershi
   if (!cachePath || !ownership || (ownership.uid === 0 && ownership.gid === 0)) return;
 
   const name = `${instanceContainerName(key, values)}-cache-init`;
+  let created = false;
   try {
-    await removeContainer(name, { force: true });
+    const leftover = await inspectContainer(name);
+    if (leftover) {
+      if (leftover.Config?.Labels?.[HELPER_LABEL] !== "true") {
+        throw new Error(`a container named ${name} already exists and is not a cache helper`);
+      }
+      await removeContainer(name, { force: true });
+    }
+    created = true;
     await createContainer(name, {
+      Labels: { [HELPER_LABEL]: "true" },
       Image: instanceImage(values),
       User: "0:0",
       Entrypoint: ["sh", "-c"],
       Cmd: [script(ownership)],
-      HostConfig: { Binds: [`${cachePath}:/cache`] },
+      HostConfig: { Binds: [`${cachePath}:/cache`], NetworkMode: "none" },
     });
     await startContainer(name);
     const code = await waitContainer(name);
@@ -36,6 +49,6 @@ export async function prepareCacheFolder(key, values, { log = () => {}, ownershi
   } catch (err) {
     log(`Warning: could not prepare the cache folder ${cachePath}: ${err.message}`);
   } finally {
-    await removeContainer(name, { force: true }).catch(() => {});
+    if (created) await removeContainer(name, { force: true }).catch(() => {});
   }
 }

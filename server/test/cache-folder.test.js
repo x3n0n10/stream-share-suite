@@ -11,7 +11,7 @@ import { instanceContainerName } from "../src/reconcile/instance.js";
 import { freshDatabase } from "./helpers.js";
 
 let server;
-let containers; // names still present
+let containers; // name -> labels
 let requests;
 let nextExit;
 let waitStatus;
@@ -28,8 +28,13 @@ before(async () => {
       if (req.method === "POST" && url.pathname === "/v1.43/containers/create") {
         const name = url.searchParams.get("name");
         if (containers.has(name)) return json(409, { message: "conflict" });
-        containers.add(name);
+        containers.set(name, (raw && JSON.parse(raw).Labels) || {});
         return json(201, { Id: "h1" });
+      }
+      const inspect = url.pathname.match(/^\/v1\.43\/containers\/([^/]+)\/json$/);
+      if (req.method === "GET" && inspect) {
+        const name = decodeURIComponent(inspect[1]);
+        return containers.has(name) ? json(200, { Config: { Labels: containers.get(name) } }) : json(404, { message: "no" });
       }
       if (req.method === "POST" && url.pathname.endsWith("/start")) return res.writeHead(204).end();
       if (req.method === "POST" && url.pathname.endsWith("/wait")) {
@@ -54,7 +59,7 @@ const own = { uid: 99, gid: 100 };
 
 beforeEach(() => {
   freshDatabase();
-  containers = new Set();
+  containers = new Map();
   requests = [];
   lines = [];
   nextExit = 0;
@@ -72,11 +77,12 @@ test("creates the helper as root with the cache path bound and our ids in the sc
   assert.equal(create().body.User, "0:0");
   assert.deepEqual(create().body.HostConfig.Binds, ["/mnt/cache dir/x:/cache"]);
   assert.equal(create().body.HostConfig.Mounts, undefined);
+  assert.equal(create().body.HostConfig.NetworkMode, "none");
   assert.deepEqual(create().body.Entrypoint, ["sh", "-c"]);
   assert.match(create().body.Cmd[0], /chown 99:100 \/cache/);
   assert.ok(!create().body.Cmd[0].includes("/mnt/cache dir/x"));
   assert.deepEqual(lines, ["Gave the new cache folder /mnt/cache dir/x to 99:100."]);
-  assert.ok(requests.some((r) => r.method === "DELETE"));
+  assert.equal(requests.at(-1).method, "DELETE");
 });
 
 test("an existing folder (exit 0) is left alone silently", async () => {
@@ -98,11 +104,11 @@ test("a failed wait still removes the helper and only warns", async () => {
   await prepareCacheFolder("cache-test", values({ cachePath: "/mnt/c" }), { log, ownership: own });
   assert.equal(lines.length, 1);
   assert.ok(lines[0].startsWith("Warning: could not prepare the cache folder /mnt/c: "));
-  assert.ok(requests.some((r) => r.method === "DELETE"));
+  assert.equal(requests.at(-1).method, "DELETE");
 });
 
 test("a leftover helper from an earlier apply is removed first", async () => {
-  containers.add(`${instanceContainerName("cache-test", values())}-cache-init`);
+  containers.set(`${instanceContainerName("cache-test", values())}-cache-init`, { "streamshare.suite.cache-init": "true" });
   nextExit = 10;
   await prepareCacheFolder("cache-test", values({ cachePath: "/mnt/c" }), { log, ownership: own });
   const del = requests.findIndex((r) => r.method === "DELETE");
@@ -110,6 +116,14 @@ test("a leftover helper from an earlier apply is removed first", async () => {
   assert.ok(del >= 0 && del < cre);
   assert.equal(lines.length, 1);
   assert.ok(lines[0].startsWith("Gave"));
+});
+
+test("a foreign container of the helper's name is left alone and only warned about", async () => {
+  containers.set(`${instanceContainerName("cache-test", values())}-cache-init`, {});
+  await prepareCacheFolder("cache-test", values({ cachePath: "/mnt/c" }), { log, ownership: own });
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /^Warning: could not prepare the cache folder \/mnt\/c: .*not a cache helper/);
+  assert.ok(!requests.some((r) => r.method === "DELETE" || r.path.endsWith("/containers/create")));
 });
 
 test("blank cache path or caching off runs no helper", async () => {

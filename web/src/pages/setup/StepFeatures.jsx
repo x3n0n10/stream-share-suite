@@ -118,8 +118,8 @@ export default function StepFeatures({ instances, onNext, onBack }) {
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
           Leave the paths below blank to keep each cache in the Suite's own data folder. Caches can grow to
           tens of gigabytes, so we recommend an absolute path on a disk meant for caching with that much room
-          free. The folder must already exist and be owned by the PUID/PGID the Suite runs as: Docker would
-          create a missing one as root, and the instance could not write to it.
+          free. If the folder does not exist yet, the Suite creates it for the PUID/PGID the Suite runs as. An
+          existing folder keeps its owner, so it must be writable for that user.
         </span>
       </label>
 

@@ -145,9 +145,10 @@ export async function renderInstanceSpec(values, key) {
   const port = Number(values.port);
 
   const configDir = ensureDirectory(componentDataDir(name), "config");
-  // A cache path the operator typed is never created or checked by the Suite —
-  // it's handed straight to Docker as a bind-mount source, the same as any path
-  // in a hand-written compose file. That's what lets an operator point it at a
+  // A cache path the operator typed is handed straight to Docker as a
+  // bind-mount source, the same as any path in a hand-written compose file;
+  // prepareCacheFolder gives a new, empty, root-owned one to PUID:PGID before
+  // the instance starts. That's what lets an operator point it at a
   // new disk without touching the Suite's own compose file. With none given,
   // the cache lives next to the config under the data directory, created here
   // like every other folder the Suite owns: left to Docker, a missing folder

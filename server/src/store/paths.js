@@ -23,8 +23,9 @@
 // An instance's own cache path is a different story — each instance's
 // cachePath field is an optional, per-instance value (see schema/instance.js).
 // Left blank, the cache goes under the data directory like any other component
-// folder; filled in, it is the operator's own host path, never created or
-// checked here. There's nothing to read from the environment for it.
+// folder; filled in, it is the operator's own host path, bind-mounted as given;
+// prepareCacheFolder gives a new, empty, root-owned one to PUID:PGID before the
+// instance starts. There's nothing to read from the environment for it.
 //
 // Self-inspection (the same trick that computes gluetun's
 // FIREWALL_OUTBOUND_SUBNETS from the Suite's own networks) was considered and
