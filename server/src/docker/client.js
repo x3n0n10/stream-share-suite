@@ -105,6 +105,13 @@ export async function stopContainer(idOrName, { timeoutSeconds = 15 } = {}) {
   await parseJsonOrThrow(res, `stopContainer(${idOrName})`);
 }
 
+// Blocks until the container exits and resolves to its exit code.
+export async function waitContainer(idOrName, { timeoutMs = 60000 } = {}) {
+  const res = await request("POST", `/containers/${encodeURIComponent(idOrName)}/wait`, { timeoutMs });
+  const body = await parseJsonOrThrow(res, `waitContainer(${idOrName})`);
+  return body.StatusCode;
+}
+
 // 404 is treated as success: removing something already gone is the outcome
 // the caller wanted, not a failure to report.
 export async function removeContainer(idOrName, { force = false } = {}) {
