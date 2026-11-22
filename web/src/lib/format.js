@@ -61,7 +61,7 @@ export function formatRelativeTime(isoString, { withTime = false, lng = "en" } =
       return relative;
     }
   }
-  return "just now";
+  return getFormatter(Intl.RelativeTimeFormat, lng, "relativeAuto").format(0, "second");
 }
 
 export function formatDateTime(isoString, lng = "en") {

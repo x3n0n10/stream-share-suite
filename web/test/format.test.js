@@ -17,3 +17,8 @@ test("formatRelativeTime uses the given language", () => {
 test("formatRelativeTime handles missing values", () => {
   assert.equal(formatRelativeTime(null), "—");
 });
+
+test("formatRelativeTime under a minute is localized", () => {
+  assert.equal(formatRelativeTime(new Date().toISOString(), { lng: "nl" }), "nu");
+  assert.equal(formatRelativeTime(new Date().toISOString(), { lng: "en" }), "now");
+});
