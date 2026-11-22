@@ -27,6 +27,7 @@ import { useTheme } from "../lib/useTheme.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
 import { useActiveStreams } from "../lib/ActiveStreamsContext.jsx";
 import { api } from "../lib/api.js";
+import LanguagePicker from "./LanguagePicker.jsx";
 
 const NAV_ITEMS = [
   { to: "/", label: "Overview", icon: IconOverview, end: true, badge: "activeStreams" },
@@ -241,6 +242,7 @@ export default function Layout({ title, children, headerExtra }) {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {headerExtra}
+            <LanguagePicker />
             <button
               onClick={toggleTheme}
               className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"

@@ -1,0 +1,6 @@
+{
+  "i18n-ally.localesPaths": ["web/src/locales"],
+  "i18n-ally.keystyle": "nested",
+  "i18n-ally.pathMatcher": "{locale}/translation.json",
+  "i18n-ally.sourceLanguage": "en"
+}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../lib/api.js";
+import LanguagePicker from "../components/LanguagePicker.jsx";
 import { Button, ErrorNote, FIELD } from "../components/common.jsx";
 
 // One screen for both first-run setup and ordinary sign-in — they share every
@@ -36,11 +37,14 @@ export default function SignIn({ setupRequired, onAuthenticated }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center gap-2.5">
-          <img src="/logo.svg" alt="" className="h-9 w-9 rounded-lg" />
-          <span className="text-lg font-semibold text-slate-900 dark:text-white">
-            StreamShare Suite
-          </span>
+        <div className="mb-6 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="" className="h-9 w-9 rounded-lg" />
+            <span className="text-lg font-semibold text-slate-900 dark:text-white">
+              StreamShare Suite
+            </span>
+          </div>
+          <LanguagePicker />
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">

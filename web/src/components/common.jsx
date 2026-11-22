@@ -149,9 +149,10 @@ export function OnOffToggle({ value, onChange, disabled }) {
   );
 }
 
-export function Select({ value, onChange, options }) {
+export function Select({ value, onChange, options, ariaLabel }) {
   return (
     <select
+      aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
