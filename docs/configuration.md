@@ -143,7 +143,8 @@ For each instance the Suite creates one role and one database on the server,
 both named `streamshare_<key>` after the instance key (`test-a` becomes
 `streamshare_test_a`). The role gets a generated password, which the instance
 container receives. If the role already exists, the Suite updates its password
-to the stored one. If the database already exists, it is used as it is.
+to the stored one. On PostgreSQL 16 and later, this needs the admin user to
+have created that role itself or to hold `ADMIN OPTION` on it. If the database already exists, it is used as it is.
 
 ### Admin user privileges
 
@@ -167,7 +168,9 @@ databases, the instances use them.
   **Docker networks to join** (see [networks](#networks)).
 - **Host IP and published port.** Also works. Instances reach the host's
   published ports through the Docker bridge, so `<host-ip>` with the published
-  port is enough. A host firewall that blocks traffic from Docker bridges might
+  port is enough. This was tested with the VPN off. With the VPN on, instances
+  share gluetun's network, whose outbound firewall may block a host LAN IP. That
+  is untested, so a container name on `streamshare` is the safer choice there. A host firewall that blocks traffic from Docker bridges might
   break this for the instances. That case is untested, so check it if instances
   cannot connect.
 
@@ -177,6 +180,8 @@ within a second or two. An unknown or mistyped hostname makes the apply wait
 about 60 s before it fails, so check the host name first.
 
 If an apply fails at the database step, the running instance is left as it was.
+A stack apply stops at the first component that fails, so later instances are
+not attempted in that apply.
 
 ### No admin password (trust auth)
 
