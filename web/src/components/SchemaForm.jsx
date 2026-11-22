@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { fieldText, groupText } from "../lib/schemaKeys.js";
 import { Button, ErrorNote, FIELD } from "./common.jsx";
 import ErrorSlateEditor from "./ErrorSlateEditor.jsx";
 import ProviderCombobox from "./ProviderCombobox.jsx";
@@ -12,6 +14,7 @@ import FallbackPicker from "./FallbackPicker.jsx";
 // in the rendered form with no frontend change at all. Everything here is
 // generic over shape; a component's meaning lives entirely in its schema.
 export default function SchemaForm({
+  kind,
   fields,
   onSave,
   saving,
@@ -23,6 +26,7 @@ export default function SchemaForm({
   componentKey,
   beforeField,
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(() => initialDraft(fields));
 
   // fields only changes reference when a caller hands in a fresh copy after
@@ -96,7 +100,7 @@ export default function SchemaForm({
           <div key={groupName || "_"} className="flex flex-col gap-3">
             {groupName && (
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {groupName}
+                {groupText(t, kind, groupName)}
               </h3>
             )}
             <div className="grid gap-3 sm:grid-cols-2">
@@ -104,6 +108,7 @@ export default function SchemaForm({
                 <Fragment key={field.key}>
                   {beforeField?.[field.key]}
                   <FieldInput
+                    kind={kind}
                     field={field}
                     required={isRequired(field)}
                     value={draft[field.key]}
@@ -128,6 +133,7 @@ export default function SchemaForm({
                   {advanced.map((field) => (
                     <FieldInput
                       key={field.key}
+                      kind={kind}
                       field={field}
                       required={isRequired(field)}
                       value={draft[field.key]}
@@ -167,15 +173,29 @@ export default function SchemaForm({
   );
 }
 
-function FieldInput({ field, required, value, onChange, extra, componentKey, draft }) {
+function FieldInput({ kind, field, required, value, onChange, extra, componentKey, draft }) {
+  const { t } = useTranslation();
+  const text = (part, fallback) => fieldText(t, kind, field.key, part, fallback);
+  const label = text("label", field.label);
+  const help = field.help && text("help", field.help);
+  // Brand-name option labels (combobox providers) stay as the server sends them.
+  const shown = {
+    ...field,
+    label,
+    ...(field.type === "select" && field.optionLabels && {
+      optionLabels: Object.fromEntries(
+        Object.entries(field.optionLabels).map(([opt, fallback]) => [opt, text(`options.${opt}`, fallback)])
+      ),
+    }),
+  };
   const hint =
     field.type === "directiveEnv"
-      ? field.help
+      ? help
       : field.secret
         ? field.valueSet
           ? "Set. Leave blank to keep it."
           : "Not set."
-        : field.help;
+        : help;
 
   // A <label> wraps a single control by convention — fine for a lone
   // input/textarea/checkbox, but a select field is really a row of several
@@ -200,10 +220,10 @@ function FieldInput({ field, required, value, onChange, extra, componentKey, dra
       }`}
     >
       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-        {field.label}
+        {label}
         {required && <span className="text-rose-500"> *</span>}
       </span>
-      {renderControl(field, value, onChange, extra, componentKey, draft)}
+      {renderControl(shown, value, onChange, extra, componentKey, draft)}
       {hint && <span className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</span>}
     </Wrapper>
   );

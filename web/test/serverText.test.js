@@ -7,6 +7,7 @@ const dict = {
   "validation.username_too_short": "Gebruikersnaam moet minstens {{min}} tekens hebben.",
   "validation.required": "{{field}} is verplicht.",
   "schema.instance.fields.displayName.label": "Weergavenaam",
+  "schema.caddy.fields.acmeEmail.patternMessage": "Voer een gewoon e-mailadres in.",
   "log.pulled_image": "Image {{image}} opgehaald",
   "common.failedOn": "Mislukt op {{list}}",
 };
@@ -53,4 +54,12 @@ test("describeFailures names each failed instance", () => {
 
 test("renders legacy string log entries", () => {
   assert.equal(jobLine(t, "Reconnect attempt 1/3..."), "Reconnect attempt 1/3...");
+});
+
+test("errorText resolves a pattern failure to the field's patternMessage", () => {
+  const err = apiError("Invalid", {
+    kind: "caddy",
+    errors: [{ key: "acmeEmail", code: "pattern", message: "Enter a plain email address." }],
+  });
+  assert.equal(errorText(err, t), "Voer een gewoon e-mailadres in.");
 });

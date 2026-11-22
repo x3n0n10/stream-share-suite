@@ -31,3 +31,9 @@ test("jobResult keeps codes", () => {
   assert.equal(result.log[0].code, "image_pulled");
   assert.equal(result.errorI18n.code, "port_clash");
 });
+
+test("finishJob ignores the code on a non-SuiteError", () => {
+  const job = createJob("x");
+  finishJob(job, Object.assign(new Error("connect failed"), { code: "ECONNREFUSED" }));
+  assert.equal(job.errorI18n, undefined);
+});

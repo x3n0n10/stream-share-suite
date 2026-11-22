@@ -335,6 +335,7 @@ export default function InstancesTab({
                       <p className="text-sm text-slate-400">Loading…</p>
                     ) : (
                       <SchemaForm
+                        kind="instance"
                         fields={editFields}
                         onSave={saveEdit}
                         saving={editSaving}
@@ -378,6 +379,7 @@ export default function InstancesTab({
               <p className="text-sm text-slate-400">Loading…</p>
             ) : (
               <SchemaForm
+                kind="instance"
                 fields={addFields}
                 onSave={create}
                 saving={saving}

@@ -1,3 +1,5 @@
+import { fieldText } from "./schemaKeys.js";
+
 // Translate server-provided text by code, falling back to the server's English.
 // Pure (takes `t`) so node --test can load it.
 export function serverText(t, ns, item, fallback) {
@@ -10,8 +12,11 @@ export function errorText(err, t) {
     const kind = err.body.kind;
     return errors
       .map((e) => {
+        if (kind && e.code === "pattern") {
+          return fieldText(t, kind, e.key, "patternMessage", e.message);
+        }
         const field = kind
-          ? t(`schema.${kind}.fields.${e.key}.label`, { defaultValue: e.key })
+          ? fieldText(t, kind, e.key, "label", e.key)
           : e.key;
         return serverText(t, "validation", { ...e, params: { field, ...e.params } }, e.message);
       })

@@ -242,6 +242,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                     <p className="text-sm text-slate-400">Loading…</p>
                   ) : (
                     <SchemaForm
+                      kind="instance"
                       fields={editFields}
                       onSave={saveEdit}
                       saving={editSaving}

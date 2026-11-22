@@ -84,6 +84,7 @@ export default function StepVpn({ onNext, onBack }) {
               <p className="text-sm text-slate-400">Loading…</p>
             ) : (
               <SchemaForm
+                kind="gluetun"
                 fields={fields}
                 onSave={saveGluetun}
                 saving={saving}

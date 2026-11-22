@@ -5,6 +5,8 @@ import { IconRefresh } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 import HistoryPanel from "./HistoryPanel.jsx";
+import { useTranslation } from "react-i18next";
+import { catalogText } from "../../lib/schemaKeys.js";
 
 export default function CaddyCard({
   component,
@@ -16,6 +18,7 @@ export default function CaddyCard({
   onApplyTakeover,
   onPull,
 }) {
+  const { t } = useTranslation();
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -54,9 +57,9 @@ export default function CaddyCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{catalogText(t, component, "label")}</h2>
             <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-              {component.description}
+              {catalogText(t, component, "description")}
             </p>
           </div>
           {settings && (
@@ -88,6 +91,7 @@ export default function CaddyCard({
           <p className="text-sm text-slate-400">Loading…</p>
         ) : (
           <SchemaForm
+            kind="caddy"
             fields={fields}
             onSave={save}
             saving={saving}

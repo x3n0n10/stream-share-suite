@@ -40,6 +40,7 @@ export default function StepDatabase({ onNext, onBack }) {
           <p className="text-sm text-slate-400">Loading…</p>
         ) : (
           <SchemaForm
+            kind="postgres"
             fields={fields}
             onSave={save}
             saving={saving}
