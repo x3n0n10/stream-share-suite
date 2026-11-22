@@ -32,17 +32,65 @@ export function generatePassword() {
   return randomBytes(24).toString("base64url");
 }
 
-async function withAdminClient(target, fn) {
-  const client = new pg.Client({
-    host: target.host,
-    port: target.port,
-    user: target.user,
-    password: target.password,
-    database: "postgres",
-    connectionTimeoutMillis: 8000,
-  });
+const NOT_UP_CODES = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "57P03"]);
 
-  await client.connect();
+// "Not up yet" covers a refused/reset connection, DNS for a container that has
+// not registered yet, Postgres's own "starting up" (57P03) and pg's connect
+// timeout. Anything else (bad password, missing database) is a real error.
+export function isNotUpYet(err) {
+  return NOT_UP_CODES.has(err?.code) || /timeout expired/i.test(err?.message ?? "");
+}
+
+// `open` creates and connects a fresh client (a pg.Client cannot be reused
+// after a failed connect) and cleans up after itself when it rejects.
+export async function connectWithRetry(open, {
+  budgetMs = 60000,
+  delayMs = 1000,
+  log = () => {},
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  describe = "PostgreSQL",
+} = {}) {
+  const deadline = Date.now() + budgetMs;
+  let warned = false;
+  for (;;) {
+    try {
+      return await open();
+    } catch (err) {
+      if (!isNotUpYet(err)) throw err;
+      if (Date.now() + delayMs > deadline) {
+        throw new Error(`PostgreSQL at ${describe} did not accept connections within ${Math.round(budgetMs / 1000)} s: ${err.message}`);
+      }
+      if (!warned) {
+        warned = true;
+        log("Waiting for PostgreSQL to accept connections...");
+      }
+      await sleep(delayMs);
+    }
+  }
+}
+
+async function withAdminClient(target, fn, { retry = true, log = () => {} } = {}) {
+  const open = async () => {
+    const client = new pg.Client({
+      host: target.host,
+      port: target.port,
+      user: target.user,
+      password: target.password,
+      database: "postgres",
+      connectionTimeoutMillis: 8000,
+    });
+    try {
+      await client.connect();
+    } catch (err) {
+      await client.end().catch(() => {});
+      throw err;
+    }
+    return client;
+  };
+
+  const client = retry
+    ? await connectWithRetry(open, { log, describe: `${target.host}:${target.port}` })
+    : await open();
   try {
     return await fn(client);
   } finally {
@@ -102,7 +150,7 @@ export async function ensureDatabase(target, { database, user, password }, { log
     }
 
     return { database, user };
-  });
+  }, { log });
 }
 
 // Separate from removing an instance, and never called by an apply.
@@ -120,7 +168,7 @@ export async function dropDatabase(target, { database, user }, { log = () => {} 
 // credentials work before anything depends on them.
 export async function testConnection(target) {
   try {
-    await withAdminClient(target, (client) => client.query("SELECT 1"));
+    await withAdminClient(target, (client) => client.query("SELECT 1"), { retry: false });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err.message };
