@@ -105,6 +105,7 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
   // noop's reason is always the same boilerplate ("Matches the saved
   // configuration") — only worth a line when the row is doing something.
   const explain = row.action !== "noop" && row.reason;
+  const label = row.spec?.name || row.containerName || catalogText(t, row, "label");
 
   return (
     <li
@@ -114,9 +115,9 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
     >
       <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">{ordinal}</span>
       <div className="min-w-0">
-        <p className={`truncate font-mono text-sm text-slate-900 dark:text-white ${cascaded ? "pl-4" : ""}`}>
+        <p title={label} className={`truncate font-mono text-sm text-slate-900 dark:text-white ${cascaded ? "pl-4" : ""}`}>
           {cascaded && <span className="mr-1 text-slate-300 dark:text-slate-600">└</span>}
-          {row.spec?.name || row.containerName || catalogText(t, row, "label")}
+          {label}
         </p>
         <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{catalogText(t, row, "label")}</p>
         {row.runtime && (

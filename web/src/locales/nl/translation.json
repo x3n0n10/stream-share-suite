@@ -160,7 +160,7 @@
     "still_blocked": "Nog steeds geblokkeerd: {{names}}.",
     "gave_up": "Opgegeven na {{max}} herverbinding(en); nog steeds geblokkeerd: {{names}}.",
     "skipped_incomplete": "{{label}} is niet volledig geconfigureerd — overgeslagen.",
-    "orphan_left_alone": "{{name}} is verweesd. Verwijderen is een aparte actie — wordt met rust gelaten.",
+    "orphan_left_alone": "{{name}} is verweesd. Verwijderen is een aparte actie — blijft ongemoeid.",
     "disabled_left_alone": "{{name}} hoort bij een uitgeschakeld component en wordt niet door de Suite beheerd — wordt met rust gelaten.",
     "already_matches": "{{name}} komt al overeen met de gewenste configuratie.",
     "adopting_existing": "Een bestaande container met de naam \"{{name}}\" gevonden die deze Suite niet heeft aangemaakt — wordt overgenomen zonder opnieuw aan te maken.",
@@ -336,7 +336,7 @@
         "addressing": "Adressering",
         "discord": "Discord",
         "caching": "Caching",
-        "healthCheck": "Gezondheidscontrole",
+        "healthCheck": "Statuscontrole",
         "errorSlates": "Foutschermen",
         "container": "Container",
         "failover": "Failover"
@@ -634,7 +634,7 @@
   "subscription": {
     "title": "Abonnement",
     "providerTitle": "Providerabonnement",
-    "trial": "proef",
+    "trial": "proefperiode",
     "status": {
       "rejected": "Geweigerd",
       "expired": "Verlopen",
@@ -966,7 +966,7 @@
     }
   },
   "overview": {
-    "nowPlaying": "Nu bezig",
+    "nowPlaying": "Nu aan het afspelen",
     "nothingPlaying": "Er wordt niets afgespeeld",
     "nothingPlayingHint": "Actieve streams van alle instances verschijnen hier.",
     "streams": "Streams"
@@ -1064,7 +1064,7 @@
     },
     "backup": {
       "title": "Back-up & herstel",
-      "description": "Elke inloggegeven, instancedefinitie en componentinstelling staat in één bestand. Download het vóór een riskante wijziging.",
+      "description": "Alle inloggegevens, instancedefinities en componentinstellingen staan in één bestand. Download het vóór een riskante wijziging.",
       "download": "Back-up downloaden",
       "restoreLabel": "Herstellen vanuit een back-upbestand",
       "restoreHint": "Vervangt alles wat nu is opgeslagen — elke inloggegeven en instelling — door wat in het bestand staat. Logt iedereen uit.",

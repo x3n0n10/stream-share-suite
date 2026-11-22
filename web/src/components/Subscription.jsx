@@ -155,8 +155,8 @@ function Fact({ label, value, sub }) {
   return (
     <div className="min-w-0">
       <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="truncate font-medium text-slate-700 dark:text-slate-200">{value}</dd>
-      {sub && <dd className="truncate text-xs text-slate-400 dark:text-slate-500">{sub}</dd>}
+      <dd className="break-words font-medium text-slate-700 dark:text-slate-200">{value}</dd>
+      {sub && <dd className="break-words text-xs text-slate-400 dark:text-slate-500">{sub}</dd>}
     </div>
   );
 }

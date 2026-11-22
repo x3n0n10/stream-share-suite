@@ -160,7 +160,7 @@
     "still_blocked": "Weiterhin blockiert: {{names}}.",
     "gave_up": "Nach {{max}} Wiederverbindung(en) aufgegeben; weiterhin blockiert: {{names}}.",
     "skipped_incomplete": "{{label}} ist nicht vollständig konfiguriert — übersprungen.",
-    "orphan_left_alone": "{{name}} ist verwaist. Das Entfernen ist eine eigene Aktion — wird in Ruhe gelassen.",
+    "orphan_left_alone": "{{name}} ist verwaist. Das Entfernen ist eine eigene Aktion — bleibt unverändert.",
     "disabled_left_alone": "{{name}} gehört zu einer ausgeschalteten Komponente und wird nicht von der Suite verwaltet — wird in Ruhe gelassen.",
     "already_matches": "{{name}} entspricht bereits der gewünschten Konfiguration.",
     "adopting_existing": "Ein vorhandener Container namens „{{name}}“ gefunden, den diese Suite nicht erstellt hat — wird ohne Neuerstellung übernommen.",
@@ -634,7 +634,7 @@
   "subscription": {
     "title": "Abo",
     "providerTitle": "Anbieter-Abo",
-    "trial": "Test",
+    "trial": "Testphase",
     "status": {
       "rejected": "Abgelehnt",
       "expired": "Abgelaufen",
@@ -1085,7 +1085,7 @@
     },
     "api": {
       "title": "API-Zugriff",
-      "description": "Lässt Skripte und andere Tools mit StreamShare Suite interagieren. Sende das Token als Authorization: Bearer-Header.",
+      "description": "Lass Skripte und andere Tools mit StreamShare Suite interagieren. Sende das Token als Authorization: Bearer-Header.",
       "regenerate": "Token neu erzeugen",
       "generate": "Token erzeugen",
       "revoke": "Widerrufen",

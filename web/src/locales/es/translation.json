@@ -998,7 +998,7 @@
     "alias": "Alias",
     "aliasPlaceholder": "TV del salón",
     "save": "Guardar alias",
-    "applyAll_one": "Aplicar a la {{count}} instancia",
+    "applyAll_one": "Aplicar a la única instancia ({{count}})",
     "applyAll_other": "Aplicar a las {{count}} instancias",
     "applyAll_many": "Aplicar a las {{count}} instancias",
     "searchPlaceholder": "Buscar IP, alias o instancia…",

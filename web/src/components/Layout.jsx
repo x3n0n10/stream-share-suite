@@ -234,7 +234,7 @@ export default function Layout({ title, children, headerExtra }) {
       )}
 
       <div className={`transition-[padding] duration-200 ${collapsed ? "lg:pl-16" : "lg:pl-60"}`}>
-        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 sm:px-6">
+        <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white/80 px-4 py-3 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               onClick={() => setDrawerOpen(true)}
@@ -242,9 +242,9 @@ export default function Layout({ title, children, headerExtra }) {
             >
               <IconMenu className="h-5 w-5" />
             </button>
-            <h1 className="truncate text-lg font-semibold text-slate-900 dark:text-white">{title}</h1>
+            <h1 title={title} className="truncate text-lg font-semibold text-slate-900 dark:text-white">{title}</h1>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             {headerExtra}
             <LanguagePicker />
             <button
