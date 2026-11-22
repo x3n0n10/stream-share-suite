@@ -163,8 +163,8 @@ databases, the instances use them.
 
 - **Container name.** Works when the server's container is on a network the
   instances join. By default that is `streamshare`. Add the network to the
-  server's container, or add your server's network to **Docker networks to
-  join** (see [networks](#networks)).
+  server's container, or add your server's network to each instance's
+  **Docker networks to join** (see [networks](#networks)).
 - **Host IP and published port.** Also works. Instances reach the host's
   published ports through the Docker bridge, so `<host-ip>` with the published
   port is enough. A host firewall that blocks traffic from Docker bridges might
