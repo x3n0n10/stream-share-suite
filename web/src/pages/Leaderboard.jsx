@@ -4,7 +4,8 @@ import HoursSelect from "../components/HoursSelect.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatNumber, titleCase } from "../lib/format.js";
+import { titleCase } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 function BarRow({ primary, secondary, meta, value, max }) {
   const pct = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
@@ -25,6 +26,7 @@ function BarRow({ primary, secondary, meta, value, max }) {
 }
 
 export default function Leaderboard({ pollIntervalMs }) {
+  const { formatDuration, formatNumber } = useFormat();
   const [hours, setHours] = useState(24);
   const { data, error, loading, updatedAt, refresh } = usePolling(
     () => api.leaderboard(hours),

@@ -4,6 +4,8 @@ import { IconEdit } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import UseProviderCredentialsButton from "../../components/UseProviderCredentialsButton.jsx";
 import { api } from "../../lib/api.js";
+import { useTranslation } from "react-i18next";
+import { errorText } from "../../lib/serverText.js";
 
 const ACCESS_MODES = [
   {
@@ -108,6 +110,7 @@ function toPatch(draft) {
 }
 
 export default function StepInstances({ instances, setInstances, onNext, onBack }) {
+  const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState(blankDraft());
   const [saving, setSaving] = useState(false);
@@ -168,7 +171,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
       setDraft(blankDraft());
       setAdding(false);
     } catch (err) {
-      setError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
+      setError(errorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -185,7 +188,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
       setEditingKey(null);
       setEditFields(null);
     } catch (err) {
-      setEditError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
+      setEditError(errorText(err, t));
     } finally {
       setEditSaving(false);
     }

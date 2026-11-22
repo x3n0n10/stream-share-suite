@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
+import { useTranslation } from "react-i18next";
 
 export default function StepExternalAccess({ instances, onNext, onBack }) {
+  const { t } = useTranslation();
   const [byKey, setByKey] = useState(null); // null until seeded
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -80,7 +82,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
         tasks.push(api.saveComponent("caddy", p));
       }
       const results = await Promise.allSettled(tasks);
-      const failureMessage = describeFailures(targets, results);
+      const failureMessage = describeFailures(targets, results, t);
       if (failureMessage) {
         setError(failureMessage);
         return;

@@ -1,7 +1,7 @@
 import { Badge } from "./common.jsx";
 import { IconAlert } from "./Icons.jsx";
 import { connectionUsage } from "../lib/connections.js";
-import { formatDate, formatRelativeTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 // Renders the upstream IPTV provider's own view of an instance's subscription,
 // from stream-share's /api/internal/provider.
@@ -39,14 +39,14 @@ function statusOf(provider) {
 
 // Expiry in words: "85 days left", "Expires today", "Expired 3 days ago", or
 // the absence of an expiry date, which is a real state and not missing data.
-function expiryText(provider) {
+function expiryText(provider, fmt) {
   if (provider.expired) {
-    return provider.expires_at ? `Expired ${formatRelativeTime(provider.expires_at)}` : "Expired";
+    return provider.expires_at ? `Expired ${fmt.formatRelativeTime(provider.expires_at)}` : "Expired";
   }
   if (!provider.expires_at) return "No expiry date";
 
   const days = provider.days_remaining;
-  const on = formatDate(provider.expires_at);
+  const on = fmt.formatDate(provider.expires_at);
   if (typeof days !== "number") return `Expires ${on}`;
   if (days <= 0) return `Expires today (${on})`;
   if (days === 1) return `1 day left (${on})`;
@@ -55,14 +55,14 @@ function expiryText(provider) {
 
 // The same facts split into a short value and a muted second line, for the
 // Instances page's narrow columns where the one-liner above would wrap.
-function expiryParts(provider) {
+function expiryParts(provider, fmt) {
   if (provider.expired) {
-    return { value: "Expired", sub: provider.expires_at ? formatRelativeTime(provider.expires_at) : null };
+    return { value: "Expired", sub: provider.expires_at ? fmt.formatRelativeTime(provider.expires_at) : null };
   }
   if (!provider.expires_at) return { value: "No expiry", sub: null };
 
   const days = provider.days_remaining;
-  const on = formatDate(provider.expires_at);
+  const on = fmt.formatDate(provider.expires_at);
   if (typeof days !== "number") return { value: on, sub: null };
   if (days <= 0) return { value: "Today", sub: on };
   return { value: `${days} day${days === 1 ? "" : "s"} left`, sub: on };
@@ -156,6 +156,7 @@ function Fact({ label, value, sub }) {
 // Compact block for the Overview page's instance cards: state, expiry, and how
 // much of the connection allowance is spoken for.
 export function SubscriptionSummary({ provider }) {
+  const fmt = useFormat();
   if (!hasSubscription(provider)) return null;
   const state = statusOf(provider);
 
@@ -171,12 +172,12 @@ export function SubscriptionSummary({ provider }) {
         </div>
       </div>
 
-      <p className="mt-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">{expiryText(provider)}</p>
+      <p className="mt-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">{expiryText(provider, fmt)}</p>
 
       <ConnectionMeter provider={provider} />
       <p
         className="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
-        title={provider.checked_at ? `Provider total read ${formatRelativeTime(provider.checked_at)}; "here" is live` : undefined}
+        title={provider.checked_at ? `Provider total read ${fmt.formatRelativeTime(provider.checked_at)}; "here" is live` : undefined}
       >
         {connectionsText(provider)}
       </p>
@@ -186,7 +187,7 @@ export function SubscriptionSummary({ provider }) {
           <IconAlert className="mt-0.5 h-3 w-3 shrink-0" />
           <span>
             {state.note ||
-              `Last read ${formatRelativeTime(provider.checked_at)}${provider.error ? ` — ${provider.error}` : ""}`}
+              `Last read ${fmt.formatRelativeTime(provider.checked_at)}${provider.error ? ` — ${provider.error}` : ""}`}
           </span>
         </p>
       )}
@@ -197,6 +198,7 @@ export function SubscriptionSummary({ provider }) {
 // Fuller block for the Instances page, which has the room for the details the
 // Overview card leaves out.
 export function SubscriptionDetail({ provider }) {
+  const fmt = useFormat();
   if (!hasSubscription(provider)) return null;
   const state = statusOf(provider);
   const { used, here, max } = connectionUsage(provider);
@@ -214,13 +216,13 @@ export function SubscriptionDetail({ provider }) {
       </div>
 
       <dl className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
-        <Fact label="Expires" {...expiryParts(provider)} />
+        <Fact label="Expires" {...expiryParts(provider, fmt)} />
         <Fact
           label="Connections"
           value={max ? `${used} of ${max}` : String(used)}
           sub={here !== null ? `${here} from this instance` : null}
         />
-        <Fact label="Checked" value={provider.checked_at ? formatRelativeTime(provider.checked_at) : "—"} />
+        <Fact label="Checked" value={provider.checked_at ? fmt.formatRelativeTime(provider.checked_at) : "—"} />
       </dl>
 
       <ConnectionMeter provider={provider} />

@@ -3,9 +3,11 @@ import Layout from "../components/Layout.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDateTime, titleCase } from "../lib/format.js";
+import { titleCase } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 export default function Users({ pollIntervalMs }) {
+  const { formatDateTime } = useFormat();
   const [search, setSearch] = useState("");
   const { data, error, loading, updatedAt, refresh } = usePolling(() => api.users(), pollIntervalMs, []);
 

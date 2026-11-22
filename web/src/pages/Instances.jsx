@@ -3,13 +3,14 @@ import { Card, Badge, StatusDot, ErrorNote, Skeleton, RefreshButton, PollStatus 
 import { SubscriptionDetail } from "../components/Subscription.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatDateTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 function FeatureBadge({ on, label }) {
   return <Badge tone={on ? "accent" : "slate"}>{label}</Badge>;
 }
 
 export default function Instances({ pollIntervalMs }) {
+  const { formatDuration, formatDateTime } = useFormat();
   const { data, error, loading, updatedAt, refresh } = usePolling(() => api.overview(24), pollIntervalMs, []);
 
   const instances = data?.instances || [];

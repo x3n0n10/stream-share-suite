@@ -6,11 +6,13 @@ import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus
 import { IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatDateTime, formatRelativeTime, titleCase } from "../lib/format.js";
+import { titleCase } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 import { isAliasableId } from "../lib/aliasing.js";
 import { failoverNote } from "../lib/failover.js";
 
 export default function History({ pollIntervalMs }) {
+  const { formatDuration, formatRelativeTime, formatDateTime } = useFormat();
   const [hours, setHours] = useState(24);
   const [search, setSearch] = useState("");
   const [relativeTime, setRelativeTime] = useState(

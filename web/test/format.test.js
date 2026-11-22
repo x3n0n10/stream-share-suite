@@ -1,0 +1,19 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { formatDuration, formatRelativeTime } from "../src/lib/format.js";
+
+test("formatDuration is localized", (t) => {
+  assert.match(formatDuration(3900, "en"), /^1\s?h,? 5\s?m/);
+  if (typeof Intl.DurationFormat !== "function") return t.skip("no Intl.DurationFormat");
+  assert.notEqual(formatDuration(3900, "de"), formatDuration(3900, "en"));
+});
+
+test("formatRelativeTime uses the given language", () => {
+  const threeDaysAgo = new Date(Date.now() - 3 * 86400 * 1000).toISOString();
+  assert.match(formatRelativeTime(threeDaysAgo, { lng: "en" }), /3 days/);
+  assert.match(formatRelativeTime(threeDaysAgo, { lng: "nl" }), /3 dagen/);
+});
+
+test("formatRelativeTime handles missing values", () => {
+  assert.equal(formatRelativeTime(null), "—");
+});

@@ -6,8 +6,9 @@ import { IconTag, IconTrash, IconChevronDown } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
-import { formatDateTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 import { describeFailures } from "../lib/applyToAll.js";
+import { useTranslation } from "react-i18next";
 
 function entryKey(a) {
   return `${a.instance_id}::${a.ip_address}`;
@@ -45,6 +46,8 @@ function groupByIp(aliases) {
 }
 
 export default function Aliases({ pollIntervalMs }) {
+  const { t } = useTranslation();
+  const { formatDateTime } = useFormat();
   const config = useConfig();
   const instances = config?.instances || [];
   const multiInstance = instances.length > 1;
@@ -98,7 +101,7 @@ export default function Aliases({ pollIntervalMs }) {
     setFormSaving(true);
     try {
       const results = await Promise.allSettled(targets.map((i) => api.createAlias(i.id, ip, alias)));
-      const failureMessage = describeFailures(targets, results);
+      const failureMessage = describeFailures(targets, results, t);
       if (failureMessage) {
         setFormError(`Saved on ${targets.length - (results.filter((r) => r.status === "rejected").length)}/${targets.length} instance(s). ${failureMessage}`);
       } else {
@@ -133,7 +136,8 @@ export default function Aliases({ pollIntervalMs }) {
       );
       const failureMessage = describeFailures(
         group.entries.map((a) => ({ name: a.instance_name })),
-        results
+        results,
+        t
       );
       if (failureMessage) patchRow(key, { error: failureMessage });
       await refresh();

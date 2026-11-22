@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout.jsx";
 import { Button, Card, ConfirmDialog, ErrorNote, FIELD, OnOffToggle } from "../components/common.jsx";
 import { api } from "../lib/api.js";
-import { formatDateTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 // A label forwards clicks on its text to its first button, so a field that holds
 // buttons (an on/off toggle) must not be one: pass as="div".
@@ -83,6 +83,7 @@ export default function Settings({ onConfigChanged }) {
 }
 
 function GeneralSection({ settings, onSave, onReload }) {
+  const { formatDateTime } = useFormat();
   const [title, setTitle] = useState(settings.general.title);
   const [pollIntervalMs, setPoll] = useState(settings.general.pollIntervalMs);
   const [instanceTimeoutMs, setTimeout_] = useState(settings.general.instanceTimeoutMs);
@@ -303,6 +304,7 @@ function PasswordSection() {
 }
 
 function ApiAccessSection() {
+  const { formatDateTime } = useFormat();
   const [status, setStatus] = useState(null);
   const [token, setToken] = useState(null);
   const [busy, setBusy] = useState(false);

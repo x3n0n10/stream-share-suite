@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
+import { useTranslation } from "react-i18next";
 
 export default function StepFeatures({ instances, onNext, onBack }) {
+  const { t } = useTranslation();
   const [byKey, setByKey] = useState(null); // null until seeded
   const [parentPath, setParentPath] = useState("");
   // key -> the last value auto-suggested for it, so typing a new parent path
@@ -75,7 +77,8 @@ export default function StepFeatures({ instances, onNext, onBack }) {
       );
       const failureMessage = describeFailures(
         instances.map((i) => ({ name: i.displayName })),
-        results
+        results,
+        t
       );
       if (failureMessage) {
         setError(failureMessage);

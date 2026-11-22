@@ -7,6 +7,8 @@ import { IconRefresh, IconEdit, IconTrash } from "../../components/Icons.jsx";
 import { api } from "../../lib/api.js";
 import { previewContainerName } from "../../lib/containerName.js";
 import HistoryPanel from "./HistoryPanel.jsx";
+import { useTranslation } from "react-i18next";
+import { errorText } from "../../lib/serverText.js";
 
 // The band an instance's port is allocated from — a fixed 20 slots starting
 // here. Only worth changing if that range is already taken by something else
@@ -166,6 +168,7 @@ export default function InstancesTab({
   onPull,
   onRestored,
 }) {
+  const { t } = useTranslation();
   const [adding, setAdding] = useState(false);
   const [addFields, setAddFields] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -214,7 +217,7 @@ export default function InstancesTab({
       setAdding(false);
       setAddFields(null);
     } catch (err) {
-      setError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
+      setError(errorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -228,7 +231,7 @@ export default function InstancesTab({
       setEditingKey(null);
       setEditFields(null);
     } catch (err) {
-      setEditError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
+      setEditError(errorText(err, t));
     } finally {
       setEditSaving(false);
     }

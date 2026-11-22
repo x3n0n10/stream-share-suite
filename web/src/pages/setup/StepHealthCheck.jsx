@@ -4,8 +4,10 @@ import ChannelSearchInput from "../../components/ChannelSearchInput.jsx";
 import ListInput from "../../components/ListInput.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
+import { useTranslation } from "react-i18next";
 
 export default function StepHealthCheck({ instances, onNext, onBack }) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(null); // null until seeded; then key -> bool
   const [streamIds, setStreamIds] = useState({}); // key -> string
   const [checkTimes, setCheckTimes] = useState(null); // null until seeded
@@ -61,7 +63,8 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       );
       const failureMessage = describeFailures(
         instances.map((i) => ({ name: i.displayName })),
-        results
+        results,
+        t
       );
       if (failureMessage) {
         setError(failureMessage);

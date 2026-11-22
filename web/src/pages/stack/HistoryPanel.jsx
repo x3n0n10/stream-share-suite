@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
-import { formatDateTime } from "../../lib/format.js";
+import { useFormat } from "../../lib/useFormat.js";
 
 // Past versions of one component's stored values, with a restore button per
 // entry. Reused by every component card (a singleton, key="") and each
 // instance row. Restoring only changes stored config — like any other edit,
 // applying the resulting plan is a separate, explicit step.
 export default function HistoryPanel({ kind, componentKey = "", busy, onRestored }) {
+  const { formatDateTime } = useFormat();
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState(null);
   const [confirmId, setConfirmId] = useState(null);

@@ -1,6 +1,6 @@
 import { IconAlert, IconRefresh } from "./Icons.jsx";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
-import { formatRelativeTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 export const FIELD =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
@@ -20,6 +20,7 @@ export function RefreshButton({ onClick }) {
 }
 
 export function PollStatus({ updatedAt, children, className = "" }) {
+  const { formatRelativeTime } = useFormat();
   return (
     <p className={`text-xs text-slate-400 dark:text-slate-500 ${className}`}>
       {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}

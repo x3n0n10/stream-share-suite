@@ -5,7 +5,8 @@ import { SubscriptionSummary } from "../components/Subscription.jsx";
 import { IconUsers, IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, titleCase } from "../lib/format.js";
+import { titleCase } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 import { isAliasableId } from "../lib/aliasing.js";
 import { sortNowPlaying } from "../lib/nowPlaying.js";
 import { failoverNote } from "../lib/failover.js";
@@ -24,6 +25,7 @@ function isAliasable(v) {
 }
 
 export default function Overview({ pollIntervalMs }) {
+  const { formatDuration } = useFormat();
   const { data, error, loading, updatedAt, refresh } = usePolling(() => api.overview(), pollIntervalMs);
 
   const instances = data?.instances || [];

@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, OnOffToggle } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
+import { useTranslation } from "react-i18next";
+import { errorText } from "../../lib/serverText.js";
 
 export default function StepVpn({ onNext, onBack }) {
+  const { t } = useTranslation();
   const [vpnEnabled, setVpnEnabled] = useState(null); // null until seeded
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -34,7 +37,7 @@ export default function StepVpn({ onNext, onBack }) {
       await api.saveComponent("gluetun", patch);
       onNext("health");
     } catch (err) {
-      setError(err.body?.errors?.map((e) => e.message).join(" ") || err.message);
+      setError(errorText(err, t));
     } finally {
       setSaving(false);
     }
