@@ -54,7 +54,7 @@ export function provisionInstance(values) {
   const port = allocatePort();
 
   if (port === null) {
-    throw new Error("No ports left in the allocation band. Free one, or set this instance's port by hand.");
+    throw new SuiteError("no_ports_left", "No ports left in the allocation band. Free one, or set this instance's port by hand.");
   }
 
   const names = databaseNamesFor(key);
@@ -144,7 +144,8 @@ export async function prepareInstance(key, values, { log = () => {} } = {}) {
 
   const target = connectionTarget(getComponentValues("postgres"));
   if (!target.host) {
-    throw new Error(
+    throw new SuiteError(
+      "no_postgres_configured",
       "No PostgreSQL server is configured, so this instance has nowhere to store its data. Configure the database component first."
     );
   }

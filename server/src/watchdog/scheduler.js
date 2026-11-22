@@ -34,7 +34,7 @@ export function _resetLastWatchdogJobForTests() {
 export function jobResult(job) {
   return {
     status: job.status,
-    log: job.log.map(({ line, code, params }) => ({ line, code, params })),
+    log: job.log.map((e) => e.line),
     error: job.error,
     errorI18n: job.errorI18n,
     startedAt: job.startedAt,

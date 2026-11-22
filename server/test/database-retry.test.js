@@ -45,7 +45,7 @@ test("gives up after the budget with the last error in the message", async () =>
     await assert.rejects(
       connectWithRetry(async () => { throw err({ code: "ECONNREFUSED" }, "connect ECONNREFUSED 10.0.0.1:5432"); },
         { sleep, budgetMs: 5000, delayMs: 1000, describe: "db:5432" }),
-      /^Error: PostgreSQL at db:5432 did not accept connections within 5 s: connect ECONNREFUSED 10\.0\.0\.1:5432$/
+      /^SuiteError: PostgreSQL at db:5432 did not accept connections within 5 s: connect ECONNREFUSED 10\.0\.0\.1:5432$/
     );
   } finally { Date.now = realNow; }
 });

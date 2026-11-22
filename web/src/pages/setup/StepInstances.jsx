@@ -278,7 +278,9 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                   }`}
                 >
-                  {fieldText(t, "instance", "providerType", `options.${type}`)}
+                  {type === "xtream"
+                    ? t("setup.instances.recommendedOption", { label: fieldText(t, "instance", "providerType", `options.${type}`) })
+                    : fieldText(t, "instance", "providerType", `options.${type}`)}
                 </button>
               ))}
             </div>

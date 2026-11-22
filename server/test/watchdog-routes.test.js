@@ -116,7 +116,7 @@ test("health-check runs synchronously and reports the finished result, not a job
   assert.equal(res.status, 200);
   assert.equal(res.body.status, "success");
   assert.equal(res.body.jobId, undefined);
-  assert.ok(res.body.log.some((entry) => entry.line.includes("nothing to watch")));
+  assert.ok(res.body.log.some((line) => line.includes("nothing to watch")));
 
   const after = await c.get("/api/watchdog/health-check");
   assert.deepEqual(after.body, res.body);

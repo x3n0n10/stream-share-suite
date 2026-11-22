@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { getDatabase } from "../store/db.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
+import { SuiteError } from "../errors.js";
 
 export function countUsers() {
   return getDatabase().prepare("SELECT COUNT(*) AS n FROM users").get().n;
@@ -26,7 +27,7 @@ export async function createUser(username, password) {
   const res = getDatabase()
     .prepare("INSERT INTO users (username, password_hash) SELECT ?, ? WHERE NOT EXISTS (SELECT 1 FROM users)")
     .run(username, hash);
-  if (res.changes === 0) throw new Error("Setup has already been completed.");
+  if (res.changes === 0) throw new SuiteError("setup_complete", "Setup has already been completed.");
   return { id: Number(res.lastInsertRowid), username };
 }
 

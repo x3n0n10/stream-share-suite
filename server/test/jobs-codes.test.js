@@ -28,7 +28,7 @@ test("jobResult keeps codes", () => {
   appendLog(job, "Pulled x", { code: "image_pulled", params: { image: "x" } });
   finishJob(job, new SuiteError("port_clash", "m", { port: 1 }));
   const result = jobResult(job);
-  assert.equal(result.log[0].code, "image_pulled");
+  assert.equal(result.log[0], "Pulled x");
   assert.equal(result.errorI18n.code, "port_clash");
 });
 

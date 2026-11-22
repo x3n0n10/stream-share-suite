@@ -156,7 +156,7 @@ export function throttleLogin(req, res, next) {
     return sendError(
       res,
       429,
-      new SuiteError("too_many_attempts", `Too many sign-in attempts. Try again in ${minutes} minute(s).`, { minutes }),
+      new SuiteError("too_many_attempts", `Too many sign-in attempts. Try again in ${minutes} minute(s).`, { count: minutes }),
     );
   }
   next();

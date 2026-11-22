@@ -149,7 +149,7 @@ export async function heal({ log = () => {}, config = loadConfig() } = {}) {
   const blockedNames = blocked.map((r) => r.instance.name).join(", ");
   log(`Blocked: ${blockedNames}. Reconnecting (up to ${maxReconnects} attempt(s)).`, {
     code: "blocked_reconnecting",
-    params: { names: blockedNames, max: maxReconnects },
+    params: { names: blockedNames, count: maxReconnects },
   });
 
   for (let attempt = 1; attempt <= maxReconnects; attempt++) {
@@ -165,7 +165,7 @@ export async function heal({ log = () => {}, config = loadConfig() } = {}) {
     blocked = results.filter((r) => r.status === "blocked");
 
     if (blocked.length === 0) {
-      log(`Recovered after ${attempt} reconnect(s).`, { code: "recovered", params: { attempt } });
+      log(`Recovered after ${attempt} reconnect(s).`, { code: "recovered", params: { count: attempt } });
       return;
     }
     const names = blocked.map((r) => r.instance.name).join(", ");
@@ -176,6 +176,6 @@ export async function heal({ log = () => {}, config = loadConfig() } = {}) {
   const names = blocked.map((r) => r.instance.name).join(", ");
   log(`Gave up after ${maxReconnects} reconnect(s); still blocked: ${names}.`, {
     code: "gave_up",
-    params: { max: maxReconnects, names },
+    params: { count: maxReconnects, names },
   });
 }

@@ -20,6 +20,7 @@
 
 import pg from "pg";
 import { randomBytes } from "node:crypto";
+import { SuiteError } from "../errors.js";
 
 // Postgres lowercases unquoted identifiers and allows a limited character set;
 // deriving from the slug keeps names predictable without needing quoting.
@@ -58,7 +59,12 @@ export async function connectWithRetry(open, {
     } catch (err) {
       if (!isNotUpYet(err)) throw err;
       if (Date.now() + delayMs > deadline) {
-        throw new Error(`PostgreSQL at ${describe} did not accept connections within ${Math.round(budgetMs / 1000)} s: ${err.message}`);
+        const seconds = Math.round(budgetMs / 1000);
+        throw new SuiteError(
+          "postgres_wait_timeout",
+          `PostgreSQL at ${describe} did not accept connections within ${seconds} s: ${err.message}`,
+          { describe, seconds, message: err.message }
+        );
       }
       if (!warned) {
         warned = true;
