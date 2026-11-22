@@ -16,4 +16,5 @@ test("helpers use the key layout and fall back to English", () => {
   assert.equal(groupText(t, "caddy", "Other"), "Other");
   assert.equal(catalogText(t, { kind: "caddy", label: "Caddy", description: "D" }, "label"), "Caddy (omgekeerde proxy)");
   assert.equal(catalogText(t, { kind: "caddy", label: "Caddy", description: "D" }, "description"), "D");
+  assert.equal(catalogText(t, { kind: "instance", label: "My Provider" }, "label"), "My Provider");
 });

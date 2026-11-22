@@ -13,6 +13,7 @@ export function useFormat() {
       formatDate: (iso) => f.formatDate(iso, lng),
       formatDateTime: (iso) => f.formatDateTime(iso, lng),
       formatNumber: (n) => f.formatNumber(n, lng),
+      formatList: (items) => f.formatList(items, lng),
     }),
     [lng],
   );

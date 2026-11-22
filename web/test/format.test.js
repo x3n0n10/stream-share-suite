@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { formatDuration, formatRelativeTime } from "../src/lib/format.js";
+import { formatDuration, formatList, formatRelativeTime } from "../src/lib/format.js";
 
 test("formatDuration is localized", (t) => {
   assert.match(formatDuration(3900, "en"), /^1\s?h,? 5\s?m/);
@@ -21,4 +21,8 @@ test("formatRelativeTime handles missing values", () => {
 test("formatRelativeTime under a minute is localized", () => {
   assert.equal(formatRelativeTime(new Date().toISOString(), { lng: "nl" }), "nu");
   assert.equal(formatRelativeTime(new Date().toISOString(), { lng: "en" }), "now");
+});
+
+test("formatList joins with a localized conjunction", () => {
+  assert.equal(formatList(["a", "b", "c"], "en"), "a, b, and c");
 });

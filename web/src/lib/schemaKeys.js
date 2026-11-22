@@ -17,5 +17,8 @@ export const fieldText = (t, kind, key, part, fallback) =>
 export const groupText = (t, kind, group) =>
   t(`schema.${kind}.groups.${groupSlug(group)}`, { defaultValue: group });
 
+// A user-named instance is never translated.
 export const catalogText = (t, component, part) =>
-  t(`catalog.${component.kind}.${part}`, { defaultValue: component[part] });
+  component.kind === "instance"
+    ? component[part]
+    : t(`catalog.${component.kind}.${part}`, { defaultValue: component[part] });

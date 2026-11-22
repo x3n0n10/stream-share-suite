@@ -7,14 +7,17 @@ import { IconRefresh, IconEdit, IconTrash } from "../../components/Icons.jsx";
 import { api } from "../../lib/api.js";
 import { previewContainerName } from "../../lib/containerName.js";
 import HistoryPanel from "./HistoryPanel.jsx";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { errorText } from "../../lib/serverText.js";
+
+const PORT_BAND_SIZE = 20;
 
 // The band an instance's port is allocated from — a fixed 20 slots starting
 // here. Only worth changing if that range is already taken by something else
 // on the host; an instance whose port still fits the new range keeps it, one
 // that doesn't gets moved to a free port in it (server-side, on save).
 function PortRangeSetting({ settings, onSave, busy }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState(String(settings.instancePortStart));
   const [error, setError] = useState(null);
 
@@ -27,7 +30,7 @@ function PortRangeSetting({ settings, onSave, busy }) {
     try {
       await onSave({ instancePortStart: Number(draft) });
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
     }
   }
 
@@ -36,11 +39,9 @@ function PortRangeSetting({ settings, onSave, busy }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Instance port range</h2>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t("stack.instances.portRange.title")}</h2>
         <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-          Instances are allocated 20 ports starting here (currently {settings.instancePortStart}–
-          {settings.instancePortStart + 19}). Instances already inside the range keep their port;
-          any that fall outside the new range move to a free port in it.
+          {t("stack.instances.portRange.description", { size: PORT_BAND_SIZE, start: settings.instancePortStart, end: settings.instancePortStart + PORT_BAND_SIZE - 1 })}
         </p>
         {error && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
       </div>
@@ -53,7 +54,7 @@ function PortRangeSetting({ settings, onSave, busy }) {
           onChange={(e) => setDraft(e.target.value)}
         />
         <Button tone="ghost" onClick={save} disabled={busy || !dirty}>
-          Save
+          {t("common.save")}
         </Button>
       </div>
     </div>
@@ -64,6 +65,7 @@ function PortRangeSetting({ settings, onSave, busy }) {
 // The container is trivially rebuilt; the watch history is not, so keeping it
 // is the default and dropping it needs the name typed back.
 function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm, onCancel }) {
+  const { t } = useTranslation();
   const [typed, setTyped] = useState("");
 
   useEffect(() => {
@@ -78,13 +80,8 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} aria-hidden="true" />
       <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-          Remove {instance.displayName}?
-        </h3>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          This takes it out of the stack. Its container keeps running until you apply the plan,
-          which will then offer to remove it.
-        </p>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t("stack.instances.removeDialog.title", { name: instance.displayName })}</h3>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{t("stack.instances.removeDialog.body")}</p>
 
         <label className="mt-4 flex items-start gap-2 rounded-lg border border-slate-200 p-3 dark:border-slate-800">
           <input
@@ -94,16 +91,25 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
             className="mt-0.5 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
           />
           <span className="text-xs text-slate-600 dark:text-slate-400">
-            Also drop <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{instance.databaseName}</code> and
-            its role. <strong className="text-rose-600 dark:text-rose-400">This deletes its watch
-            history permanently.</strong> Leave it unticked to keep the data.
+            <Trans
+              i18nKey="stack.instances.removeDialog.dropDatabase"
+              values={{ database: instance.databaseName }}
+              components={{
+                code: <code className="rounded bg-slate-100 px-1 dark:bg-slate-800" />,
+                warn: <strong className="text-rose-600 dark:text-rose-400" />,
+              }}
+            />
           </span>
         </label>
 
         {dropDatabase && (
           <label className="mt-3 flex flex-col gap-1.5">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Type <strong>{instance.displayName}</strong> to confirm
+              <Trans
+                i18nKey="stack.instances.removeDialog.typeToConfirm"
+                values={{ name: instance.displayName }}
+                components={{ strong: <strong /> }}
+              />
             </span>
             <input
               className={FIELD}
@@ -116,10 +122,10 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
 
         <div className="mt-5 flex justify-end gap-2">
           <Button tone="ghost" onClick={onCancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button tone="rose" onClick={onConfirm} disabled={!confirmed}>
-            {dropDatabase ? "Remove and drop database" : "Remove"}
+            {dropDatabase ? t("stack.instances.removeDialog.confirmDrop") : t("common.remove")}
           </Button>
         </div>
       </div>
@@ -128,24 +134,22 @@ function RemoveInstanceDialog({ instance, dropDatabase, onToggleDrop, onConfirm,
 }
 
 function ConnectInfo({ instances }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-accent-200 bg-accent-50 px-4 py-3 text-xs text-accent-800 dark:border-accent-900/50 dark:bg-accent-900/20 dark:text-accent-300">
-      <p className="text-sm font-medium">Point your IPTV client at these</p>
-      <p className="mt-1 max-w-prose text-accent-700 dark:text-accent-400">
-        The internal URL only works from this host or if you have access to your local network. 
-        The public URL is the one you use to set up on your mobile devices to be able to connect elsewhere.
-        If you have Caddy set up, then you can use the public URL within your local network as well.
-      </p>
+      <p className="text-sm font-medium">{t("stack.connect.title")}</p>
+      <p className="mt-1 max-w-prose text-accent-700 dark:text-accent-400">{t("stack.connect.body")}</p>
       <ul className="mt-2.5 flex flex-col gap-1.5">
         {instances.map((instance) => (
           <li key={instance.key}>
             <span className="font-medium">{instance.displayName}</span>
             <br />
-            Internal: <span className="font-mono">&lt;Your Docker host's IP address or hostname&gt;:{instance.port}</span>
+            {t("stack.connect.internal")}{" "}
+            <span className="font-mono">{t("stack.connect.internalAddress", { port: instance.port })}</span>
             {instance.publicBaseUrl && (
               <>
                 <br />
-                Public: <span className="font-mono">{instance.publicBaseUrl}</span>
+                {t("stack.connect.public")} <span className="font-mono">{instance.publicBaseUrl}</span>
               </>
             )}
           </li>
@@ -258,20 +262,16 @@ export default function InstancesTab({
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Instances</h2>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Create one per IPTV provider. Ports are allocated from {portBand?.first}–{portBand?.last}.
-            </p>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t("stack.instances.title")}</h2>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t("stack.instances.subtitle", { first: portBand?.first, last: portBand?.last })}</p>
           </div>
           <Button tone="accent" onClick={toggleAdding} disabled={busy}>
-            {adding ? "Cancel" : "Add instance"}
+            {adding ? t("common.cancel") : t("stack.instances.add")}
           </Button>
         </div>
 
         {instances.length === 0 && !adding && (
-          <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
-            No instances yet. Adding one creates its container and its database automagically.
-          </p>
+          <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">{t("stack.instances.empty")}</p>
         )}
 
         {instances.length > 0 && (
@@ -286,8 +286,8 @@ export default function InstancesTab({
                     {(instance.containerName || instance.port) && (
                       <p className="mt-0.5 truncate text-xs text-slate-400">
                         {[
-                          instance.containerName && `Container name: ${instance.containerName}`,
-                          instance.port && `Port: ${instance.port}`,
+                          instance.containerName && t("stack.instances.containerName", { name: instance.containerName }),
+                          instance.port && t("stack.instances.port", { port: instance.port }),
                         ]
                           .filter(Boolean)
                           .join(" · ")}
@@ -298,8 +298,8 @@ export default function InstancesTab({
                     <button
                       onClick={() => onPull(instance.key)}
                       disabled={busy}
-                      aria-label="Check for updates"
-                      title="Check and pull the latest version of this instance's configured image tag and recreate if it actually changed"
+                      aria-label={t("stack.card.checkUpdates")}
+                      title={t("stack.instances.checkUpdatesTitle")}
                       className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                     >
                       <IconRefresh className="h-4 w-4" />
@@ -307,12 +307,12 @@ export default function InstancesTab({
                     <button
                       onClick={() => toggleEditing(instance.key)}
                       disabled={busy}
-                      aria-label={editingKey === instance.key ? "Close" : "Edit"}
-                      title={editingKey === instance.key ? "Close" : "Edit"}
+                      aria-label={editingKey === instance.key ? t("common.close") : t("common.edit")}
+                      title={editingKey === instance.key ? t("common.close") : t("common.edit")}
                       className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                     >
                       {editingKey === instance.key ? (
-                        <span className="text-xs font-medium">Close</span>
+                        <span className="text-xs font-medium">{t("common.close")}</span>
                       ) : (
                         <IconEdit className="h-4 w-4" />
                       )}
@@ -320,8 +320,8 @@ export default function InstancesTab({
                     <button
                       onClick={() => setInstanceToRemove(instance)}
                       disabled={busy}
-                      aria-label="Remove"
-                      title="Remove"
+                      aria-label={t("common.remove")}
+                      title={t("common.remove")}
                       className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-900/30"
                     >
                       <IconTrash className="h-4 w-4" />
@@ -332,7 +332,7 @@ export default function InstancesTab({
                 {editingKey === instance.key && (
                   <div className="border-t border-slate-200 px-5 py-5 dark:border-slate-800">
                     {editFields === null ? (
-                      <p className="text-sm text-slate-400">Loading…</p>
+                      <p className="text-sm text-slate-400">{t("common.loading")}</p>
                     ) : (
                       <SchemaForm
                         kind="instance"
@@ -340,7 +340,7 @@ export default function InstancesTab({
                         onSave={saveEdit}
                         saving={editSaving}
                         error={editError}
-                        submitLabel="Save changes"
+                        submitLabel={t("stack.instances.saveChanges")}
                         componentKey={instance.key}
                         extraOptions={
                           editFields.find((f) => f.key === "providerType")?.value === "xtream"
@@ -376,7 +376,7 @@ export default function InstancesTab({
         {adding && (
           <div className="border-t border-slate-200 px-5 py-5 dark:border-slate-800">
             {addFields === null ? (
-              <p className="text-sm text-slate-400">Loading…</p>
+              <p className="text-sm text-slate-400">{t("common.loading")}</p>
             ) : (
               <SchemaForm
                 kind="instance"
@@ -384,14 +384,13 @@ export default function InstancesTab({
                 onSave={create}
                 saving={saving}
                 error={error}
-                submitLabel="Create instance"
+                submitLabel={t("stack.instances.create")}
                 extraOptions={{
                   authMode: (draft, set) => <CopyProviderCredentialsButton draft={draft} set={set} />,
                 }}
                 preview={(draft) => (
                   <p className="-mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">
-                    Container name:{" "}
-                    {previewContainerName(draft, { prefix: containerPrefix, existingKeys: instances.map((i) => i.key) })}
+                    {t("stack.instances.containerName", { name: previewContainerName(draft, { prefix: containerPrefix, existingKeys: instances.map((i) => i.key) }) })}
                   </p>
                 )}
               />

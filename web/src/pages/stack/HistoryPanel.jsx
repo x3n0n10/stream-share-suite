@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
+import { useTranslation } from "react-i18next";
 import { useFormat } from "../../lib/useFormat.js";
 
 // Past versions of one component's stored values, with a restore button per
@@ -8,6 +9,7 @@ import { useFormat } from "../../lib/useFormat.js";
 // instance row. Restoring only changes stored config — like any other edit,
 // applying the resulting plan is a separate, explicit step.
 export default function HistoryPanel({ kind, componentKey = "", busy, onRestored }) {
+  const { t } = useTranslation();
   const { formatDateTime } = useFormat();
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState(null);
@@ -38,17 +40,15 @@ export default function HistoryPanel({ kind, componentKey = "", busy, onRestored
         disabled={busy}
         className="text-xs font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
       >
-        {open ? "Hide history" : "History"}
+        {open ? t("stack.history.hide") : t("stack.history.show")}
       </button>
 
       {open && (
         <div className="mt-2 rounded-lg border border-slate-200 dark:border-slate-800">
           {entries === null ? (
-            <p className="px-3 py-2 text-xs text-slate-400">Loading…</p>
+            <p className="px-3 py-2 text-xs text-slate-400">{t("common.loading")}</p>
           ) : entries.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-              No earlier versions saved yet.
-            </p>
+            <p className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">{t("stack.history.empty")}</p>
           ) : (
             <ul>
               {entries.map((entry) => (
@@ -64,7 +64,7 @@ export default function HistoryPanel({ kind, componentKey = "", busy, onRestored
                     disabled={busy || restoring}
                     className="font-medium text-accent-600 hover:underline disabled:opacity-50 dark:text-accent-400"
                   >
-                    Restore
+                    {t("stack.history.restore")}
                   </button>
                 </li>
               ))}
@@ -75,9 +75,9 @@ export default function HistoryPanel({ kind, componentKey = "", busy, onRestored
 
       <ConfirmDialog
         open={confirmId !== null}
-        title="Restore this version?"
-        body="This replaces the currently saved configuration with this earlier one. Nothing is applied to Docker until you Apply."
-        confirmLabel="Restore"
+        title={t("stack.history.confirmTitle")}
+        body={t("stack.history.confirmBody")}
+        confirmLabel={t("stack.history.restore")}
         onConfirm={() => restore(confirmId)}
         onCancel={() => setConfirmId(null)}
       />

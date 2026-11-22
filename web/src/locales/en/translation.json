@@ -818,5 +818,121 @@
       "continueWith_one": "Continue with {{count}} instance",
       "continueWith_other": "Continue with {{count}} instances"
     }
+  },
+  "stack": {
+    "tabs": {
+      "instances": "Instances",
+      "components": "Components",
+      "import": "Import",
+      "plan": "Plan"
+    },
+    "pendingChanges": "Pending changes",
+    "dockerUnreachable": "Can't reach the Docker socket proxy. Set DOCKER_PROXY_URL, or check that the docker-socket-proxy service is running and reachable.",
+    "card": {
+      "notInStack": "Not in the stack",
+      "checkUpdates": "Check for updates",
+      "checkUpdatesTitle": "Check and pull the latest version of {{name}}'s configured image tag and recreate if it actually changed",
+      "saveConfiguration": "Save configuration",
+      "takeoverNote": "A container by this name is already running without the Suite's labels. It stays untouched unless you replace it with a managed one.",
+      "takeover": "Take over anyway"
+    },
+    "caddy": {
+      "suiteContainerName": "Suite container name",
+      "suiteContainerHint": "Detected automatically. Caddy reaches the dashboard at this name."
+    },
+    "history": {
+      "show": "History",
+      "hide": "Hide history",
+      "empty": "No earlier versions saved yet.",
+      "restore": "Restore",
+      "confirmTitle": "Restore this version?",
+      "confirmBody": "This replaces the currently saved configuration with this earlier one. Nothing is applied to Docker until you Apply."
+    },
+    "import": {
+      "title": "Import from running containers",
+      "intro": "Finds gluetun, PostgreSQL and StreamShare containers already running outside the Suite and reads their real configuration in, instead of retyping it by hand. The containers themselves are never touched.",
+      "scan": "Scan for existing containers",
+      "scanAgain": "Scan again",
+      "none": "Nothing found that isn't already part of the stack.",
+      "import": "Import"
+    },
+    "connect": {
+      "title": "Point your IPTV client at these",
+      "body": "The internal URL only works from this host or if you have access to your local network. The public URL is the one you use to set up on your mobile devices to be able to connect elsewhere. If you have Caddy set up, then you can use the public URL within your local network as well.",
+      "internal": "Internal:",
+      "internalAddress": "<Your Docker host's IP address or hostname>:{{port}}",
+      "public": "Public:"
+    },
+    "instances": {
+      "title": "Instances",
+      "subtitle": "Create one per IPTV provider. Ports are allocated from {{first}}–{{last}}.",
+      "add": "Add instance",
+      "empty": "No instances yet. Adding one creates its container and its database automagically.",
+      "containerName": "Container name: {{name}}",
+      "port": "Port: {{port}}",
+      "checkUpdatesTitle": "Check and pull the latest version of this instance's configured image tag and recreate if it actually changed",
+      "saveChanges": "Save changes",
+      "create": "Create instance",
+      "portRange": {
+        "title": "Instance port range",
+        "description": "Instances are allocated {{size}} ports starting here (currently {{start}}–{{end}}). Instances already inside the range keep their port; any that fall outside the new range move to a free port in it."
+      },
+      "removeDialog": {
+        "title": "Remove {{name}}?",
+        "body": "This takes it out of the stack. Its container keeps running until you apply the plan, which will then offer to remove it.",
+        "dropDatabase": "Also drop <code>{{database}}</code> and its role. <warn>This deletes its watch history permanently.</warn> Leave it unticked to keep the data.",
+        "typeToConfirm": "Type <strong>{{name}}</strong> to confirm",
+        "confirmDrop": "Remove and drop database"
+      }
+    },
+    "plan": {
+      "title": "Stack plan",
+      "nothingToApply": "Nothing to apply",
+      "apply_one": "Apply {{count}} change",
+      "apply_other": "Apply {{count}} changes",
+      "emptySwitchedOff_one": "Nothing in the stack right now — {{list}} is switched off. Turn the VPN back on under the Components tab to manage it again.",
+      "emptySwitchedOff_other": "Nothing in the stack right now — {{list}} are switched off. Turn the VPN back on under the Components tab to manage it again.",
+      "emptyFresh": "Nothing in the stack yet. Configure a component under the Components tab to get started, or run the <setup>setup wizard</setup> for a guided walkthrough.",
+      "summary": {
+        "changes_one": "{{count}} change",
+        "changes_other": "{{count}} changes",
+        "restarts_one": "{{count}} container restart",
+        "restarts_other": "{{count}} containers restart",
+        "orphans": "{{count}} orphaned",
+        "disabled": "{{count}} switched off",
+        "incomplete": "{{count}} not configured",
+        "nothing": "Nothing to manage",
+        "matches": "Everything matches its configuration"
+      },
+      "action": {
+        "create": "Create",
+        "recreate": "Recreate",
+        "adopt": "Adopted",
+        "noop": "No change",
+        "orphaned": "Orphaned",
+        "disabled": "Switched off",
+        "incomplete": "Not configured"
+      },
+      "runtime": {
+        "running": "Running",
+        "restarting": "Restarting",
+        "paused": "Paused",
+        "exited": "Stopped",
+        "dead": "Dead",
+        "created": "Created"
+      },
+      "health": {
+        "healthy": "Healthy",
+        "unhealthy": "Unhealthy",
+        "starting": "Starting"
+      },
+      "jobStatus": {
+        "running": "running",
+        "success": "success",
+        "failed": "failed"
+      },
+      "removeTitle": "Remove this container?",
+      "removeBody": "{{name}} was created by the Suite but is no longer part of your stack. Removing it stops and deletes the container."
+    }
   }
 }

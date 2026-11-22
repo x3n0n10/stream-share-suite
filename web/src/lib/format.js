@@ -5,6 +5,7 @@ const PRESETS = {
   dateTime: { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
   date: { year: "numeric", month: "short", day: "numeric" },
   number: {},
+  list: { type: "conjunction" },
 };
 const formatters = new Map();
 // Cached per (constructor, language, preset): constructing Intl formatters is slow.
@@ -82,6 +83,10 @@ export function formatDate(isoString, lng = "en") {
 
 export function formatNumber(n, lng = "en") {
   return getFormatter(Intl.NumberFormat, lng, "number").format(n || 0);
+}
+
+export function formatList(items, lng = "en") {
+  return getFormatter(Intl.ListFormat, lng, "list").format(items);
 }
 
 export function titleCase(s) {
