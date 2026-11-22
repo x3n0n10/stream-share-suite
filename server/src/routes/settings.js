@@ -22,26 +22,32 @@ import { DEFAULTS } from "../config.js";
 import { AUTO_CHECK_SETTING, isAutoCheckEnabled, lastCheckedAt } from "../updates/check.js";
 import { kickUpdateCheck } from "../updates/scheduler.js";
 import { apiTokenStatus, generateApiToken, revokeApiToken } from "../auth/apiToken.js";
+import { SuiteError, UNKNOWN_INSTANCE, sendError } from "../errors.js";
 
 // Rejects anything that isn't an absolute http(s) URL, so a typo surfaces at
 // save time rather than as a confusing fetch failure on the next poll.
 function validateUrl(value) {
-  if (typeof value !== "string" || !value.trim()) return "URL is required.";
+  if (typeof value !== "string" || !value.trim()) return new SuiteError("url_required", "URL is required.");
   let parsed;
   try {
     parsed = new URL(value.trim());
   } catch {
-    return "URL must be absolute, e.g. http://172.18.0.11:8080";
+    return new SuiteError("url_not_absolute", "URL must be absolute, e.g. http://example.com:8080");
   }
   if (!["http:", "https:"].includes(parsed.protocol)) {
-    return "URL must start with http:// or https://";
+    return new SuiteError("url_bad_scheme", "URL must start with http:// or https://");
   }
   return null;
 }
 
-function validateName(value, label = "Name") {
-  if (typeof value !== "string" || !value.trim()) return `${label} is required.`;
-  if (value.trim().length > 80) return `${label} must be at most 80 characters.`;
+const NAME_CODES = { required: "name_required", tooLong: "name_too_long" };
+const TITLE_CODES = { required: "title_required", tooLong: "title_too_long" };
+
+function validateName(value, label, codes) {
+  if (typeof value !== "string" || !value.trim()) return new SuiteError(codes.required, `${label} is required.`);
+  if (value.trim().length > 80) {
+    return new SuiteError(codes.tooLong, `${label} must be at most 80 characters.`, { max: 80 });
+  }
   return null;
 }
 
@@ -84,8 +90,8 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
     const updates = {};
 
     if (general.title !== undefined) {
-      const err = validateName(general.title, "Title");
-      if (err) return res.status(400).json({ error: err });
+      const err = validateName(general.title, "Title", TITLE_CODES);
+      if (err) return sendError(res, 400, err);
       updates["general.title"] = general.title.trim();
     }
     // Floors match config.js so a value saved here cannot read back different.
@@ -106,7 +112,10 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
       const trimmed = String(gluetun.url).trim();
       if (trimmed) {
         const err = validateUrl(trimmed);
-        if (err) return res.status(400).json({ error: `Gluetun ${err[0].toLowerCase()}${err.slice(1)}` });
+        if (err) {
+          const detail = `${err.message[0].toLowerCase()}${err.message.slice(1)}`;
+          return sendError(res, 400, new SuiteError(err.code, `Gluetun ${detail}`, err.params));
+        }
       }
       updates["gluetun.url"] = trimmed.replace(/\/+$/, "");
     }
@@ -144,18 +153,16 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
   router.post("/instances", (req, res) => {
     const { name, url, apiKey, enabled } = req.body || {};
 
-    const nameErr = validateName(name);
-    if (nameErr) return res.status(400).json({ error: nameErr });
+    const nameErr = validateName(name, "Name", NAME_CODES);
+    if (nameErr) return sendError(res, 400, nameErr);
     const urlErr = validateUrl(url);
-    if (urlErr) return res.status(400).json({ error: urlErr });
+    if (urlErr) return sendError(res, 400, urlErr);
 
     // Not a hard requirement — stream-share generates a key at startup when
     // unset — but an instance without one gets 401s on every call, so it is
     // worth refusing rather than shipping a permanently red row.
     if (!apiKey || !String(apiKey).trim()) {
-      return res.status(400).json({
-        error: "An API key is required. Use the instance's INTERNAL_API_KEY.",
-      });
+      return sendError(res, 400, new SuiteError("api_key_required", "An API key is required. Use the instance's INTERNAL_API_KEY."));
     }
 
     const instance = createInstance({
@@ -168,17 +175,17 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
   });
 
   router.put("/instances/:id", (req, res) => {
-    if (!getInstance(req.params.id)) return res.status(404).json({ error: "Unknown instance" });
+    if (!getInstance(req.params.id)) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const { name, url, apiKey, enabled } = req.body || {};
 
     if (name !== undefined) {
-      const err = validateName(name);
-      if (err) return res.status(400).json({ error: err });
+      const err = validateName(name, "Name", NAME_CODES);
+      if (err) return sendError(res, 400, err);
     }
     if (url !== undefined) {
       const err = validateUrl(url);
-      if (err) return res.status(400).json({ error: err });
+      if (err) return sendError(res, 400, err);
     }
 
     const updated = updateInstance(req.params.id, {
@@ -191,13 +198,13 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
   });
 
   router.delete("/instances/:id", (req, res) => {
-    if (!deleteInstance(req.params.id)) return res.status(404).json({ error: "Unknown instance" });
+    if (!deleteInstance(req.params.id)) return sendError(res, 404, UNKNOWN_INSTANCE);
     res.json({ ok: true });
   });
 
   router.post("/instances/reorder", (req, res) => {
     const { order } = req.body || {};
-    if (!Array.isArray(order)) return res.status(400).json({ error: "order must be an array of ids" });
+    if (!Array.isArray(order)) return sendError(res, 400, new SuiteError("order_not_array", "order must be an array of ids"));
     reorderInstances(order.map(String));
     res.json({ ok: true });
   });
@@ -211,7 +218,7 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
     let target;
     if (url) {
       const err = validateUrl(url);
-      if (err) return res.status(400).json({ error: err });
+      if (err) return sendError(res, 400, err);
       const stored = id ? getInstance(id) : null;
       target = {
         url: String(url).trim().replace(/\/+$/, ""),
@@ -222,16 +229,16 @@ export function createSettingsRouter({ kick = kickUpdateCheck } = {}) {
       };
     } else if (id) {
       target = getInstance(id);
-      if (!target) return res.status(404).json({ error: "Unknown instance" });
+      if (!target) return sendError(res, 404, UNKNOWN_INSTANCE);
     } else {
-      return res.status(400).json({ error: "url or id is required" });
+      return sendError(res, 400, new SuiteError("url_or_id_required", "url or id is required"));
     }
 
     try {
       const info = await pingInstance(target, { timeoutMs: 8000 });
       res.json({ ok: true, instance: info });
     } catch (err) {
-      res.status(200).json({ ok: false, error: err.message });
+      sendError(res, 200, err, { ok: false });
     }
   });
 

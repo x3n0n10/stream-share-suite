@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { attachSession } from "./auth/middleware.js";
 import { createApiRouter } from "./routes/index.js";
+import { SuiteError, sendError } from "./errors.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +50,7 @@ export function createApp({ serveStatic = true } = {}) {
   app.use((err, req, res, _next) => {
     console.error("[error]", err);
     if (res.headersSent) return;
-    res.status(500).json({ error: "Internal server error" });
+    sendError(res, 500, new SuiteError("internal_error", "Internal server error"));
   });
 
   return app;

@@ -57,10 +57,11 @@ import { fetchFailoverSupport } from "../instanceClient.js";
 import { getVersions, invalidateVersions } from "../reconcile/versions.js";
 import { isAutoCheckEnabled, lastCheckedAt, withUpdates } from "../updates/check.js";
 import { kickUpdateCheck } from "../updates/scheduler.js";
+import { SuiteError, UNKNOWN_JOB, kindNotActive, sendError, sendFieldErrors, unknownInstanceKey } from "../errors.js";
 
 function componentOr404(req, res, next) {
   const entry = getCatalogEntry(req.params.kind);
-  if (!entry) return res.status(404).json({ error: `Unknown component kind: ${req.params.kind}` });
+  if (!entry) return sendError(res, 404, new SuiteError("unknown_kind", `Unknown component kind: ${req.params.kind}`, { kind: req.params.kind }));
   req.componentEntry = entry;
   req.componentKey = req.query.key || "";
   next();
@@ -85,7 +86,7 @@ function redactPlan(plan) {
 
 function dockerFailure(res, err) {
   if (err instanceof DockerError) {
-    return res.status(err.status && err.status < 500 ? err.status : 502).json({ error: err.message });
+    return sendError(res, err.status && err.status < 500 ? err.status : 502, err);
   }
   throw err;
 }
@@ -100,7 +101,7 @@ let jobRunning = false;
 
 function startJob(res, label, work) {
   if (jobRunning) {
-    return res.status(409).json({ error: "Another change is still being applied. Wait for it to finish." });
+    return sendError(res, 409, new SuiteError("apply_in_progress", "Another change is still being applied. Wait for it to finish."));
   }
   jobRunning = true;
   const job = createJob(label);
@@ -149,7 +150,7 @@ export function createStackRouter() {
     try {
       res.json(withUpdates(await getVersions(req.config)));
     } catch (err) {
-      res.status(500).json({ error: `Could not read versions: ${err.message}` });
+      sendError(res, 500, new SuiteError("versions_failed", `Could not read versions: ${err.message}`, { detail: err.message }));
     }
   });
 
@@ -171,7 +172,7 @@ export function createStackRouter() {
   // run (a few GitHub calls) so the answer says whether it completed.
   router.post("/updates/check", async (req, res) => {
     if (!isAutoCheckEnabled()) {
-      return res.status(409).json({ error: "Automatic update checks are off. Turn them on and save first." });
+      return sendError(res, 409, new SuiteError("update_checks_off", "Automatic update checks are off. Turn them on and save first."));
     }
     const result = await kickUpdateCheck();
     res.json({ checkedAt: lastCheckedAt(), complete: !!result && result.checkedAt === result.attemptedAt });
@@ -216,14 +217,20 @@ export function createStackRouter() {
     if (req.body?.instancePortStart !== undefined) {
       const start = Number(req.body.instancePortStart);
       if (!Number.isInteger(start) || start < 1 || start > MAX_PORT_BAND_START) {
-        return res.status(400).json({
-          error: `Instance port range start must be a whole number between 1 and ${MAX_PORT_BAND_START}.`,
-        });
+        return sendError(
+          res,
+          400,
+          new SuiteError(
+            "port_start_invalid",
+            `Instance port range start must be a whole number between 1 and ${MAX_PORT_BAND_START}.`,
+            { max: MAX_PORT_BAND_START },
+          ),
+        );
       }
       try {
         reassignOutOfRangeInstances({ first: start, last: start + PORT_BAND_WIDTH - 1 });
       } catch (err) {
-        return res.status(400).json({ error: err.message });
+        return sendError(res, 400, err);
       }
       setSetting(PORT_BAND_START_SETTING, start);
     }
@@ -264,14 +271,14 @@ export function createStackRouter() {
     // Instances have their own routes, which check the key and the port; this
     // one would save an unknown key or a clashing port without a word.
     if (req.params.kind === "instance") {
-      return res.status(400).json({ error: "Edit an instance through /api/stack/instances/:key." });
+      return sendError(res, 400, new SuiteError("instance_edit_route", "Edit an instance through /api/stack/instances/:key."));
     }
     const { schema } = req.componentEntry;
     const existing = getComponentValues(req.params.kind, req.componentKey);
     const next = applyPatch(schema, existing, req.body || {});
 
     const errors = validate(schema, next);
-    if (errors.length > 0) return res.status(400).json({ errors });
+    if (errors.length > 0) return sendFieldErrors(res, errors, req.params.kind);
 
     // gluetun's control server needs an auth role configured at all (see
     // renderGluetunSpec) — generated once, on the first save that gives
@@ -300,7 +307,7 @@ export function createStackRouter() {
   router.post("/components/:kind/history/:id/restore", componentOr404, (req, res) => {
     const entry = getComponentHistoryEntry(Number(req.params.id));
     if (!entry || entry.kind !== req.params.kind || entry.key !== req.componentKey) {
-      return res.status(404).json({ error: "Unknown history entry" });
+      return sendError(res, 404, new SuiteError("unknown_history_entry", "Unknown history entry"));
     }
 
     const { schema } = req.componentEntry;
@@ -335,12 +342,12 @@ export function createStackRouter() {
   router.get("/components/:kind/plan", componentOr404, async (req, res) => {
     const node = activeNode(req.params.kind, req.componentKey);
     if (!node) {
-      return res.status(409).json({ error: `${req.params.kind} is not part of the stack right now` });
+      return sendError(res, 409, kindNotActive(req.params.kind));
     }
 
     const values = getComponentValues(req.params.kind, req.componentKey);
     const errors = validate(node.schema, values);
-    if (errors.length > 0) return res.status(400).json({ errors, incomplete: true });
+    if (errors.length > 0) return sendFieldErrors(res, errors, req.params.kind, { incomplete: true });
 
     try {
       const plan = await planComponent(node, await node.render(values, node.key));
@@ -353,12 +360,12 @@ export function createStackRouter() {
   router.post("/components/:kind/apply", componentOr404, async (req, res) => {
     const node = activeNode(req.params.kind, req.componentKey);
     if (!node) {
-      return res.status(409).json({ error: `${req.params.kind} is not part of the stack right now` });
+      return sendError(res, 409, kindNotActive(req.params.kind));
     }
 
     const values = getComponentValues(req.params.kind, req.componentKey);
     const errors = validate(node.schema, values);
-    if (errors.length > 0) return res.status(400).json({ errors });
+    if (errors.length > 0) return sendFieldErrors(res, errors, req.params.kind);
 
     const takeover = !!req.body?.takeover;
 
@@ -379,12 +386,12 @@ export function createStackRouter() {
   router.post("/components/:kind/pull", componentOr404, async (req, res) => {
     const node = activeNode(req.params.kind, req.componentKey);
     if (!node) {
-      return res.status(409).json({ error: `${req.params.kind} is not part of the stack right now` });
+      return sendError(res, 409, kindNotActive(req.params.kind));
     }
 
     const values = getComponentValues(req.params.kind, req.componentKey);
     const errors = validate(node.schema, values);
-    if (errors.length > 0) return res.status(400).json({ errors });
+    if (errors.length > 0) return sendFieldErrors(res, errors, req.params.kind);
 
     startJob(res, req.params.kind, async (log) => {
       await checkForUpdate(node, await node.render(values, node.key), { log });
@@ -420,13 +427,13 @@ export function createStackRouter() {
     const values = applyPatch(schema, {}, req.body || {});
 
     const errors = validate(schema, values);
-    if (errors.length > 0) return res.status(400).json({ errors });
+    if (errors.length > 0) return sendFieldErrors(res, errors, "instance");
 
     try {
       const { key, port } = provisionInstance(values);
       res.status(201).json({ key, port });
     } catch (err) {
-      res.status(409).json({ error: err.message });
+      sendError(res, 409, err);
     }
   });
 
@@ -439,7 +446,7 @@ export function createStackRouter() {
   router.put("/instances/:key", (req, res) => {
     const key = req.params.key;
     if (listComponents("instance").every((row) => row.key !== key)) {
-      return res.status(404).json({ error: `Unknown instance: ${key}` });
+      return sendError(res, 404, unknownInstanceKey(key));
     }
 
     const { schema } = getCatalogEntry("instance");
@@ -447,15 +454,24 @@ export function createStackRouter() {
     const next = applyPatch(schema, existing, req.body || {});
 
     const errors = validate(schema, next);
-    if (errors.length > 0) return res.status(400).json({ errors });
+    if (errors.length > 0) return sendFieldErrors(res, errors, "instance");
 
     const port = Number(next.port);
     if (Number.isFinite(port) && port > 0) {
       const clashingKey = allocatedPorts({ exceptKey: key }).get(port);
       if (clashingKey) {
-        return res.status(400).json({
-          errors: [{ key: "port", message: `Port ${port} is already used by ${clashingKey}.` }],
-        });
+        return sendFieldErrors(
+          res,
+          [
+            {
+              key: "port",
+              code: "port_in_use",
+              message: `Port ${port} is already used by ${clashingKey}.`,
+              params: { port, instance: clashingKey },
+            },
+          ],
+          "instance",
+        );
       }
     }
 
@@ -472,13 +488,13 @@ export function createStackRouter() {
   router.post("/instances/:key/use-provider-credentials", (req, res) => {
     const key = req.params.key;
     if (listComponents("instance").every((row) => row.key !== key)) {
-      return res.status(404).json({ error: `Unknown instance: ${key}` });
+      return sendError(res, 404, unknownInstanceKey(key));
     }
 
     const { schema } = getCatalogEntry("instance");
     const existing = getComponentValues("instance", key);
     if (existing.providerType !== "xtream") {
-      return res.status(400).json({ error: "Only an Xtream instance has provider credentials to use." });
+      return sendError(res, 400, new SuiteError("xtream_only", "Only an Xtream instance has provider credentials to use."));
     }
 
     const next = {
@@ -498,7 +514,7 @@ export function createStackRouter() {
   router.post("/instances/:key/remove", (req, res) => {
     const key = req.params.key;
     if (listComponents("instance").every((row) => row.key !== key)) {
-      return res.status(404).json({ error: `Unknown instance: ${key}` });
+      return sendError(res, 404, unknownInstanceKey(key));
     }
 
     const dropData = req.body?.dropDatabase === true;
@@ -511,7 +527,7 @@ export function createStackRouter() {
     const values = getComponentValues("postgres");
     const target = connectionTarget(values);
     if (!target.host) {
-      return res.status(400).json({ ok: false, error: "No database host is configured yet." });
+      return sendError(res, 400, new SuiteError("no_database_host", "No database host is configured yet."), { ok: false });
     }
     res.json(await testConnection(target));
   });
@@ -536,7 +552,7 @@ export function createStackRouter() {
     const containerId = String(req.body?.containerId || "");
     const kind = String(req.body?.kind || "");
     if (!containerId || !kind) {
-      return res.status(400).json({ error: "containerId and kind are required" });
+      return sendError(res, 400, new SuiteError("container_and_kind_required", "containerId and kind are required"));
     }
 
     try {
@@ -544,7 +560,7 @@ export function createStackRouter() {
       res.status(201).json(result);
     } catch (err) {
       if (err instanceof DockerError) return dockerFailure(res, err);
-      res.status(409).json({ error: err.message });
+      sendError(res, 409, err);
     }
   });
 
@@ -553,14 +569,14 @@ export function createStackRouter() {
   // asked to in as many words.
   router.post("/orphans/remove", (req, res) => {
     const containerId = String(req.body?.containerId || "");
-    if (!containerId) return res.status(400).json({ error: "containerId is required" });
+    if (!containerId) return sendError(res, 400, new SuiteError("container_id_required", "containerId is required"));
 
     startJob(res, "orphan", (log) => removeOrphan(containerId, { log }));
   });
 
   router.get("/jobs/:jobId", (req, res) => {
     const job = getJob(req.params.jobId);
-    if (!job) return res.status(404).json({ error: "Unknown job" });
+    if (!job) return sendError(res, 404, UNKNOWN_JOB);
     res.json(job);
   });
 
