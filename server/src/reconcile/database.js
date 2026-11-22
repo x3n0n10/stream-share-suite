@@ -138,6 +138,16 @@ export async function ensureDatabase(target, { database, user, password }, { log
       await client.query(`ALTER ROLE ${quoteIdent(user)} LOGIN PASSWORD ${quoteLiteral(password)}`);
     }
 
+    // CREATE DATABASE ... OWNER needs the creator to be able to SET ROLE to the
+    // owner. A CREATEROLE admin is not a member on PG14 and on PG16+ only gets
+    // ADMIN OPTION. The grant stays because DROP DATABASE needs it later too.
+    const me = await client.query(
+      "SELECT rolsuper, current_setting('server_version_num')::int AS v FROM pg_roles WHERE rolname = current_user");
+    if (!me.rows[0].rolsuper) {
+      // WITH SET only exists from PG16; earlier versions have plain membership.
+      await client.query(`GRANT ${quoteIdent(user)} TO CURRENT_USER${me.rows[0].v >= 160000 ? " WITH SET TRUE" : ""}`);
+    }
+
     const dbExists = await client.query("SELECT 1 FROM pg_database WHERE datname = $1", [database]);
 
     if (dbExists.rowCount === 0) {
