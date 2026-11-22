@@ -359,6 +359,28 @@ test("applying a 'recreate' plan stops and removes the old container before crea
   assert.ok(stopIdx >= 0 && deleteIdx > stopIdx && createIdx > deleteIdx);
 });
 
+test("a failed prepare leaves the running container alone", async () => {
+  containers.set("stream-share-gluetun", {
+    Id: "old-id",
+    name: "stream-share-gluetun",
+    Config: { Labels: managedLabels("gluetun", "stale-hash") },
+    running: true,
+  });
+
+  const plan = await planComponent(NODE, SPEC);
+  plan.prepare = async () => {
+    throw new Error("permission denied to create role");
+  };
+  await assert.rejects(applyPlan(plan, { log: () => {} }), /permission denied/);
+
+  assert.equal(containers.get("stream-share-gluetun")?.running, true, "the old container must still be running");
+  assert.equal(
+    requests.some((r) => r.path.includes("/old-id/stop") || r.method === "DELETE"),
+    false,
+    "prepare must run before anything is stopped or removed"
+  );
+});
+
 test("a failed pull leaves the running container alone", async () => {
   containers.set("stream-share-gluetun", {
     Id: "old-id",

@@ -335,6 +335,12 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
     await pullImage(spec.image);
   }
 
+  // Also before anything is stopped: a failed prepare (e.g. the database
+  // admin lacks a privilege) must leave the running container alone.
+  if (plan.prepare) {
+    await plan.prepare(key, getComponentValues(kind, key), { log });
+  }
+
   if (action === "adopt" && takeover) {
     log(`Taking over "${spec.name}": stopping and removing the unmanaged container.`);
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
@@ -355,10 +361,6 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
     log("Removing it...");
     await removeContainer(plan.containerId, { force: true });
-  }
-
-  if (plan.prepare) {
-    await plan.prepare(key, getComponentValues(kind, key), { log });
   }
 
   log(`Creating "${spec.name}"...`);
