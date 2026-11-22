@@ -91,6 +91,7 @@ export function applyCascade(orderedPlans) {
         ...plan,
         action: "recreate",
         reason: `Shares ${host.label}'s network namespace`,
+        reasonI18n: { code: "shares_namespace", params: { host: host.label } },
         cascadedFrom: host.id,
       };
     } else if (hostIsReplaced && plan.action === "recreate") {
@@ -105,6 +106,7 @@ export function applyCascade(orderedPlans) {
           `${host.label} is being replaced, which will disconnect this container. ` +
             `The Suite will not touch it — restart or take it over yourself afterwards.`,
         ],
+        warningsI18n: [...(plan.warningsI18n || []), { code: "host_replaced", params: { host: host.label } }],
       };
     }
 

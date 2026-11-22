@@ -9,7 +9,7 @@
 // style parsing isn't available everywhere, and isn't needed for "does the
 // current HH:MM match one of a handful of configured times".
 
-import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
+import { createJob, appendError, jobLogger, finishJob, getJob } from "../reconcile/jobs.js";
 import { getSetting, setSetting } from "../store/settings.js";
 import { heal, isWatchdogEnabled, watchdogCheckTimes } from "./vpnWatchdog.js";
 
@@ -34,8 +34,9 @@ export function _resetLastWatchdogJobForTests() {
 export function jobResult(job) {
   return {
     status: job.status,
-    log: job.log.map((entry) => entry.line),
+    log: job.log.map(({ line, code, params }) => ({ line, code, params })),
     error: job.error,
+    errorI18n: job.errorI18n,
     startedAt: job.startedAt,
     finishedAt: job.finishedAt,
   };
@@ -70,10 +71,10 @@ export function parseCheckTimes(raw) {
 
 async function execute(job) {
   try {
-    await heal({ log: (line) => appendLog(job, line) });
+    await heal({ log: jobLogger(job) });
     finishJob(job, null);
   } catch (err) {
-    appendLog(job, `Error: ${err.message}`);
+    appendError(job, err);
     finishJob(job, err);
   }
   // Best effort: a failed write must not turn a finished run into an

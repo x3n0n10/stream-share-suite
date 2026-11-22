@@ -36,7 +36,7 @@ import {
   removeOrphan,
   checkForUpdate,
 } from "../reconcile/reconciler.js";
-import { createJob, appendLog, finishJob, getJob } from "../reconcile/jobs.js";
+import { createJob, appendError, jobLogger, finishJob, getJob } from "../reconcile/jobs.js";
 import { ping, DockerError } from "../docker/client.js";
 import { getSelfContainerName } from "../docker/self.js";
 import {
@@ -109,10 +109,10 @@ function startJob(res, label, work) {
 
   (async () => {
     try {
-      await work((line) => appendLog(job, line));
+      await work(jobLogger(job));
       finishJob(job, null);
     } catch (err) {
-      appendLog(job, `Error: ${err.message}`);
+      appendError(job, err);
       finishJob(job, err);
     } finally {
       jobRunning = false;
@@ -371,7 +371,7 @@ export function createStackRouter() {
 
     startJob(res, req.params.kind, async (log) => {
       const plan = await planComponent(node, await node.render(values, node.key));
-      log(`Plan: ${plan.action}.`);
+      log(`Plan: ${plan.action}.`, { code: "plan_action", params: { action: plan.action } });
       await applyPlan(plan, { log, takeover });
     });
   });

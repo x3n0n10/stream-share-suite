@@ -36,6 +36,7 @@ import { computeSpecHash, toCreatePayload } from "../docker/spec.js";
 import { LABEL_MANAGED, LABEL_SPEC_HASH, LABEL_SUITE, managedLabels, isManaged, belongsToAnotherSuite, componentOf } from "../docker/labels.js";
 import { setAdoptedContainer, clearAdoption, getComponentValues, componentId } from "../store/components.js";
 import { validate } from "../schema/registry.js";
+import { SuiteError } from "../errors.js";
 import { activeComponents, inactiveComponents } from "./catalog.js";
 import { orderComponents, applyCascade, summarize } from "./graph.js";
 
@@ -84,7 +85,12 @@ export async function planComponent(node, spec) {
   };
 
   if (!existing) {
-    return { ...base, action: "create", reason: `No container named ${spec.name} exists yet` };
+    return {
+      ...base,
+      action: "create",
+      reason: `No container named ${spec.name} exists yet`,
+      reasonI18n: { code: "not_created_yet", params: { name: spec.name } },
+    };
   }
 
   const labels = existing.Config?.Labels || {};
@@ -94,6 +100,7 @@ export async function planComponent(node, spec) {
       ...base,
       action: "adopt",
       reason: "Running since before the Suite — never touched without a takeover",
+      reasonI18n: { code: "running_before_suite", params: {} },
       containerId: existing.Id,
     };
   }
@@ -106,10 +113,12 @@ export async function planComponent(node, spec) {
       ...base,
       action: "adopt",
       reason: `Created by another Suite (${labels[LABEL_SUITE]}) — never touched without a takeover`,
+      reasonI18n: { code: "other_suite", params: { suite: labels[LABEL_SUITE] } },
       containerId: existing.Id,
       warnings: [
         "This container belongs to another Suite on this host. Give each Suite its own SUITE_CONTAINER_PREFIX (and make sure no containerName override points at the same name) so their container names don't collide.",
       ],
+      warningsI18n: [{ code: "other_suite_prefix", params: {} }],
     };
   }
 
@@ -124,6 +133,7 @@ export async function planComponent(node, spec) {
         ...base,
         action: "recreate",
         reason: "Stopped outside the Suite — starting it back up",
+        reasonI18n: { code: "stopped_outside", params: {} },
         containerId: existing.Id,
         previousHash: labels[LABEL_SPEC_HASH],
         stoppedOutsideSuite: true,
@@ -133,6 +143,7 @@ export async function planComponent(node, spec) {
       ...base,
       action: "noop",
       reason: "Matches the saved configuration",
+      reasonI18n: { code: "matches_config", params: {} },
       containerId: existing.Id,
     };
   }
@@ -141,6 +152,7 @@ export async function planComponent(node, spec) {
     ...base,
     action: "recreate",
     reason: "The saved configuration has changed",
+    reasonI18n: { code: "config_changed", params: {} },
     containerId: existing.Id,
     previousHash: labels[LABEL_SPEC_HASH],
   };
@@ -173,6 +185,7 @@ async function findOrphans(activeIds) {
         label: component.kind,
         action: "orphaned",
         reason: "The Suite created this, but it is no longer part of the stack",
+        reasonI18n: { code: "not_in_stack", params: {} },
         containerId: container.Id,
         containerName: (container.Names || [])[0]?.replace(/^\//, "") || container.Id,
         namespaceHost: null,
@@ -216,6 +229,7 @@ async function findDisabled(nodes) {
       label: node.label,
       action: "disabled",
       reason: "Switched off, but this container is still running. The Suite did not create it and has left it alone.",
+      reasonI18n: { code: "switched_off_running", params: {} },
       containerId: existing.Id,
       containerName: node.containerName,
       namespaceHost: null,
@@ -268,6 +282,7 @@ export async function planStack() {
         label: node.label,
         action: "incomplete",
         reason: `Not configured yet — ${errors[0].message}`,
+        reasonI18n: { code: "not_configured", params: { message: errors[0].message } },
         errors,
         namespaceHost: node.namespaceHost || null,
         cascadedFrom: null,
@@ -293,29 +308,38 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   const { action, kind, key, spec, desiredHash } = plan;
 
   if (action === "incomplete") {
-    log(`${plan.label} is not fully configured — skipped.`);
+    log(`${plan.label} is not fully configured — skipped.`, { code: "skipped_incomplete", params: { label: plan.label } });
     return null;
   }
 
   if (action === "orphaned") {
-    log(`${plan.containerName} is orphaned. Removing it is a separate action — leaving it alone.`);
+    log(`${plan.containerName} is orphaned. Removing it is a separate action — leaving it alone.`, {
+      code: "orphan_left_alone",
+      params: { name: plan.containerName },
+    });
     return plan.containerId;
   }
 
   if (action === "disabled") {
-    log(`${plan.containerName} belongs to a switched-off component and is not managed by the Suite — leaving it alone.`);
+    log(`${plan.containerName} belongs to a switched-off component and is not managed by the Suite — leaving it alone.`, {
+      code: "disabled_left_alone",
+      params: { name: plan.containerName },
+    });
     return plan.containerId;
   }
 
   if (action === "noop") {
-    log(`${spec.name} already matches the desired configuration.`);
+    log(`${spec.name} already matches the desired configuration.`, { code: "already_matches", params: { name: spec.name } });
     return plan.containerId;
   }
 
   if (action === "adopt" && !takeover) {
-    log(`Found an existing container named "${spec.name}" that this Suite did not create — adopting without recreating.`);
-    log("It stays exactly as it is until you explicitly ask the Suite to take over.");
-    for (const warning of plan.warnings || []) log(`Warning: ${warning}`);
+    log(`Found an existing container named "${spec.name}" that this Suite did not create — adopting without recreating.`, {
+      code: "adopting_existing",
+      params: { name: spec.name },
+    });
+    log("It stays exactly as it is until you explicitly ask the Suite to take over.", { code: "adopt_stays" });
+    for (const warning of plan.warnings || []) log(`Warning: ${warning}`, { code: "adopt_warning", params: { warning } });
     setAdoptedContainer(kind, plan.containerId, key);
     return plan.containerId;
   }
@@ -331,7 +355,7 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   // before — this only fires when spec.image itself differs from what was
   // last actually running.
   if (action === "create" || spec.image !== plan.runtime?.image) {
-    log(`Pulling ${spec.image}...`);
+    log(`Pulling ${spec.image}...`, { code: "pulling", params: { image: spec.image } });
     await pullImage(spec.image);
   }
 
@@ -342,40 +366,46 @@ export async function applyPlan(plan, { log = () => {}, takeover = false } = {})
   }
 
   if (action === "adopt" && takeover) {
-    log(`Taking over "${spec.name}": stopping and removing the unmanaged container.`);
+    log(`Taking over "${spec.name}": stopping and removing the unmanaged container.`, {
+      code: "taking_over",
+      params: { name: spec.name },
+    });
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
     await removeContainer(plan.containerId, { force: true });
     clearAdoption(kind, key);
   }
 
   if (action === "recreate") {
-    const why = plan.cascadedFrom
-      ? `${plan.cascadedFrom} was replaced, taking its network namespace with it`
+    const name = spec.name;
+    const from = (plan.previousHash || "").slice(0, 12);
+    const to = desiredHash.slice(0, 12);
+    const [code, why, params] = plan.cascadedFrom
+      ? ["recreating_cascaded", `${plan.cascadedFrom} was replaced, taking its network namespace with it`, { host: plan.cascadedFrom }]
       : plan.stoppedOutsideSuite
-      ? "it was stopped outside the Suite"
+      ? ["recreating_stopped", "it was stopped outside the Suite", {}]
       : plan.imagePulled
-      ? "a newer image was pulled"
-      : `configuration changed (${(plan.previousHash || "").slice(0, 12)} -> ${desiredHash.slice(0, 12)})`;
-    log(`Recreating "${spec.name}" — ${why}.`);
-    log("Stopping the current container...");
+      ? ["recreating_pulled", "a newer image was pulled", {}]
+      : ["recreating_changed", `configuration changed (${from} -> ${to})`, { from, to }];
+    log(`Recreating "${name}" — ${why}.`, { code, params: { name, ...params } });
+    log("Stopping the current container...", { code: "stopping_current" });
     await stopContainer(plan.containerId, { timeoutSeconds: 30 });
-    log("Removing it...");
+    log("Removing it...", { code: "removing_it" });
     await removeContainer(plan.containerId, { force: true });
   }
 
-  log(`Creating "${spec.name}"...`);
+  log(`Creating "${spec.name}"...`, { code: "creating", params: { name: spec.name } });
   const labels = managedLabels(kind, desiredHash, key);
   const created = await createContainer(spec.name, toCreatePayload(spec, { labels }));
 
   for (const networkName of (spec.networks || []).slice(1)) {
-    log(`Joining network "${networkName}"...`);
+    log(`Joining network "${networkName}"...`, { code: "joining_network", params: { network: networkName } });
     await connectNetwork(networkName, created.Id, spec.networkAliases);
   }
 
-  log(`Starting "${spec.name}"...`);
+  log(`Starting "${spec.name}"...`, { code: "starting", params: { name: spec.name } });
   await startContainer(created.Id);
 
-  log("Done.");
+  log("Done.", { code: "done" });
   return created.Id;
 }
 
@@ -390,24 +420,27 @@ export async function checkForUpdate(node, spec, { log = () => {} } = {}) {
   const plan = await planComponent(node, spec);
 
   if (!["create", "noop", "recreate"].includes(plan.action)) {
-    log(`${plan.label}: ${plan.reason} — pulling an image doesn't apply here.`);
+    log(`${plan.label}: ${plan.reason} — pulling an image doesn't apply here.`, {
+      code: "update_not_applicable",
+      params: { label: plan.label, reason: plan.reason },
+    });
     return applyPlan(plan, { log });
   }
 
-  log(`Pulling ${spec.image}...`);
+  log(`Pulling ${spec.image}...`, { code: "pulling", params: { image: spec.image } });
   await pullImage(spec.image);
 
   if (plan.action === "noop") {
     const pulled = await inspectImage(spec.image);
     const pulledId = pulled?.Id || null;
     if (pulledId && pulledId !== plan.runtime?.imageId) {
-      log(`A newer image was pulled for ${spec.image}.`);
+      log(`A newer image was pulled for ${spec.image}.`, { code: "image_pulled", params: { image: spec.image } });
       return applyPlan(
-        { ...plan, action: "recreate", reason: "A newer image was pulled", previousHash: plan.desiredHash, imagePulled: true },
+        { ...plan, action: "recreate", reason: "A newer image was pulled", reasonI18n: { code: "newer_image_pulled", params: {} }, previousHash: plan.desiredHash, imagePulled: true },
         { log }
       );
     }
-    log(`${spec.image} is already up to date.`);
+    log(`${spec.image} is already up to date.`, { code: "image_up_to_date", params: { image: spec.image } });
   }
 
   return applyPlan(plan, { log });
@@ -431,7 +464,7 @@ export async function applyStack(plans, { log = () => {} } = {}) {
   const actionable = plans.filter((plan) => APPLIES.has(plan.action));
 
   if (actionable.length === 0) {
-    log("Nothing to apply — the stack already matches its configuration.");
+    log("Nothing to apply — the stack already matches its configuration.", { code: "nothing_to_apply" });
     return;
   }
 
@@ -446,7 +479,9 @@ export async function applyStack(plans, { log = () => {} } = {}) {
   // remove explicitly whenever they choose to.
   const orphanedGluetun = plans.find((plan) => plan.kind === "gluetun" && plan.action === "orphaned");
   if (orphanedGluetun?.runtime?.status === "running") {
-    log("Gluetun was just switched off but is still running and holding every instance's port — stopping it first.");
+    log("Gluetun was just switched off but is still running and holding every instance's port — stopping it first.", {
+      code: "gluetun_stopping_first",
+    });
     await stopContainer(orphanedGluetun.containerId, { timeoutSeconds: 30 });
   }
 
@@ -464,7 +499,10 @@ export async function applyStack(plans, { log = () => {} } = {}) {
   if (gluetunPlan) {
     for (const plan of plans) {
       if (plan.cascadedFrom === gluetunPlan.id && plan.runtime?.status === "running") {
-        log(`${plan.label} is still running and holding its own port — stopping it before ${gluetunPlan.label} comes back.`);
+        log(`${plan.label} is still running and holding its own port — stopping it before ${gluetunPlan.label} comes back.`, {
+          code: "instance_stopping_for_port",
+          params: { label: plan.label, gluetun: gluetunPlan.label },
+        });
         await stopContainer(plan.containerId, { timeoutSeconds: 30 });
       }
     }
@@ -473,11 +511,17 @@ export async function applyStack(plans, { log = () => {} } = {}) {
   let done = 0;
   for (const plan of actionable) {
     done += 1;
-    log(`[${done}/${actionable.length}] ${plan.label}`);
+    log(`[${done}/${actionable.length}] ${plan.label}`, {
+      code: "step_progress",
+      params: { done, total: actionable.length, label: plan.label },
+    });
     await applyPlan(plan, { log });
   }
 
-  log(`Applied ${actionable.length} change${actionable.length === 1 ? "" : "s"}.`);
+  log(`Applied ${actionable.length} change${actionable.length === 1 ? "" : "s"}.`, {
+    code: "applied_changes",
+    params: { count: actionable.length },
+  });
 }
 
 // Removes an orphaned container. Separate from applyStack on purpose: nothing
@@ -488,14 +532,16 @@ export async function removeOrphan(containerId, { log = () => {} } = {}) {
   // another Suite's container — check the label here.
   const existing = await inspectContainer(containerId);
   if (existing && belongsToAnotherSuite(existing.Config?.Labels || {})) {
-    throw new Error(
-      `Refusing to remove ${containerId}: it belongs to another Suite (${existing.Config.Labels[LABEL_SUITE]}).`
+    throw new SuiteError(
+      "remove_other_suite",
+      `Refusing to remove ${containerId}: it belongs to another Suite (${existing.Config.Labels[LABEL_SUITE]}).`,
+      { containerId, suite: existing.Config.Labels[LABEL_SUITE] }
     );
   }
 
-  log(`Stopping ${containerId}...`);
+  log(`Stopping ${containerId}...`, { code: "stopping", params: { name: containerId } });
   await stopContainer(containerId, { timeoutSeconds: 30 });
-  log("Removing it...");
+  log("Removing it...", { code: "removing_it" });
   await removeContainer(containerId, { force: true });
-  log("Done.");
+  log("Done.", { code: "done" });
 }

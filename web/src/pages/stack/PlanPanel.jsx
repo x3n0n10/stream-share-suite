@@ -1,6 +1,8 @@
 // web/src/pages/stack/PlanPanel.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { serverText, jobLine } from "../../lib/serverText.js";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../../components/common.jsx";
 
 // How each plan action reads on screen. The wording matters more than usual
@@ -93,6 +95,7 @@ function PlanSummary({ summary }) {
 }
 
 function PlanRow({ row, ordinal, onRemoveOrphan }) {
+  const { t } = useTranslation();
   const cascaded = !!row.cascadedFrom;
   // noop's reason is always the same boilerplate ("Matches the saved
   // configuration") — only worth a line when the row is doing something.
@@ -119,12 +122,12 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
             )}
           </p>
         )}
-        {(row.warnings || []).map((warning) => (
+        {(row.warnings || []).map((warning, i) => (
           <p key={warning} className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-            {warning}
+            {serverText(t, "plan.warning", row.warningsI18n?.[i], warning)}
           </p>
         ))}
-        {explain && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{row.reason}</p>}
+        {explain && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{serverText(t, "plan.reason", row.reasonI18n, row.reason)}</p>}
       </div>
       <div className="flex items-center gap-2">
         {row.action === "orphaned" && (
@@ -142,6 +145,7 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
 }
 
 function JobLog({ job }) {
+  const { t } = useTranslation();
   return (
     <Card className="p-5">
       <div className="mb-2 flex items-center gap-2">
@@ -151,9 +155,11 @@ function JobLog({ job }) {
       </div>
       <div className="max-h-64 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">
         {(job.log || []).map((entry, i) => (
-          <div key={i}>{entry.line}</div>
+          <div key={i}>{jobLine(t, entry)}</div>
         ))}
-        {job.error && <div className="text-rose-600 dark:text-rose-400">{job.error}</div>}
+        {job.error && (
+          <div className="text-rose-600 dark:text-rose-400">{serverText(t, "errors", job.errorI18n, job.error)}</div>
+        )}
       </div>
     </Card>
   );

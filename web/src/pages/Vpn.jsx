@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { serverText, jobLine } from "../lib/serverText.js";
 import Layout from "../components/Layout.jsx";
 import {
   Card,
@@ -267,6 +269,7 @@ export default function Vpn({ pollIntervalMs }) {
 // of its own — a run's only trace is the job log below, the same ephemeral
 // log every other background action in this app already produces.
 function WatchdogCard() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState(null);
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -412,9 +415,11 @@ function WatchdogCard() {
           </div>
           <div className="max-h-48 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">
             {(job.log || []).map((entry, i) => (
-              <div key={i}>{entry.line}</div>
+              <div key={i}>{jobLine(t, entry)}</div>
             ))}
-            {job.error && <div className="text-rose-600 dark:text-rose-400">{job.error}</div>}
+            {job.error && (
+              <div className="text-rose-600 dark:text-rose-400">{serverText(t, "errors", job.errorI18n, job.error)}</div>
+            )}
           </div>
         </div>
       )}

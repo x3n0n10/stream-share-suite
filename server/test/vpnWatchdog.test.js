@@ -105,7 +105,8 @@ function instance(id, apiKey, { healthCheckEnabled = true } = {}) {
 
 function collectLog() {
   const lines = [];
-  return { log: (line) => lines.push(line), lines };
+  const extras = [];
+  return { log: (line, extra) => (lines.push(line), extras.push(extra)), lines, extras };
 }
 
 test("does nothing when no instance has health checking enabled", async () => {
@@ -203,4 +204,13 @@ test("an instance that cannot be reached is never treated as blocked", async () 
   assert.ok(lines.some((l) => l.includes("could not reach it")));
   assert.ok(lines.some((l) => l.includes("nothing to do")));
   assert.equal(reconnectCount, 0);
+});
+
+test("watchdog log lines carry codes", async () => {
+  const { log, extras } = collectLog();
+  await heal({
+    log,
+    config: { instances: [instance("p1", "k1", { healthCheckEnabled: false })], gluetun: gluetunConfig() },
+  });
+  assert.equal(extras[0].code, "no_health_checks");
 });

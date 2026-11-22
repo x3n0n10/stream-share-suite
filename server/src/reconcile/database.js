@@ -62,7 +62,7 @@ export async function connectWithRetry(open, {
       }
       if (!warned) {
         warned = true;
-        log("Waiting for PostgreSQL to accept connections...");
+        log("Waiting for PostgreSQL to accept connections...", { code: "waiting_postgres" });
       }
       await sleep(delayMs);
     }
@@ -129,12 +129,12 @@ export async function ensureDatabase(target, { database, user, password }, { log
     const roleExists = await client.query("SELECT 1 FROM pg_roles WHERE rolname = $1", [user]);
 
     if (roleExists.rowCount === 0) {
-      log(`Creating database role ${user}...`);
+      log(`Creating database role ${user}...`, { code: "creating_role", params: { user } });
       await client.query(`CREATE ROLE ${quoteIdent(user)} LOGIN PASSWORD ${quoteLiteral(password)}`);
     } else {
       // The stored password is the only copy, so an existing role is realigned
       // to it rather than left with a password nobody has.
-      log(`Role ${user} already exists — updating its password to the stored one.`);
+      log(`Role ${user} already exists — updating its password to the stored one.`, { code: "role_exists", params: { user } });
       await client.query(`ALTER ROLE ${quoteIdent(user)} LOGIN PASSWORD ${quoteLiteral(password)}`);
     }
 
@@ -151,12 +151,12 @@ export async function ensureDatabase(target, { database, user, password }, { log
     const dbExists = await client.query("SELECT 1 FROM pg_database WHERE datname = $1", [database]);
 
     if (dbExists.rowCount === 0) {
-      log(`Creating database ${database}...`);
+      log(`Creating database ${database}...`, { code: "creating_database", params: { database } });
       // CREATE DATABASE cannot run inside a transaction block, which is why
       // this is a bare query rather than part of one.
       await client.query(`CREATE DATABASE ${quoteIdent(database)} OWNER ${quoteIdent(user)}`);
     } else {
-      log(`Database ${database} already exists — leaving it exactly as it is.`);
+      log(`Database ${database} already exists — leaving it exactly as it is.`, { code: "database_exists", params: { database } });
     }
 
     return { database, user };
@@ -166,11 +166,11 @@ export async function ensureDatabase(target, { database, user, password }, { log
 // Separate from removing an instance, and never called by an apply.
 export async function dropDatabase(target, { database, user }, { log = () => {} } = {}) {
   return withAdminClient(target, async (client) => {
-    log(`Dropping database ${database}...`);
+    log(`Dropping database ${database}...`, { code: "dropping_database", params: { database } });
     await client.query(`DROP DATABASE IF EXISTS ${quoteIdent(database)}`);
-    log(`Dropping role ${user}...`);
+    log(`Dropping role ${user}...`, { code: "dropping_role", params: { user } });
     await client.query(`DROP ROLE IF EXISTS ${quoteIdent(user)}`);
-    log("Done.");
+    log("Done.", { code: "done" });
   }, { log });
 }
 

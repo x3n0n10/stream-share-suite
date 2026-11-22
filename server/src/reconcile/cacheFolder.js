@@ -44,10 +44,16 @@ export async function prepareCacheFolder(key, values, { log = () => {}, ownershi
     });
     await startContainer(name);
     const code = await waitContainer(name);
-    if (code === 10) log(`Gave the new cache folder ${cachePath} to ${ownership.uid}:${ownership.gid}.`);
+    if (code === 10) log(`Gave the new cache folder ${cachePath} to ${ownership.uid}:${ownership.gid}.`, {
+      code: "cache_folder_owned",
+      params: { path: cachePath, owner: `${ownership.uid}:${ownership.gid}` },
+    });
     else if (code !== 0) throw new Error(`exited with code ${code}`);
   } catch (err) {
-    log(`Warning: could not prepare the cache folder ${cachePath}: ${err.message}`);
+    log(`Warning: could not prepare the cache folder ${cachePath}: ${err.message}`, {
+      code: "cache_folder_failed",
+      params: { path: cachePath, message: err.message },
+    });
   } finally {
     if (created) await removeContainer(name, { force: true }).catch(() => {});
   }

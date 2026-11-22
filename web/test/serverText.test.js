@@ -50,3 +50,7 @@ test("describeFailures names each failed instance", () => {
   assert.equal(describeFailures([{ name: "A" }, { name: "B" }], results, t), "Mislukt op B (down)");
   assert.equal(describeFailures([{ name: "A" }], [{ status: "fulfilled" }], t), null);
 });
+
+test("renders legacy string log entries", () => {
+  assert.equal(jobLine(t, "Reconnect attempt 1/3..."), "Reconnect attempt 1/3...");
+});
