@@ -3,6 +3,7 @@ const PRESETS = {
   relativeAuto: { numeric: "auto" },
   time: { hour: "2-digit", minute: "2-digit" },
   dateTime: { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
+  weekday: { weekday: "short" },
   date: { year: "numeric", month: "short", day: "numeric" },
   number: {},
   list: { type: "conjunction" },
@@ -81,12 +82,21 @@ export function formatDate(isoString, lng = "en") {
   return getFormatter(Intl.DateTimeFormat, lng, "date").format(date);
 }
 
+export function formatWeekday(date, lng = "en") {
+  return getFormatter(Intl.DateTimeFormat, lng, "weekday").format(date);
+}
+
 export function formatNumber(n, lng = "en") {
   return getFormatter(Intl.NumberFormat, lng, "number").format(n || 0);
 }
 
 export function formatList(items, lng = "en") {
   return getFormatter(Intl.ListFormat, lng, "list").format(items);
+}
+
+// A stream type ("live", "series"…) as shown to the user; unknown types are title-cased.
+export function streamTypeText(t, type) {
+  return type ? t(`common.streamType.${type}`, { defaultValue: titleCase(type) }) : type;
 }
 
 export function titleCase(s) {

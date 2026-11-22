@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import Layout from "../components/Layout.jsx";
 import {
   Card,
   Badge,
   EmptyState,
-  ErrorNote,
+  ErrorNote, RefreshError,
   Skeleton,
   Button,
   ConfirmDialog,
@@ -17,6 +18,8 @@ import { api } from "../lib/api.js";
 import { copyToClipboard } from "../lib/clipboard.js";
 import { usePolling } from "../lib/usePolling.js";
 import { useConfig } from "../lib/ConfigContext.jsx";
+import { errorText } from "../lib/serverText.js";
+import { useFormat } from "../lib/useFormat.js";
 import { failedPoll, formatWindow, shareState, sortShares } from "../lib/shareLinks.js";
 import NewShareDialog from "./shareLinks/NewShareDialog.jsx";
 
@@ -34,6 +37,8 @@ async function loadShares(instanceId) {
 }
 
 export default function ShareLinks({ pollIntervalMs }) {
+  const { t } = useTranslation();
+  const { formatWeekday } = useFormat();
   const config = useConfig();
   const instances = config?.instances || [];
 
@@ -57,7 +62,7 @@ export default function ShareLinks({ pollIntervalMs }) {
         lastGood.current = await loadShares(instanceId);
         return lastGood.current;
       } catch (err) {
-        return failedPoll(instanceId, err.message, lastGood.current);
+        return failedPoll(instanceId, err, lastGood.current);
       }
     },
     pollIntervalMs,
@@ -96,18 +101,17 @@ export default function ShareLinks({ pollIntervalMs }) {
       await api.revokeShare(instanceId, share.token);
       refresh();
     } catch (err) {
-      setActionError(err.message);
+      setActionError(err);
     }
   }
 
   return (
-    <Layout title="Share links" headerExtra={<RefreshButton onClick={refresh} />}>
+    <Layout title={t("nav.shares")} headerExtra={<RefreshButton onClick={refresh} />}>
       <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
-        Need a movie or episode link? Use{" "}
-        <Link to="/vod" className="text-accent-600 hover:underline dark:text-accent-400">
-          VOD search
-        </Link>
-        .
+        <Trans
+          i18nKey="shareLinks.vodHint"
+          components={{ link: <Link to="/vod" className="text-accent-600 hover:underline dark:text-accent-400" /> }}
+        />
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -128,22 +132,22 @@ export default function ShareLinks({ pollIntervalMs }) {
               </button>
             ))}
         </div>
-        {!unsupported && instance && <Button onClick={() => setDialogOpen(true)}>+ New link</Button>}
+        {!unsupported && instance && <Button onClick={() => setDialogOpen(true)}>{t("shareLinks.newLink")}</Button>}
       </div>
 
       {current?.error && (
         <div className="mt-3">
-          <ErrorNote message={`Refresh failed: ${current.error}`} />
+          <RefreshError error={current.error} />
         </div>
       )}
       {actionError && (
         <div className="mt-3">
-          <ErrorNote message={actionError} />
+          <ErrorNote message={errorText(actionError, t)} />
         </div>
       )}
       {current && !unsupported && current.publicBaseUrl === null && (
         <div className="mt-3">
-          <ErrorNote message="The Suite does not know this instance's public address, so it cannot build copyable links. Set the public base URL on the instance (Stack page) to enable Copy." />
+          <ErrorNote message={t("shareLinks.noPublicUrl")} />
         </div>
       )}
 
@@ -152,20 +156,20 @@ export default function ShareLinks({ pollIntervalMs }) {
           <Skeleton className="h-48" />
         ) : unsupported ? (
           <EmptyState
-            title="This instance does not support share links"
-            subtitle="Update it to a newer image and reload."
+            title={t("shareLinks.unsupported")}
+            subtitle={t("shareLinks.unsupportedHint")}
           />
         ) : rows.length === 0 && current.error ? null : rows.length === 0 ? (
-          <EmptyState title="No share links yet" subtitle="Create one for a guest to watch a channel for a while." />
+          <EmptyState title={t("shareLinks.empty")} subtitle={t("shareLinks.emptyHint")} />
         ) : (
           <Card className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Channel</th>
-                  <th className="px-4 py-3 font-medium">For</th>
-                  <th className="px-4 py-3 font-medium">Window</th>
-                  <th className="px-4 py-3 font-medium">State</th>
+                  <th className="px-4 py-3 font-medium">{t("shareLinks.channel")}</th>
+                  <th className="px-4 py-3 font-medium">{t("shareLinks.for")}</th>
+                  <th className="px-4 py-3 font-medium">{t("shareLinks.window")}</th>
+                  <th className="px-4 py-3 font-medium">{t("shareLinks.state")}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -184,10 +188,10 @@ export default function ShareLinks({ pollIntervalMs }) {
                       </td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{share.guest || "-"}</td>
                       <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
-                        {formatWindow(new Date(share.startsAt), new Date(share.endsAt))}
+                        {formatWindow(new Date(share.startsAt), new Date(share.endsAt), t, formatWeekday)}
                       </td>
                       <td className="px-4 py-3">
-                        <Badge tone={STATE_TONE[state]}>{state}</Badge>
+                        <Badge tone={STATE_TONE[state]}>{t(`shareLinks.stateName.${state}`)}</Badge>
                       </td>
                       <td className="px-4 py-3">
                         {live && (
@@ -200,7 +204,7 @@ export default function ShareLinks({ pollIntervalMs }) {
                                   ) : (
                                     <IconCopy className="h-3.5 w-3.5" />
                                   )}
-                                  {kind === "playlist" ? "Playlist" : "Stream"}
+                                  {kind === "playlist" ? t("shareLinks.playlist") : t("shareLinks.stream")}
                                 </Button>
                               ))
                             ) : (
@@ -211,7 +215,7 @@ export default function ShareLinks({ pollIntervalMs }) {
                             )}
                             <Button tone="ghost" onClick={() => setRevoking(share)}>
                               <IconTrash className="h-3.5 w-3.5" />
-                              Revoke
+                              {t("shareLinks.revoke")}
                             </Button>
                           </div>
                         )}
@@ -236,9 +240,15 @@ export default function ShareLinks({ pollIntervalMs }) {
       )}
       <ConfirmDialog
         open={!!revoking}
-        title="Revoke this link?"
-        body={revoking ? `${revoking.title}${revoking.guest ? ` for ${revoking.guest}` : ""} stops working immediately.` : ""}
-        confirmLabel="Revoke"
+        title={t("shareLinks.revokeTitle")}
+        body={
+          revoking
+            ? revoking.guest
+              ? t("shareLinks.revokeBodyGuest", { title: revoking.title, guest: revoking.guest })
+              : t("shareLinks.revokeBody", { title: revoking.title })
+            : ""
+        }
+        confirmLabel={t("shareLinks.revoke")}
         onConfirm={revoke}
         onCancel={() => setRevoking(null)}
       />

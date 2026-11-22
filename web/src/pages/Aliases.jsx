@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
-import { Card, Badge, EmptyState, ErrorNote, Skeleton, Select, Button, RefreshButton, PollStatus } from "../components/common.jsx";
+import { Card, Badge, EmptyState, ErrorNote, RefreshError, Skeleton, Select, Button, RefreshButton, PollStatus } from "../components/common.jsx";
 import { IconTag, IconTrash, IconChevronDown } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
@@ -9,6 +9,11 @@ import { useConfig } from "../lib/ConfigContext.jsx";
 import { useFormat } from "../lib/useFormat.js";
 import { describeFailures } from "../lib/applyToAll.js";
 import { useTranslation } from "react-i18next";
+
+// One failed action as per-instance results, so describeFailures renders every failure.
+function failure(targets, err) {
+  return { targets, results: targets.map(() => ({ status: "rejected", reason: err })) };
+}
 
 function entryKey(a) {
   return `${a.instance_id}::${a.ip_address}`;
@@ -64,6 +69,7 @@ export default function Aliases({ pollIntervalMs }) {
   const [formInstanceId, setFormInstanceId] = useState("");
   const [formIp, setFormIp] = useState(prefillIp);
   const [formAlias, setFormAlias] = useState("");
+  // Errors are kept as data ({ targets, results, saved? }) and translated at render.
   const [formError, setFormError] = useState(null);
   const [formSaving, setFormSaving] = useState(false);
 
@@ -101,16 +107,15 @@ export default function Aliases({ pollIntervalMs }) {
     setFormSaving(true);
     try {
       const results = await Promise.allSettled(targets.map((i) => api.createAlias(i.id, ip, alias)));
-      const failureMessage = describeFailures(targets, results, t);
-      if (failureMessage) {
-        setFormError(`Saved on ${targets.length - (results.filter((r) => r.status === "rejected").length)}/${targets.length} instance(s). ${failureMessage}`);
+      if (results.some((r) => r.status === "rejected")) {
+        setFormError({ targets, results, saved: results.filter((r) => r.status === "fulfilled").length });
       } else {
         setFormIp("");
         setFormAlias("");
       }
       await refresh();
     } catch (err) {
-      setFormError(err.message);
+      setFormError(failure(targets, err));
     } finally {
       setFormSaving(false);
     }
@@ -123,7 +128,7 @@ export default function Aliases({ pollIntervalMs }) {
       await api.deleteAlias(a.instance_id, a.ip_address);
       await refresh();
     } catch (err) {
-      patchRow(key, { error: err.message, deleting: false });
+      patchRow(key, { error: failure([{ name: a.instance_name }], err), deleting: false });
     }
   }
 
@@ -134,12 +139,9 @@ export default function Aliases({ pollIntervalMs }) {
       const results = await Promise.allSettled(
         group.entries.map((a) => api.deleteAlias(a.instance_id, a.ip_address))
       );
-      const failureMessage = describeFailures(
-        group.entries.map((a) => ({ name: a.instance_name })),
-        results,
-        t
-      );
-      if (failureMessage) patchRow(key, { error: failureMessage });
+      if (results.some((r) => r.status === "rejected")) {
+        patchRow(key, { error: { targets: group.entries.map((a) => ({ name: a.instance_name })), results } });
+      }
       await refresh();
     } finally {
       patchRow(key, { deleting: false });
@@ -150,30 +152,34 @@ export default function Aliases({ pollIntervalMs }) {
     setExpanded((prev) => ({ ...prev, [ip]: !prev[ip] }));
   }
 
+  const failureText = (f) => describeFailures(f.targets, f.results, t);
+  const formErrorText = (f) =>
+    f.saved === undefined
+      ? failureText(f)
+      : t("aliases.savedPartial", { count: f.targets.length, saved: f.saved, failures: failureText(f) });
+
   return (
     <Layout
-      title="Aliases"
+      title={t("nav.aliases")}
       headerExtra={
         <RefreshButton onClick={refresh} />
       }
     >
       <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
-        Give a friendly name to viewers that show up by IP address (e.g. when an instance has LDAP disabled). An
-        alias means the same thing everywhere, but each instance stores its own copy — this saves it to every
-        instance at once by default, and the underlying IP is still what's actually used to identify the viewer.
+        {t("aliases.intro")}
       </p>
 
       <Card className="p-4 sm:p-5">
-        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">Add alias</h2>
+        <h2 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">{t("aliases.addTitle")}</h2>
         {prefillIp && (
           <p className="mb-3 text-xs text-accent-600 dark:text-accent-400">
-            Adding an alias for {prefillIp} — pick a name below.
+            {t("aliases.prefill", { ip: prefillIp })}
           </p>
         )}
         <form onSubmit={submitAlias} className="flex flex-wrap items-end gap-3">
           {multiInstance && !applyToAll && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Instance</label>
+              <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{t("common.instance")}</label>
               <Select
                 value={instanceId}
                 onChange={setFormInstanceId}
@@ -182,7 +188,7 @@ export default function Aliases({ pollIntervalMs }) {
             </div>
           )}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">IP address</label>
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{t("aliases.ipAddress")}</label>
             <input
               type="text"
               placeholder="203.0.113.42"
@@ -192,10 +198,10 @@ export default function Aliases({ pollIntervalMs }) {
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Alias</label>
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">{t("aliases.alias")}</label>
             <input
               type="text"
-              placeholder="Living room TV"
+              placeholder={t("aliases.aliasPlaceholder")}
               maxLength={64}
               autoFocus={!!prefillIp}
               value={formAlias}
@@ -210,7 +216,7 @@ export default function Aliases({ pollIntervalMs }) {
             onClick={submitAlias}
           >
             <IconTag className="h-3.5 w-3.5" />
-            Save alias
+            {t("aliases.save")}
           </Button>
         </form>
         {multiInstance && (
@@ -221,12 +227,12 @@ export default function Aliases({ pollIntervalMs }) {
               onChange={(e) => setApplyToAll(e.target.checked)}
               className="rounded border-slate-300 text-accent-600 focus:ring-accent-500 dark:border-slate-600"
             />
-            Apply to all {instances.length} instances
+            {t("aliases.applyAll", { count: instances.length })}
           </label>
         )}
         {formError && (
           <div className="mt-3">
-            <ErrorNote message={formError} />
+            <ErrorNote message={formErrorText(formError)} />
           </div>
         )}
       </Card>
@@ -234,7 +240,7 @@ export default function Aliases({ pollIntervalMs }) {
       <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
         <input
           type="search"
-          placeholder="Search IP, alias, or instance…"
+          placeholder={t("aliases.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900"
@@ -244,7 +250,7 @@ export default function Aliases({ pollIntervalMs }) {
 
       {error && (
         <div className="mt-2">
-          <ErrorNote message={`Refresh failed: ${error}`} />
+          <RefreshError error={error} />
         </div>
       )}
       {data?.errors?.length > 0 && (
@@ -260,8 +266,8 @@ export default function Aliases({ pollIntervalMs }) {
           <Skeleton className="h-64" />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title="No aliases configured"
-            subtitle="Add one above to give a friendly name to a viewer that currently shows up by IP address."
+            title={t("aliases.empty")}
+            subtitle={t("aliases.emptyHint")}
           />
         ) : (
           <Card className="overflow-hidden">
@@ -269,10 +275,10 @@ export default function Aliases({ pollIntervalMs }) {
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100 bg-accent-50 text-left text-xs uppercase tracking-wide text-accent-700 dark:border-slate-800 dark:bg-accent-900/20 dark:text-accent-300">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">IP address</th>
-                    <th className="px-4 py-2.5 font-medium">Alias</th>
-                    <th className="px-4 py-2.5 font-medium">Instances</th>
-                    <th className="px-4 py-2.5 font-medium">Updated</th>
+                    <th className="px-4 py-2.5 font-medium">{t("aliases.ipAddress")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("aliases.alias")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("nav.instances")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.updatedCol")}</th>
                     <th className="px-4 py-2.5 font-medium" />
                   </tr>
                 </thead>
@@ -292,7 +298,7 @@ export default function Aliases({ pollIntervalMs }) {
                           </td>
                           <td className="px-4 py-2.5 font-medium text-slate-800 dark:text-slate-100">
                             {g.mixed ? (
-                              <Badge tone="amber">Mixed across instances</Badge>
+                              <Badge tone="amber">{t("aliases.mixed")}</Badge>
                             ) : (
                               <Badge tone="accent">{g.alias}</Badge>
                             )}
@@ -306,7 +312,7 @@ export default function Aliases({ pollIntervalMs }) {
                                 <IconChevronDown
                                   className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
                                 />
-                                {g.entries.length} instance{g.entries.length === 1 ? "" : "s"}
+                                {t("aliases.instanceCount", { count: g.entries.length })}
                               </button>
                             ) : (
                               <span className="text-slate-500 dark:text-slate-400">{g.entries[0].instance_name}</span>
@@ -320,12 +326,12 @@ export default function Aliases({ pollIntervalMs }) {
                               onClick={() => removeGroup(g)}
                               disabled={groupState.deleting}
                               className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-rose-900/20 dark:hover:text-rose-400"
-                              aria-label={`Remove alias for ${g.ip_address} everywhere`}
+                              aria-label={t("aliases.removeEverywhere", { ip: g.ip_address })}
                             >
                               <IconTrash className="h-4 w-4" />
                             </button>
                             {groupState.error && (
-                              <p className="mt-1 text-xs text-rose-500 dark:text-rose-400">{groupState.error}</p>
+                              <p className="mt-1 text-xs text-rose-500 dark:text-rose-400">{failureText(groupState.error)}</p>
                             )}
                           </td>
                         </tr>
@@ -354,12 +360,12 @@ export default function Aliases({ pollIntervalMs }) {
                                     onClick={() => removeEntry(a)}
                                     disabled={state.deleting}
                                     className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-rose-900/20 dark:hover:text-rose-400"
-                                    aria-label={`Remove alias for ${a.ip_address} on ${a.instance_name}`}
+                                    aria-label={t("aliases.removeOn", { ip: a.ip_address, instance: a.instance_name })}
                                   >
                                     <IconTrash className="h-3.5 w-3.5" />
                                   </button>
                                   {state.error && (
-                                    <p className="mt-1 text-xs text-rose-500 dark:text-rose-400">{state.error}</p>
+                                    <p className="mt-1 text-xs text-rose-500 dark:text-rose-400">{failureText(state.error)}</p>
                                   )}
                                 </td>
                               </tr>

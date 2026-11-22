@@ -34,7 +34,7 @@ export function fallbackChoices(instances, selfKey, selected, support) {
 
 // The amber line under a stream served through a fallback instance. live is
 // true on Overview (now playing), false on History (past tense).
-export function failoverNote({ via, via_channel }, live) {
-  if (via_channel) return live ? `Showing ${via}'s ${via_channel} instead` : `Used ${via}'s ${via_channel}`;
-  return live ? `Using ${via}'s connection` : `Used ${via}'s connection`;
+export function failoverNote({ via, via_channel }, live, t) {
+  const kind = `${live ? "live" : "past"}${via_channel ? "Channel" : "Connection"}`;
+  return t(`fallbacks.note.${kind}`, { via, channel: via_channel });
 }

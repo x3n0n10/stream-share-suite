@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, ErrorNote, FIELD } from "../../components/common.jsx";
 import ChannelSearchInput from "../../components/ChannelSearchInput.jsx";
 import { IconCheck, IconCopy } from "../../components/Icons.jsx";
@@ -6,6 +7,7 @@ import { api } from "../../lib/api.js";
 import { copyToClipboard } from "../../lib/clipboard.js";
 import { defaultWindow, toDatetimeLocal, validateWindow } from "../../lib/shareLinks.js";
 import { useDelayedUnmount } from "../../lib/useDelayedUnmount.js";
+import { errorText } from "../../lib/serverText.js";
 
 const LABEL = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400";
 
@@ -13,6 +15,7 @@ const LABEL = "mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400
 // the Suite does not know the instance's public address — just the path, with
 // Copy disabled rather than handing out an address that would not work.
 function AddressRow({ label, hint, url, path }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -32,7 +35,7 @@ function AddressRow({ label, hint, url, path }) {
         </code>
         <Button tone="ghost" disabled={!url} onClick={copy}>
           {copied ? <IconCheck className="h-3.5 w-3.5" /> : <IconCopy className="h-3.5 w-3.5" />}
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("common.copied") : t("common.copy")}
         </Button>
       </div>
     </div>
@@ -42,6 +45,7 @@ function AddressRow({ label, hint, url, path }) {
 // Creates a share link on one instance. Two views: the form, then — once the
 // instance has created the link — its addresses.
 export default function NewShareDialog({ open, instance, onClose, onCreated }) {
+  const { t } = useTranslation();
   const mounted = useDelayedUnmount(open, 150);
   const [channelText, setChannelText] = useState("");
   const [picked, setPicked] = useState(null); // { streamId, name }
@@ -70,7 +74,7 @@ export default function NewShareDialog({ open, instance, onClose, onCreated }) {
 
   const startsAt = new Date(from);
   const endsAt = new Date(until);
-  const windowProblem = from && until ? validateWindow(startsAt, endsAt, Date.now()) : null;
+  const windowProblem = from && until ? validateWindow(startsAt, endsAt, Date.now()) : null; // a shareLinks.windowProblem.* suffix
   const canSubmit = !!picked && !!from && !!until && !windowProblem;
 
   async function submit(e) {
@@ -87,7 +91,7 @@ export default function NewShareDialog({ open, instance, onClose, onCreated }) {
       });
       setCreated(share);
     } catch (err) {
-      setError(err.message);
+      setError(err);
     } finally {
       setSaving(false);
     }
@@ -120,31 +124,31 @@ export default function NewShareDialog({ open, instance, onClose, onCreated }) {
       >
         {created ? (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Link created</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t("shareLinks.dialog.created")}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {created.title} on {instance.name}. Share one of these with your guest.
+              {t("shareLinks.dialog.createdBody", { title: created.title, instance: instance.name })}
             </p>
             <AddressRow
-              label="Playlist link"
-              hint="for VLC and IPTV apps"
+              label={t("shareLinks.dialog.playlistLink")}
+              hint={t("shareLinks.dialog.playlistHint")}
               url={created.urls?.playlist}
               path={created.paths.playlist}
             />
-            <AddressRow label="Stream link" hint="direct" url={created.urls?.stream} path={created.paths.stream} />
+            <AddressRow label={t("shareLinks.dialog.streamLink")} hint={t("shareLinks.dialog.streamHint")} url={created.urls?.stream} path={created.paths.stream} />
             {!created.urls && (
-              <ErrorNote message="The Suite does not know this instance's public address, so these are paths only. Add your public address in front of them." />
+              <ErrorNote message={t("shareLinks.dialog.pathsOnly")} />
             )}
             <div className="flex justify-end">
-              <Button onClick={finish}>Close</Button>
+              <Button onClick={finish}>{t("common.close")}</Button>
             </div>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              New share link on {instance.name}
+              {t("shareLinks.dialog.newTitle", { instance: instance.name })}
             </h3>
             <div>
-              <label className={LABEL}>Channel</label>
+              <label className={LABEL}>{t("shareLinks.dialog.channel")}</label>
               <ChannelSearchInput
                 instanceKey={instance.id}
                 value={channelText}
@@ -155,42 +159,42 @@ export default function NewShareDialog({ open, instance, onClose, onCreated }) {
                 search={searchChannels}
                 pickValue={(match) => match.name}
                 onPick={(match) => setPicked({ streamId: match.id, name: match.name })}
-                placeholder="Search channels, e.g. eurosport"
+                placeholder={t("shareLinks.dialog.channelPlaceholder")}
                 autoFocus
               />
             </div>
             <div>
-              <label className={LABEL}>Guest (optional label)</label>
+              <label className={LABEL}>{t("shareLinks.dialog.guest")}</label>
               <input
                 className={FIELD}
                 type="text"
                 maxLength={40}
-                placeholder="e.g. Uncle Bert"
+                placeholder={t("shareLinks.dialog.guestPlaceholder")}
                 value={guest}
                 onChange={(e) => setGuest(e.target.value)}
               />
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className={LABEL}>From</label>
+                <label className={LABEL}>{t("shareLinks.dialog.from")}</label>
                 <input className={FIELD} type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
               </div>
               <div className="flex-1">
-                <label className={LABEL}>Until</label>
+                <label className={LABEL}>{t("shareLinks.dialog.until")}</label>
                 <input className={FIELD} type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
               </div>
             </div>
             <p className="text-xs text-slate-400 dark:text-slate-500">
-              Longest allowed: 24 hours. Up to 3 devices can use one link at once.
+              {t("shareLinks.dialog.limits")}
             </p>
-            {windowProblem && <ErrorNote message={windowProblem} />}
-            {error && <ErrorNote message={error} />}
+            {windowProblem && <ErrorNote message={t(`shareLinks.windowProblem.${windowProblem}`)} />}
+            {error && <ErrorNote message={errorText(error, t)} />}
             <div className="flex justify-end gap-2">
               <Button tone="ghost" onClick={finish}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button type="submit" loading={saving} disabled={!canSubmit}>
-                Create link
+                {t("shareLinks.dialog.create")}
               </Button>
             </div>
           </form>

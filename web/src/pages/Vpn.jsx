@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { serverText, jobLine } from "../lib/serverText.js";
+import { serverText, jobLine, errorText } from "../lib/serverText.js";
 import Layout from "../components/Layout.jsx";
 import {
   Card,
   StatusDot,
   EmptyState,
-  ErrorNote,
+  ErrorNote, RefreshError,
   Skeleton,
   Button,
   Badge,
@@ -42,6 +42,7 @@ function hasUsableIp(ip) {
 const SETTLE_TIMEOUT_MS = 20000;
 
 export default function Vpn({ pollIntervalMs }) {
+  const { t } = useTranslation();
   const [pending, setPending] = useState(null); // "start" | "stop" | "reconnect" | null
   const [settling, setSettling] = useState(false); // reconnect finished; still fast-polling for a real IP
   const settleDeadlineRef = useRef(0);
@@ -78,7 +79,7 @@ export default function Vpn({ pollIntervalMs }) {
       await (action === "start" ? api.gluetunStart() : api.gluetunStop());
       await refresh();
     } catch (err) {
-      setActionError(err.message);
+      setActionError(err);
     } finally {
       setPending(null);
       setConfirmStop(false);
@@ -91,7 +92,7 @@ export default function Vpn({ pollIntervalMs }) {
     try {
       await api.gluetunReconnect();
     } catch (err) {
-      setActionError(err.message);
+      setActionError(err);
     } finally {
       await refresh();
       setPending(null);
@@ -109,22 +110,22 @@ export default function Vpn({ pollIntervalMs }) {
 
   return (
     <Layout
-      title="VPN"
+      title={t("nav.vpn")}
       headerExtra={
         <RefreshButton onClick={refresh} />
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <PollStatus updatedAt={updatedAt} />
-        {error && <ErrorNote message={`Refresh failed: ${error}`} />}
+        {error && <RefreshError error={error} />}
       </div>
 
       {loading && !data ? (
         <Skeleton className="h-56" />
       ) : !data?.enabled ? (
         <EmptyState
-          title="Gluetun isn't configured"
-          subtitle="Set GLUETUN_URL (e.g. http://gluetun:8000) — and GLUETUN_API_KEY if your control server requires one — in the dashboard's environment to enable this page."
+          title={t("vpn.notConfigured")}
+          subtitle={t("vpn.notConfiguredHint")}
         />
       ) : (
         <div className="space-y-4">
@@ -133,22 +134,22 @@ export default function Vpn({ pollIntervalMs }) {
               <div className="flex items-center gap-2">
                 <StatusDot online={running} />
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Connection
+                  {t("vpn.connection")}
                 </span>
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <IconShield className="h-6 w-6 text-slate-400" />
                 <p className="text-xl font-semibold text-slate-900 dark:text-white">
-                  {running ? "Connected" : stopped ? "Disconnected" : vpnStatus || "Unknown"}
+                  {running ? t("vpn.status.connected") : stopped ? t("vpn.status.disconnected") : vpnStatus || t("vpn.status.unknown")}
                 </p>
                 {pending === "reconnect" && (
                   <span className="animate-fade-scale-in rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
-                    Reconnecting…
+                    {t("vpn.reconnecting")}
                   </span>
                 )}
                 {settling && (
                   <span className="animate-fade-scale-in rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
-                    Waiting for exit IP…
+                    {t("vpn.waitingForIp")}
                   </span>
                 )}
               </div>
@@ -161,7 +162,7 @@ export default function Vpn({ pollIntervalMs }) {
                   loading={pending === "start"}
                   onClick={() => runAction("start")}
                 >
-                  Start
+                  {t("vpn.start")}
                 </Button>
                 <Button
                   tone="rose"
@@ -169,7 +170,7 @@ export default function Vpn({ pollIntervalMs }) {
                   loading={pending === "stop"}
                   onClick={() => setConfirmStop(true)}
                 >
-                  Stop
+                  {t("vpn.stop")}
                 </Button>
                 <Button
                   tone="ghost"
@@ -178,13 +179,11 @@ export default function Vpn({ pollIntervalMs }) {
                   onClick={() => setConfirmReconnect(true)}
                 >
                   <IconRefresh className="h-3.5 w-3.5" />
-                  Reconnect
+                  {t("vpn.reconnect")}
                 </Button>
               </div>
               <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
-                Reconnect stops the tunnel, waits for it to confirm, starts it again, and waits for a fresh exit IP —
-                the dashboard refreshes every second while it works, and keeps doing so afterward until the exit IP
-                card actually has a value.
+                {t("vpn.reconnectNote")}
               </p>
               {actionError && <div className="mt-2"><ErrorNote message={actionError} /></div>}
             </Card>
@@ -193,7 +192,7 @@ export default function Vpn({ pollIntervalMs }) {
               <div className="flex items-center gap-2">
                 <IconGlobe className="h-4 w-4 text-slate-400" />
                 <span className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Exit IP
+                  {t("vpn.exitIp")}
                 </span>
               </div>
               {ip ? (
@@ -202,12 +201,12 @@ export default function Vpn({ pollIntervalMs }) {
                     {ipAddress || "—"}
                   </p>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    {[city, region, country].filter(Boolean).join(", ") || "Location unavailable"}
+                    {[city, region, country].filter(Boolean).join(", ") || t("vpn.locationUnavailable")}
                   </p>
                 </>
               ) : (
                 <p className="mt-2 text-sm text-rose-500 dark:text-rose-400">
-                  {data.publicIpError || "Unavailable"}
+                  {data.publicIpError || t("vpn.unavailable")}
                 </p>
               )}
             </Card>
@@ -217,7 +216,7 @@ export default function Vpn({ pollIntervalMs }) {
             onClick={() => setShowRaw((v) => !v)}
             className="text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
           >
-            {showRaw ? "Hide" : "Show"} raw gluetun response
+            {showRaw ? t("vpn.hideRaw") : t("vpn.showRaw")}
           </button>
           <div
             className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${
@@ -239,9 +238,9 @@ export default function Vpn({ pollIntervalMs }) {
 
       <ConfirmDialog
         open={confirmStop}
-        title="Stop the VPN connection?"
-        body="This disconnects gluetun. Any traffic routed through it (e.g. your stream-share instance's outbound connection) will be interrupted or exposed until it's started again."
-        confirmLabel="Stop VPN"
+        title={t("vpn.stopTitle")}
+        body={t("vpn.stopBody")}
+        confirmLabel={t("vpn.stopConfirm")}
         tone="rose"
         onConfirm={() => runAction("stop")}
         onCancel={() => setConfirmStop(false)}
@@ -249,9 +248,9 @@ export default function Vpn({ pollIntervalMs }) {
 
       <ConfirmDialog
         open={confirmReconnect}
-        title="Reconnect the VPN?"
-        body="This stops and restarts the tunnel, the same as Stop followed by Start. Any traffic routed through it will be interrupted until it comes back up, which can take a while depending on your provider."
-        confirmLabel="Reconnect"
+        title={t("vpn.reconnectTitle")}
+        body={t("vpn.reconnectBody")}
+        confirmLabel={t("vpn.reconnect")}
         tone="rose"
         onConfirm={() => {
           setConfirmReconnect(false);
@@ -303,7 +302,7 @@ function WatchdogCard() {
       pollJob(jobId);
     } catch (err) {
       setRunning(false);
-      setRunError(err.message);
+      setRunError(err);
     }
   }
 
@@ -319,7 +318,7 @@ function WatchdogCard() {
       setSettings(updated);
       setDraft(updated);
     } catch (err) {
-      setSaveError(err.message);
+      setSaveError(err);
     } finally {
       setSaving(false);
     }
@@ -337,10 +336,9 @@ function WatchdogCard() {
     <Card className="p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">VPN watchdog</h2>
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t("vpn.watchdog.title")}</h2>
           <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            Probes every instance with health checking enabled, on a schedule, and reconnects the
-            tunnel when one reports its provider is blocking the current exit IP.
+            {t("vpn.watchdog.description")}
           </p>
         </div>
         <label className="flex shrink-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
@@ -350,29 +348,29 @@ function WatchdogCard() {
             onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
             className="h-4 w-4 rounded border-slate-300 text-accent-600 focus:ring-accent-500"
           />
-          {draft.enabled ? "On" : "Off"}
+          {draft.enabled ? t("common.on") : t("common.off")}
         </label>
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Check times (local)
+            {t("vpn.watchdog.checkTimes")}
           </span>
           <ListInput
             value={draft.checkTimes}
             onChange={(next) => setDraft({ ...draft, checkTimes: next })}
             itemType="time"
             sort
-            ariaLabel="Check times"
+            ariaLabel={t("vpn.watchdog.checkTimesLabel")}
           />
           {noTimes && (
-            <span className="text-[11px] text-rose-500">At least one time is required.</span>
+            <span className="text-[11px] text-rose-500">{t("vpn.watchdog.noTimes")}</span>
           )}
         </div>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-            Max reconnect attempts
+            {t("vpn.watchdog.maxReconnects")}
           </span>
           <input
             type="number"
@@ -387,22 +385,22 @@ function WatchdogCard() {
 
       {saveError && (
         <div className="mt-3">
-          <ErrorNote message={saveError} />
+          <ErrorNote message={errorText(saveError, t)} />
         </div>
       )}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Button tone="accent" onClick={save} loading={saving} disabled={saving || !dirty || noTimes}>
-          Save
+          {t("common.save")}
         </Button>
         <Button tone="ghost" onClick={runNow} loading={running} disabled={running}>
-          Run now
+          {t("vpn.watchdog.runNow")}
         </Button>
       </div>
 
       {runError && (
         <div className="mt-3">
-          <ErrorNote message={runError} />
+          <ErrorNote message={errorText(runError, t)} />
         </div>
       )}
 
@@ -410,7 +408,7 @@ function WatchdogCard() {
         <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
           <div className="mb-2 flex items-center gap-2">
             <Badge tone={job.status === "success" ? "green" : job.status === "failed" ? "rose" : "slate"}>
-              {job.status}
+              {t(`common.jobStatus.${job.status}`, { defaultValue: job.status })}
             </Badge>
           </div>
           <div className="max-h-48 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">

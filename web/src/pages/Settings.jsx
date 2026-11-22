@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout.jsx";
 import { Button, Card, ConfirmDialog, ErrorNote, FIELD, OnOffToggle } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { useFormat } from "../lib/useFormat.js";
+import { errorText } from "../lib/serverText.js";
 
 // A label forwards clicks on its text to its first button, so a field that holds
 // buttons (an on/off toggle) must not be one: pass as="div".
@@ -30,6 +32,7 @@ function Section({ title, description, children, footer }) {
 }
 
 export default function Settings({ onConfigChanged }) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState(null);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(null);
@@ -40,7 +43,7 @@ export default function Settings({ onConfigChanged }) {
       setSettings(current);
       onConfigChanged?.();
     } catch (err) {
-      setError(err.message);
+      setError(err);
     }
   }
 
@@ -49,27 +52,27 @@ export default function Settings({ onConfigChanged }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveSettings(payload, label) {
+  async function saveSettings(payload) {
     setError(null);
     try {
       await api.saveSettings(payload);
-      setSaved(label);
+      setSaved(true);
       setTimeout(() => setSaved(null), 2500);
       reload();
     } catch (err) {
-      setError(err.message);
+      setError(err);
     }
   }
 
   return (
-    <Layout title="Settings">
+    <Layout title={t("nav.settings")}>
       {error && (
         <div className="mb-4">
-          <ErrorNote message={error} />
+          <ErrorNote message={errorText(error, t)} />
         </div>
       )}
       {saved && (
-        <p className="mb-4 text-xs text-emerald-700 dark:text-emerald-400">{saved} saved.</p>
+        <p className="mb-4 text-xs text-emerald-700 dark:text-emerald-400">{t("settings.generalSaved")}</p>
       )}
 
       <div className="flex flex-col gap-4">
@@ -83,6 +86,7 @@ export default function Settings({ onConfigChanged }) {
 }
 
 function GeneralSection({ settings, onSave, onReload }) {
+  const { t } = useTranslation();
   const { formatDateTime } = useFormat();
   const [title, setTitle] = useState(settings.general.title);
   const [pollIntervalMs, setPoll] = useState(settings.general.pollIntervalMs);
@@ -90,26 +94,26 @@ function GeneralSection({ settings, onSave, onReload }) {
   const [autoUpdateCheck, setAutoUpdateCheck] = useState(settings.general.autoUpdateCheck !== false);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [checkNote, setCheckNote] = useState(null);
+  const [checkNote, setCheckNote] = useState(null); // { partial: true } or { error }
 
   async function checkNow() {
     setChecking(true);
     setCheckNote(null);
     try {
       const result = await api.checkForUpdates();
-      setCheckNote(result.complete ? null : "Some checks failed. The Suite retries within the hour.");
+      setCheckNote(result.complete ? null : { partial: true });
       window.dispatchEvent(new Event("versions:refresh"));
       await onReload();
     } catch (err) {
-      setCheckNote(err.message);
+      setCheckNote({ error: err });
     }
     setChecking(false);
   }
 
   return (
     <Section
-      title="General"
-      description="Applies across every page."
+      title={t("settings.general.title")}
+      description={t("settings.general.description")}
       footer={
         <Button
           tone="accent"
@@ -117,21 +121,20 @@ function GeneralSection({ settings, onSave, onReload }) {
           onClick={async () => {
             setBusy(true);
             await onSave(
-              { general: { title, pollIntervalMs: Number(pollIntervalMs), instanceTimeoutMs: Number(instanceTimeoutMs), autoUpdateCheck } },
-              "General settings"
+              { general: { title, pollIntervalMs: Number(pollIntervalMs), instanceTimeoutMs: Number(instanceTimeoutMs), autoUpdateCheck } }
             );
             setBusy(false);
           }}
         >
-          Save
+          {t("common.save")}
         </Button>
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Title" hint="Shown in the sidebar and the browser tab.">
+        <Field label={t("settings.general.siteTitle")} hint={t("settings.general.siteTitleHint")}>
           <input className={FIELD} value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
-        <Field label="Poll interval (ms)" hint="How often the browser re-polls. Minimum 5000.">
+        <Field label={t("settings.general.poll")} hint={t("settings.general.pollHint")}>
           <input
             className={FIELD}
             type="number"
@@ -139,7 +142,7 @@ function GeneralSection({ settings, onSave, onReload }) {
             onChange={(e) => setPoll(e.target.value)}
           />
         </Field>
-        <Field label="Instance timeout (ms)" hint="How long to wait for one instance before giving up on it.">
+        <Field label={t("settings.general.timeout")} hint={t("settings.general.timeoutHint")}>
           <input
             className={FIELD}
             type="number"
@@ -149,21 +152,21 @@ function GeneralSection({ settings, onSave, onReload }) {
         </Field>
         <Field
           as="div"
-          label="Automatically check for updates"
-          hint="Once a day the Suite asks GitHub for the latest release of itself, StreamShare, gluetun and Caddy. Nothing is downloaded or changed."
+          label={t("settings.general.autoCheck")}
+          hint={t("settings.general.autoCheckHint")}
         >
           <OnOffToggle value={autoUpdateCheck} onChange={setAutoUpdateCheck} />
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Button tone="ghost" loading={checking} disabled={!autoUpdateCheck} onClick={checkNow}>
-              Check now
+              {t("settings.general.checkNow")}
             </Button>
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {settings.general.updateCheckedAt
-                ? `Last checked ${formatDateTime(settings.general.updateCheckedAt)}`
-                : "Not checked yet"}
+                ? t("settings.general.lastChecked", { when: formatDateTime(settings.general.updateCheckedAt) })
+                : t("settings.general.notChecked")}
             </span>
           </div>
-          {checkNote && <span className="text-[11px] text-amber-600 dark:text-amber-400">{checkNote}</span>}
+          {checkNote && <span className="text-[11px] text-amber-600 dark:text-amber-400">{checkNote.partial ? t("settings.general.checksFailed") : errorText(checkNote.error, t)}</span>}
         </Field>
       </div>
     </Section>
@@ -171,6 +174,7 @@ function GeneralSection({ settings, onSave, onReload }) {
 }
 
 function BackupSection() {
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -187,7 +191,7 @@ function BackupSection() {
       setFile(null);
       setDone(true);
     } catch (err) {
-      setError(err.message);
+      setError(err);
     } finally {
       setBusy(false);
     }
@@ -195,19 +199,19 @@ function BackupSection() {
 
   return (
     <Section
-      title="Backup & restore"
-      description="Every credential, instance definition and component setting lives in one file. Download it before a risky change."
+      title={t("settings.backup.title")}
+      description={t("settings.backup.description")}
     >
       <div>
         <Button tone="default" onClick={() => window.location.assign("/api/backup")}>
-          Download backup
+          {t("settings.backup.download")}
         </Button>
       </div>
 
       <div className="mt-2 border-t border-slate-200 pt-4 dark:border-slate-800">
         <Field
-          label="Restore from a backup file"
-          hint="Replaces everything currently stored — every credential and setting — with what's in the file. Signs everyone out."
+          label={t("settings.backup.restoreLabel")}
+          hint={t("settings.backup.restoreHint")}
         >
           <input
             type="file"
@@ -217,23 +221,23 @@ function BackupSection() {
         </Field>
         <div className="mt-3">
           <Button tone="rose" loading={busy} disabled={!file} onClick={() => setConfirming(true)}>
-            Restore from backup
+            {t("settings.backup.restore")}
           </Button>
         </div>
       </div>
 
-      {error && <ErrorNote message={error} />}
+      {error && <ErrorNote message={errorText(error, t)} />}
       {done && (
         <p className="text-xs text-emerald-700 dark:text-emerald-400">
-          Restored. Reload the page — you'll need to sign in again if this backup predates your session.
+          {t("settings.backup.restored")}
         </p>
       )}
 
       <ConfirmDialog
         open={confirming}
-        title="Restore from this backup?"
-        body="This replaces every credential, instance definition and component setting currently stored with what's in the file, and will sign everyone out. This cannot be undone from here — make sure you have a current backup first if you want to keep what's there now."
-        confirmLabel="Restore"
+        title={t("settings.backup.confirmTitle")}
+        body={t("settings.backup.confirmBody")}
+        confirmLabel={t("settings.backup.confirm")}
         onConfirm={restore}
         onCancel={() => setConfirming(false)}
       />
@@ -242,6 +246,7 @@ function BackupSection() {
 }
 
 function PasswordSection() {
+  const { t } = useTranslation();
   const [currentPassword, setCurrent] = useState("");
   const [newPassword, setNew] = useState("");
   const [busy, setBusy] = useState(false);
@@ -250,8 +255,8 @@ function PasswordSection() {
 
   return (
     <Section
-      title="Change password"
-      description="Changing it signs out every other session and revokes the API token."
+      title={t("settings.password.title")}
+      description={t("settings.password.description")}
       footer={
         <Button
           tone="accent"
@@ -267,18 +272,18 @@ function PasswordSection() {
               setNew("");
               setDone(true);
             } catch (err) {
-              setError(err.message);
+              setError(err);
             } finally {
               setBusy(false);
             }
           }}
         >
-          Change password
+          {t("settings.password.submit")}
         </Button>
       }
     >
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Current password">
+        <Field label={t("settings.password.current")}>
           <input
             className={FIELD}
             type="password"
@@ -287,7 +292,7 @@ function PasswordSection() {
             autoComplete="current-password"
           />
         </Field>
-        <Field label="New password" hint="At least 12 characters.">
+        <Field label={t("settings.password.new")} hint={t("settings.password.newHint")}>
           <input
             className={FIELD}
             type="password"
@@ -297,13 +302,14 @@ function PasswordSection() {
           />
         </Field>
       </div>
-      {error && <ErrorNote message={error} />}
-      {done && <p className="text-xs text-emerald-700 dark:text-emerald-400">Password changed.</p>}
+      {error && <ErrorNote message={errorText(error, t)} />}
+      {done && <p className="text-xs text-emerald-700 dark:text-emerald-400">{t("settings.password.changed")}</p>}
     </Section>
   );
 }
 
 function ApiAccessSection() {
+  const { t } = useTranslation();
   const { formatDateTime } = useFormat();
   const [status, setStatus] = useState(null);
   const [token, setToken] = useState(null);
@@ -313,7 +319,7 @@ function ApiAccessSection() {
   const [confirming, setConfirming] = useState(null);
 
   useEffect(() => {
-    api.apiToken().then(setStatus, (err) => setError(err.message));
+    api.apiToken().then(setStatus, setError);
   }, []);
 
   async function run(action) {
@@ -330,7 +336,7 @@ function ApiAccessSection() {
         setStatus({ exists: true, createdAt: created.createdAt });
       }
     } catch (err) {
-      setError(err.message);
+      setError(err);
     } finally {
       setBusy(false);
     }
@@ -340,8 +346,8 @@ function ApiAccessSection() {
 
   return (
     <Section
-      title="API access"
-      description="Lets scripts and other tools interact with StreamShare Suite. Send the token as an Authorization: Bearer header."
+      title={t("settings.api.title")}
+      description={t("settings.api.description")}
       footer={
         <>
           <Button
@@ -349,22 +355,22 @@ function ApiAccessSection() {
             loading={busy}
             onClick={() => (status.exists ? setConfirming("regenerate") : run("generate"))}
           >
-            {status.exists ? "Regenerate token" : "Generate token"}
+            {status.exists ? t("settings.api.regenerate") : t("settings.api.generate")}
           </Button>
           {status.exists && (
             <Button tone="ghost" disabled={busy} onClick={() => setConfirming("revoke")}>
-              Revoke
+              {t("settings.api.revoke")}
             </Button>
           )}
         </>
       }
     >
       <p className="text-xs text-slate-600 dark:text-slate-400">
-        {status.exists ? `A token exists, created ${formatDateTime(status.createdAt)}.` : "No token yet."}
+        {status.exists ? t("settings.api.exists", { when: formatDateTime(status.createdAt) }) : t("settings.api.none")}
       </p>
 
       {token && (
-        <Field label="Your new token" hint="Copy it now. It will not be shown again.">
+        <Field label={t("settings.api.newToken")} hint={t("settings.api.newTokenHint")}>
           <div className="flex gap-2">
             <input
               className={`${FIELD} font-mono`}
@@ -374,20 +380,20 @@ function ApiAccessSection() {
             />
             {navigator.clipboard && (
               <Button tone="ghost" onClick={() => navigator.clipboard.writeText(token)}>
-                Copy
+                {t("common.copy")}
               </Button>
             )}
           </div>
         </Field>
       )}
 
-      {error && <ErrorNote message={error} />}
+      {error && <ErrorNote message={errorText(error, t)} />}
 
       <ConfirmDialog
         open={!!confirming}
-        title={confirming === "revoke" ? "Revoke the API token?" : "Replace the API token?"}
-        body="Anything still using the current token will stop working immediately."
-        confirmLabel={confirming === "revoke" ? "Revoke" : "Regenerate"}
+        title={confirming === "revoke" ? t("settings.api.revokeTitle") : t("settings.api.replaceTitle")}
+        body={t("settings.api.confirmBody")}
+        confirmLabel={confirming === "revoke" ? t("settings.api.revoke") : t("settings.api.regenerate")}
         onConfirm={() => run(confirming)}
         onCancel={() => setConfirming(null)}
       />

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { IconAlert, IconRefresh } from "./Icons.jsx";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
 import { useFormat } from "../lib/useFormat.js";
+import { errorText } from "../lib/serverText.js";
 
 export const FIELD =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
@@ -127,6 +128,13 @@ export function ErrorNote({ message }) {
       <span>{message}</span>
     </div>
   );
+}
+
+// The banner for a failed poll; nothing while there is no error.
+export function RefreshError({ error }) {
+  const { t } = useTranslation();
+  if (!error) return null;
+  return <ErrorNote message={t("common.refreshFailed", { detail: errorText(error, t) })} />;
 }
 
 export function Skeleton({ className = "" }) {

@@ -3,7 +3,7 @@ import Layout from "../components/Layout.jsx";
 import { ErrorNote, RefreshButton } from "../components/common.jsx";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api.js";
-import { errorText } from "../lib/serverText.js";
+import { errorText, errorI18n } from "../lib/serverText.js";
 import { useJobPolling } from "../lib/useJobPolling.js";
 import PlanPanel from "./stack/PlanPanel.jsx";
 import InstancesTab from "./stack/InstancesTab.jsx";
@@ -145,7 +145,12 @@ export default function Stack({ pollIntervalMs = 15000 }) {
       pollJob(jobId);
     } catch (err) {
       setBusy(false);
-      setJob({ status: "failed", error: errorText(err, t), log: [] });
+      setJob({
+        status: "failed",
+        error: err.message,
+        errorI18n: errorI18n(err),
+        log: [],
+      });
     }
   }
 

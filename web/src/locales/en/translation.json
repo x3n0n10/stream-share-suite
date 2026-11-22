@@ -29,7 +29,36 @@
     "back": "Back",
     "continue": "Continue",
     "close": "Close",
-    "edit": "Edit"
+    "edit": "Edit",
+    "refreshFailed": "Refresh failed: {{detail}}",
+    "online": "online",
+    "offline": "offline",
+    "unreachable": "Unreachable",
+    "instance": "Instance",
+    "type": "Type",
+    "title": "Title",
+    "user": "User",
+    "since": "Since",
+    "viewers": "Viewers",
+    "uptime": "Uptime",
+    "duration": "Duration",
+    "when": "When",
+    "updatedCol": "Updated",
+    "addAliasFor": "Add an alias for {{ip}}",
+    "searchFailed": "Search failed: {{detail}}",
+    "streamType": {
+      "live": "Live",
+      "movie": "Movie",
+      "series": "Series",
+      "vod": "VOD"
+    },
+    "jobStatus": {
+      "running": "running",
+      "success": "success",
+      "failed": "failed"
+    },
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "language": {
     "label": "Language"
@@ -679,6 +708,12 @@
     "reason": {
       "notRunning": "not running yet",
       "needsNewer": "needs a newer StreamShare version"
+    },
+    "note": {
+      "liveChannel": "Showing {{via}}'s {{channel}} instead",
+      "liveConnection": "Using {{via}}'s connection",
+      "pastChannel": "Used {{via}}'s {{channel}}",
+      "pastConnection": "Used {{via}}'s connection"
     }
   },
   "list": {
@@ -926,13 +961,226 @@
         "unhealthy": "Unhealthy",
         "starting": "Starting"
       },
-      "jobStatus": {
-        "running": "running",
-        "success": "success",
-        "failed": "failed"
-      },
       "removeTitle": "Remove this container?",
       "removeBody": "{{name}} was created by the Suite but is no longer part of your stack. Removing it stops and deletes the container."
+    }
+  },
+  "overview": {
+    "nowPlaying": "Now playing",
+    "nothingPlaying": "Nothing is playing",
+    "nothingPlayingHint": "Active streams across every instance will show up here.",
+    "streams": "Streams"
+  },
+  "instances": {
+    "started": "Started",
+    "database": "Database",
+    "connected": "connected",
+    "discord": "Discord",
+    "vodCache": "VOD cache",
+    "catchup": "Catchup",
+    "none": "No instances configured. Set INSTANCE_1_NAME / INSTANCE_1_URL / INSTANCE_1_API_KEY (and _2_, _3_, …) in the dashboard's environment."
+  },
+  "aliases": {
+    "intro": "Give a friendly name to viewers that show up by IP address (e.g. when an instance has LDAP disabled). An alias means the same thing everywhere, but each instance stores its own copy — this saves it to every instance at once by default, and the underlying IP is still what's actually used to identify the viewer.",
+    "addTitle": "Add alias",
+    "prefill": "Adding an alias for {{ip}} — pick a name below.",
+    "ipAddress": "IP address",
+    "alias": "Alias",
+    "aliasPlaceholder": "Living room TV",
+    "save": "Save alias",
+    "applyAll_one": "Apply to all {{count}} instance",
+    "applyAll_other": "Apply to all {{count}} instances",
+    "searchPlaceholder": "Search IP, alias, or instance…",
+    "mixed": "Mixed across instances",
+    "instanceCount_one": "{{count}} instance",
+    "instanceCount_other": "{{count}} instances",
+    "removeEverywhere": "Remove alias for {{ip}} everywhere",
+    "removeOn": "Remove alias for {{ip}} on {{instance}}",
+    "savedPartial_one": "Saved on {{saved}}/{{count}} instance. {{failures}}",
+    "savedPartial_other": "Saved on {{saved}}/{{count}} instances. {{failures}}",
+    "empty": "No aliases configured",
+    "emptyHint": "Add one above to give a friendly name to a viewer that currently shows up by IP address."
+  },
+  "history": {
+    "date": "Date",
+    "relative": "Relative",
+    "searchPlaceholder": "Search user, title, instance…",
+    "empty": "No watch history",
+    "emptyHint": "Try a wider time range, or check back once someone starts watching."
+  },
+  "leaderboard": {
+    "summed": " · summed across all instances",
+    "topTitles": "Top titles",
+    "topViewers": "Top viewers",
+    "noData": "No watch data yet",
+    "views_one": "{{formatted}} view",
+    "views_other": "{{formatted}} views",
+    "sessions_one": "{{formatted}} session",
+    "sessions_other": "{{formatted}} sessions"
+  },
+  "users": {
+    "searchPlaceholder": "Search user or instance…",
+    "status": "Status",
+    "currentStream": "Current stream",
+    "ip": "IP",
+    "watching": "watching",
+    "idle": "idle",
+    "empty": "No known sessions",
+    "emptyHint": "Users show up here once they connect to a stream-share instance."
+  },
+  "vod": {
+    "shareLinksHint": "Need a live channel link for a time window? Use <link>Share links</link>.",
+    "searchPlaceholder": "Search movies and series across all instances…",
+    "search": "Search",
+    "copyUrl": "Copy URL",
+    "download": "Download",
+    "initialTitle": "Search for a movie or series",
+    "initialHint": "Results are pulled live from every instance that has an Xtream provider configured — nothing is indexed or stored here.",
+    "searching": "Searching…",
+    "noResults": "No results for \"{{query}}\"",
+    "noResultsHint": "Try a different title or spelling.",
+    "episodeCount_one": "{{count}} episode",
+    "episodeCount_other": "{{count}} episodes",
+    "hideEpisodes": "Hide episodes",
+    "showEpisodes": "Show episodes"
+  },
+  "settings": {
+    "generalSaved": "General settings saved.",
+    "general": {
+      "title": "General",
+      "description": "Applies across every page.",
+      "siteTitle": "Title",
+      "siteTitleHint": "Shown in the sidebar and the browser tab.",
+      "poll": "Poll interval (ms)",
+      "pollHint": "How often the browser re-polls. Minimum 5000.",
+      "timeout": "Instance timeout (ms)",
+      "timeoutHint": "How long to wait for one instance before giving up on it.",
+      "autoCheck": "Automatically check for updates",
+      "autoCheckHint": "Once a day the Suite asks GitHub for the latest release of itself, StreamShare, gluetun and Caddy. Nothing is downloaded or changed.",
+      "checkNow": "Check now",
+      "lastChecked": "Last checked {{when}}",
+      "notChecked": "Not checked yet",
+      "checksFailed": "Some checks failed. The Suite retries within the hour."
+    },
+    "backup": {
+      "title": "Backup & restore",
+      "description": "Every credential, instance definition and component setting lives in one file. Download it before a risky change.",
+      "download": "Download backup",
+      "restoreLabel": "Restore from a backup file",
+      "restoreHint": "Replaces everything currently stored — every credential and setting — with what's in the file. Signs everyone out.",
+      "restore": "Restore from backup",
+      "restored": "Restored. Reload the page — you'll need to sign in again if this backup predates your session.",
+      "confirmTitle": "Restore from this backup?",
+      "confirmBody": "This replaces every credential, instance definition and component setting currently stored with what's in the file, and will sign everyone out. This cannot be undone from here — make sure you have a current backup first if you want to keep what's there now.",
+      "confirm": "Restore"
+    },
+    "password": {
+      "title": "Change password",
+      "description": "Changing it signs out every other session and revokes the API token.",
+      "submit": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "newHint": "At least 12 characters.",
+      "changed": "Password changed."
+    },
+    "api": {
+      "title": "API access",
+      "description": "Lets scripts and other tools interact with StreamShare Suite. Send the token as an Authorization: Bearer header.",
+      "regenerate": "Regenerate token",
+      "generate": "Generate token",
+      "revoke": "Revoke",
+      "exists": "A token exists, created {{when}}.",
+      "none": "No token yet.",
+      "newToken": "Your new token",
+      "newTokenHint": "Copy it now. It will not be shown again.",
+      "revokeTitle": "Revoke the API token?",
+      "replaceTitle": "Replace the API token?",
+      "confirmBody": "Anything still using the current token will stop working immediately."
+    }
+  },
+  "vpn": {
+    "notConfigured": "Gluetun isn't configured",
+    "notConfiguredHint": "Set GLUETUN_URL (e.g. http://gluetun:8000) — and GLUETUN_API_KEY if your control server requires one — in the dashboard's environment to enable this page.",
+    "connection": "Connection",
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "unknown": "Unknown"
+    },
+    "reconnecting": "Reconnecting…",
+    "waitingForIp": "Waiting for exit IP…",
+    "start": "Start",
+    "stop": "Stop",
+    "reconnect": "Reconnect",
+    "reconnectNote": "Reconnect stops the tunnel, waits for it to confirm, starts it again, and waits for a fresh exit IP — the dashboard refreshes every second while it works, and keeps doing so afterward until the exit IP card actually has a value.",
+    "exitIp": "Exit IP",
+    "locationUnavailable": "Location unavailable",
+    "unavailable": "Unavailable",
+    "showRaw": "Show raw gluetun response",
+    "hideRaw": "Hide raw gluetun response",
+    "stopTitle": "Stop the VPN connection?",
+    "stopBody": "This disconnects gluetun. Any traffic routed through it (e.g. your stream-share instance's outbound connection) will be interrupted or exposed until it's started again.",
+    "stopConfirm": "Stop VPN",
+    "reconnectTitle": "Reconnect the VPN?",
+    "reconnectBody": "This stops and restarts the tunnel, the same as Stop followed by Start. Any traffic routed through it will be interrupted until it comes back up, which can take a while depending on your provider.",
+    "watchdog": {
+      "title": "VPN watchdog",
+      "description": "Probes every instance with health checking enabled, on a schedule, and reconnects the tunnel when one reports its provider is blocking the current exit IP.",
+      "checkTimes": "Check times (local)",
+      "checkTimesLabel": "Check times",
+      "noTimes": "At least one time is required.",
+      "maxReconnects": "Max reconnect attempts",
+      "runNow": "Run now"
+    }
+  },
+  "shareLinks": {
+    "vodHint": "Need a movie or episode link? Use <link>VOD search</link>.",
+    "newLink": "+ New link",
+    "noPublicUrl": "The Suite does not know this instance's public address, so it cannot build copyable links. Set the public base URL on the instance (Stack page) to enable Copy.",
+    "unsupported": "This instance does not support share links",
+    "unsupportedHint": "Update it to a newer image and reload.",
+    "empty": "No share links yet",
+    "emptyHint": "Create one for a guest to watch a channel for a while.",
+    "channel": "Channel",
+    "for": "For",
+    "window": "Window",
+    "state": "State",
+    "stateName": {
+      "active": "active",
+      "scheduled": "scheduled",
+      "ended": "ended",
+      "revoked": "revoked"
+    },
+    "playlist": "Playlist",
+    "stream": "Stream",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke this link?",
+    "revokeBody": "{{title}} stops working immediately.",
+    "revokeBodyGuest": "{{title}} for {{guest}} stops working immediately.",
+    "windowRange": "{{start}} to {{end}}",
+    "windowProblem": {
+      "pick": "Pick a start and an end time.",
+      "order": "The end must be after the start.",
+      "tooLong": "A share link may last at most 24 hours.",
+      "over": "The window is already over."
+    },
+    "dialog": {
+      "created": "Link created",
+      "createdBody": "{{title}} on {{instance}}. Share one of these with your guest.",
+      "playlistLink": "Playlist link",
+      "playlistHint": "for VLC and IPTV apps",
+      "streamLink": "Stream link",
+      "streamHint": "direct",
+      "pathsOnly": "The Suite does not know this instance's public address, so these are paths only. Add your public address in front of them.",
+      "newTitle": "New share link on {{instance}}",
+      "channel": "Channel",
+      "channelPlaceholder": "Search channels, e.g. eurosport",
+      "guest": "Guest (optional label)",
+      "guestPlaceholder": "e.g. Uncle Bert",
+      "from": "From",
+      "until": "Until",
+      "limits": "Longest allowed: 24 hours. Up to 3 devices can use one link at once.",
+      "create": "Create link"
     }
   }
 }

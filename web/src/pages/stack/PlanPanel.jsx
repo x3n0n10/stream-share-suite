@@ -155,7 +155,7 @@ function JobLog({ job }) {
     <Card className="p-5">
       <div className="mb-2 flex items-center gap-2">
         <Badge tone={job.status === "success" ? "green" : job.status === "failed" ? "rose" : "slate"}>
-          {t(`stack.plan.jobStatus.${job.status}`, { defaultValue: job.status })}
+          {t(`common.jobStatus.${job.status}`, { defaultValue: job.status })}
         </Badge>
       </div>
       <div className="max-h-64 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">

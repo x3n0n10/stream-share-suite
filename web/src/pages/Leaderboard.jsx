@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout.jsx";
 import HoursSelect from "../components/HoursSelect.jsx";
-import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
+import { Card, Badge, EmptyState, ErrorNote, RefreshError, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { titleCase } from "../lib/format.js";
+import { streamTypeText } from "../lib/format.js";
 import { useFormat } from "../lib/useFormat.js";
 
 function BarRow({ primary, secondary, meta, value, max }) {
@@ -26,6 +27,7 @@ function BarRow({ primary, secondary, meta, value, max }) {
 }
 
 export default function Leaderboard({ pollIntervalMs }) {
+  const { t } = useTranslation();
   const { formatDuration, formatNumber } = useFormat();
   const [hours, setHours] = useState(24);
   const { data, error, loading, updatedAt, refresh } = usePolling(
@@ -36,12 +38,12 @@ export default function Leaderboard({ pollIntervalMs }) {
 
   const titles = data?.top_titles || [];
   const users = data?.top_users || [];
-  const maxTitleSeconds = Math.max(1, ...titles.map((t) => t.watch_seconds));
+  const maxTitleSeconds = Math.max(1, ...titles.map((x) => x.watch_seconds));
   const maxUserSeconds = Math.max(1, ...users.map((u) => u.watch_seconds));
 
   return (
     <Layout
-      title="Leaderboard"
+      title={t("nav.leaderboard")}
       headerExtra={
         <>
           <HoursSelect hours={hours} onChange={setHours} />
@@ -50,8 +52,8 @@ export default function Leaderboard({ pollIntervalMs }) {
       }
     >
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <PollStatus updatedAt={updatedAt}> · summed across all instances</PollStatus>
-        {error && <ErrorNote message={`Refresh failed: ${error}`} />}
+        <PollStatus updatedAt={updatedAt}>{t("leaderboard.summed")}</PollStatus>
+        {error && <RefreshError error={error} />}
       </div>
 
       {loading && !data ? (
@@ -62,18 +64,18 @@ export default function Leaderboard({ pollIntervalMs }) {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card className="p-4 sm:p-5">
-            <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Top titles</h2>
+            <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">{t("leaderboard.topTitles")}</h2>
             {titles.length === 0 ? (
-              <EmptyState title="No watch data yet" />
+              <EmptyState title={t("leaderboard.noData")} />
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {titles.map((t, idx) => (
+                {titles.map((title, idx) => (
                   <BarRow
-                    key={`${t.stream_type}-${t.stream_title}-${idx}`}
-                    primary={t.stream_title}
-                    secondary={`${titleCase(t.stream_type)} · ${t.instances.join(", ")}`}
-                    meta={`${formatDuration(t.watch_seconds)} · ${formatNumber(t.views)} views`}
-                    value={t.watch_seconds}
+                    key={`${title.stream_type}-${title.stream_title}-${idx}`}
+                    primary={title.stream_title}
+                    secondary={`${streamTypeText(t, title.stream_type)} · ${title.instances.join(", ")}`}
+                    meta={`${formatDuration(title.watch_seconds)} · ${t("leaderboard.views", { count: title.views, formatted: formatNumber(title.views) })}`}
+                    value={title.watch_seconds}
                     max={maxTitleSeconds}
                   />
                 ))}
@@ -82,9 +84,9 @@ export default function Leaderboard({ pollIntervalMs }) {
           </Card>
 
           <Card className="p-4 sm:p-5">
-            <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">Top viewers</h2>
+            <h2 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">{t("leaderboard.topViewers")}</h2>
             {users.length === 0 ? (
-              <EmptyState title="No watch data yet" />
+              <EmptyState title={t("leaderboard.noData")} />
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {users.map((u, idx) => (
@@ -92,7 +94,7 @@ export default function Leaderboard({ pollIntervalMs }) {
                     key={`${u.username}-${idx}`}
                     primary={u.username}
                     secondary={u.instances.join(", ")}
-                    meta={`${formatDuration(u.watch_seconds)} · ${formatNumber(u.sessions)} sessions`}
+                    meta={`${formatDuration(u.watch_seconds)} · ${t("leaderboard.sessions", { count: u.sessions, formatted: formatNumber(u.sessions) })}`}
                     value={u.watch_seconds}
                     max={maxUserSeconds}
                   />

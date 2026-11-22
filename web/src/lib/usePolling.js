@@ -19,7 +19,9 @@ export function usePolling(fetcher, intervalMs, deps = []) {
       setError(null);
       setUpdatedAt(new Date());
     } catch (err) {
-      setError(err.message || "Request failed");
+      // Keep the error object so the page can translate it at render; the same failure
+      // again keeps the old object, so React skips the re-render.
+      setError((prev) => (prev && prev.message === err.message && prev.body?.code === err.body?.code ? prev : err));
     } finally {
       setLoading(false);
     }
