@@ -81,17 +81,18 @@ is needed.
 path of your own on a disk meant for caching, with that much room free. This also
 lets you keep the cache off the disk that holds your configuration.
 
-The Suite does not create or check a path you enter. It passes the path straight
-to Docker as the bind-mount source for the instance container, so you can point a
-cache at a new disk without touching the compose file. For such a path:
+The Suite passes the path you enter to Docker as the bind-mount source for the
+instance container, so you can point a cache at a new disk without touching the
+compose file. For such a path:
 
-- The directory must already exist on the host. If it does not, Docker creates it
-  owned by `root`.
-- It must be owned by, or writable for, `PUID:PGID`. The instance runs as that
-  user and cannot write to a `root`-owned directory.
+- If the directory does not exist yet, the Suite creates it owned by `PUID:PGID`
+  before the instance starts.
+- An existing directory that has files in it, or is owned by anyone but `root`,
+  keeps its owner. It must be owned by, or writable for, `PUID:PGID`, because the
+  instance runs as that user.
 
-If either is wrong, the instance fails to write its cache, and the error appears in
-the instance's own logs, not in the Suite.
+If an existing directory is not writable for that user, the instance fails to write
+its cache, and the error appears in the instance's own logs, not in the Suite.
 
 ## Networks
 

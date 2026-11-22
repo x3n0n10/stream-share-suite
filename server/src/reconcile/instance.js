@@ -126,22 +126,36 @@ export function instanceUrl(key, values) {
   return `http://${host}:${port}`;
 }
 
+const cachingOn = (values) =>
+  values.vodCacheEnabled === "true" || values.catchupEnabled === "true" || values.catalogStorage === "disk";
+
+// The operator's own cache path, trimmed, when caching is on and one was typed.
+export function customCachePath(values) {
+  return (cachingOn(values) && String(values.cachePath || "").trim()) || null;
+}
+
+const IMAGE_FIELD = INSTANCE_SCHEMA.fields.find((f) => f.key === "image");
+
+export function instanceImage(values) {
+  return values.image || IMAGE_FIELD.default;
+}
+
 export async function renderInstanceSpec(values, key) {
   const name = instanceContainerName(key, values);
   const port = Number(values.port);
 
   const configDir = ensureDirectory(componentDataDir(name), "config");
-  // A cache path the operator typed is never created or checked by the Suite —
-  // it's handed straight to Docker as a bind-mount source, the same as any path
-  // in a hand-written compose file. That's what lets an operator point it at a
+  // A cache path the operator typed is handed straight to Docker as a
+  // bind-mount source, the same as any path in a hand-written compose file;
+  // prepareCacheFolder gives a new, empty, root-owned one to PUID:PGID before
+  // the instance starts. That's what lets an operator point it at a
   // new disk without touching the Suite's own compose file. With none given,
   // the cache lives next to the config under the data directory, created here
   // like every other folder the Suite owns: left to Docker, a missing folder
   // would be created as root and the instance (running as PUID:PGID) could not
   // write to it.
-  const cachingOn = values.vodCacheEnabled === "true" || values.catchupEnabled === "true" || values.catalogStorage === "disk";
-  const cacheDir = cachingOn
-    ? String(values.cachePath || "").trim() || ensureDirectory(componentDataDir(name), "cache")
+  const cacheDir = cachingOn(values)
+    ? customCachePath(values) || ensureDirectory(componentDataDir(name), "cache")
     : null;
 
   const env = {
@@ -198,7 +212,7 @@ export async function renderInstanceSpec(values, key) {
 
   const spec = {
     name,
-    image: values.image || "ghcr.io/x3n0n10/stream-share:latest",
+    image: instanceImage(values),
     env,
     volumes: [
       `${configDir}:${CONFIG_MOUNT}`,

@@ -272,3 +272,19 @@ test("pullImage still splits a tag, and ignores a registry port", async () => {
   assert.equal(requests[1].query.get("fromImage"), "myregistry:5000/repo");
   assert.equal(requests[1].query.get("tag"), "latest");
 });
+
+test("waitContainer posts to /wait and returns the exit code", async () => {
+  const { waitContainer } = await client();
+  queue((res) => json(res, 200, { StatusCode: 10 }));
+
+  assert.equal(await waitContainer("helper"), 10);
+  assert.equal(requests[0].method, "POST");
+  assert.equal(requests[0].path, "/v1.43/containers/helper/wait");
+});
+
+test("waitContainer throws on a missing container", async () => {
+  const { waitContainer } = await client();
+  queue((res) => json(res, 404, { message: "No such container: helper" }));
+
+  await assert.rejects(() => waitContainer("helper"), /No such container: helper/);
+});
