@@ -21,6 +21,7 @@ import {
 import { listInstances } from "../store/instances.js";
 import { allocatePort, instanceContainerName } from "./instance.js";
 import { databaseNamesFor, generatePassword, ensureDatabase, dropDatabase } from "./database.js";
+import { prepareCacheFolder } from "./cacheFolder.js";
 import { connectionTarget } from "./postgres.js";
 import { inspectContainer, stopContainer, removeContainer } from "../docker/client.js";
 import { isManaged, belongsToAnotherSuite } from "../docker/labels.js";
@@ -133,6 +134,8 @@ export async function deprovisionInstance(key, { dropData = false, log = () => {
 // database it is about to connect to already exists. Never called for a noop:
 // there is nothing to prepare for a container that is not being touched.
 export async function prepareInstance(key, values, { log = () => {} } = {}) {
+  await prepareCacheFolder(key, values, { log });
+
   if (!values._dbName) return;
 
   const target = connectionTarget(getComponentValues("postgres"));
