@@ -32,12 +32,11 @@ export default function StepDatabase({ onNext, onBack }) {
     <Card className="p-6">
       <h2 className="text-base font-semibold text-slate-900 dark:text-white">PostgreSQL</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Where every instance keeps stuff like its history, VOD index and aliases. Each instance gets its own
-        database, created automatically.
+        {t("setup.database.intro")}
       </p>
       <div className="mt-5">
         {fields === null ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <p className="text-sm text-slate-400">{t("common.loading")}</p>
         ) : (
           <SchemaForm
             kind="postgres"
@@ -45,11 +44,11 @@ export default function StepDatabase({ onNext, onBack }) {
             onSave={save}
             saving={saving}
             error={error}
-            submitLabel="Continue"
+            submitLabel={t("common.continue")}
             secondaryAction={
               onBack && (
                 <Button tone="ghost" onClick={onBack}>
-                  Back
+                  {t("common.back")}
                 </Button>
               )
             }

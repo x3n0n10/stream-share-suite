@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 export default function StepFeatures({ instances, onNext, onBack }) {
   const { t } = useTranslation();
@@ -93,25 +93,22 @@ export default function StepFeatures({ instances, onNext, onBack }) {
   if (byKey === null) {
     return (
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Features</h2>
-        <p className="mt-5 text-sm text-slate-400">Loading…</p>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.features")}</h2>
+        <p className="mt-5 text-sm text-slate-400">{t("common.loading")}</p>
       </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Features</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.features")}</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Special features offered by StreamShare. Here you can set up stuff like caching and buffering. The
-        folder below is where an instance keeps its temporary files: VOD cache and catchup buffers.
+        {t("setup.features.intro")}
       </p>
 
       <label className="mt-4 flex flex-col gap-1.5">
         <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-          <span className="italic">Helper</span>: you may enter a parent folder on the Docker host here
-          which will then be used as the parent folder for instances below. Only instances that don't 
-          already have a files path set are affected. Subfolders will be appended automatically.
+          <Trans i18nKey="setup.features.helper" components={{ i: <span className="italic" /> }} />
         </span>
         <input
           className={FIELD}
@@ -119,10 +116,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
           onChange={(e) => updateParentPath(e.target.value)}
         />
         <span className="text-[11px] text-slate-400 dark:text-slate-500">
-          Leave the paths below blank to keep each cache in the Suite's own data folder. Caches can grow to
-          tens of gigabytes, so we recommend an absolute path on a disk meant for caching with that much room
-          free. If the folder does not exist yet, the Suite creates it for the PUID/PGID the Suite runs as. An
-          existing folder keeps its owner, so it must be writable for that user.
+          {t("setup.features.pathNote")}
         </span>
       </label>
 
@@ -138,7 +132,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{instance.displayName}</h3>
               <div className="mt-2 flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Cache VOD locally</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{t("setup.features.vodCache")}</span>
                   <OnOffToggle
                     value={values.vodCacheEnabled}
                     onChange={(vodCacheEnabled) => patch(instance.key, { vodCacheEnabled })}
@@ -146,7 +140,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-slate-700 dark:text-slate-300">
-                    Buffer live channels for catchup
+                    {t("setup.features.catchup")}
                   </span>
                   <OnOffToggle
                     value={values.catchupEnabled}
@@ -156,7 +150,7 @@ export default function StepFeatures({ instances, onNext, onBack }) {
                 {values.catchupEnabled && (
                   <label className="ml-6 flex flex-col gap-1.5">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      Hours of catchup to keep
+                      {t("setup.features.catchupHours")}
                     </span>
                     <input
                       type="number"
@@ -172,11 +166,11 @@ export default function StepFeatures({ instances, onNext, onBack }) {
               {cachingOn && (
                 <label className="mt-3 flex flex-col gap-1.5">
                   <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    Temporary files location on this host
+                    {t("setup.features.cachePath")}
                   </span>
                   <input
                     className={FIELD}
-                    placeholder="Blank: the Suite's data folder"
+                    placeholder={t("setup.features.cachePathPlaceholder")}
                     value={values.cachePath}
                     onChange={(e) => patch(instance.key, { cachePath: e.target.value })}
                   />
@@ -196,12 +190,12 @@ export default function StepFeatures({ instances, onNext, onBack }) {
       <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
         {onBack && (
           <Button tone="ghost" onClick={onBack}>
-            Back
+            {t("common.back")}
           </Button>
         )}
         <div className="ml-auto">
           <Button tone="accent" onClick={submit} loading={saving} disabled={saving}>
-            Continue
+            {t("common.continue")}
           </Button>
         </div>
       </div>

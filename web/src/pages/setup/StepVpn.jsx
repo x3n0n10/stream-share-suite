@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, OnOffToggle } from "../../components/common.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { errorText } from "../../lib/serverText.js";
 
 export default function StepVpn({ onNext, onBack }) {
@@ -26,7 +26,7 @@ export default function StepVpn({ onNext, onBack }) {
       await api.saveStackSettings({ vpnEnabled: enabled });
       setVpnEnabled(enabled);
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
     }
   }
 
@@ -46,20 +46,29 @@ export default function StepVpn({ onNext, onBack }) {
   if (vpnEnabled === null) {
     return (
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white">VPN</h2>
-        <p className="mt-5 text-sm text-slate-400">Loading…</p>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.vpn")}</h2>
+        <p className="mt-5 text-sm text-slate-400">{t("common.loading")}</p>
       </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Route traffic through a VPN?</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.vpn.title")}</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Recommended if your provider restricts access by location or IP. StreamShare Suite sets up a Gluetun instance
-        for you. Every instance shares this tunnel. You will probably need an account with a supported VPN provider.
-        Read all about it <a href="https://github.com/qdm12/gluetun-wiki" target="_blank" rel="noopener noreferrer" 
-        className="text-blue-500 hover:underline">over here</a>.
+        <Trans
+          i18nKey="setup.vpn.intro"
+          components={{
+            wiki: (
+              <a
+                href="https://github.com/qdm12/gluetun-wiki"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline"
+              />
+            ),
+          }}
+        />
       </p>
 
       {error && !vpnEnabled && (
@@ -69,19 +78,19 @@ export default function StepVpn({ onNext, onBack }) {
       )}
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <span className="text-sm text-slate-700 dark:text-slate-300">Use a VPN</span>
+        <span className="text-sm text-slate-700 dark:text-slate-300">{t("setup.vpn.use")}</span>
         <OnOffToggle value={vpnEnabled} onChange={toggleVpn} />
       </div>
 
       {vpnEnabled ? (
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Gluetun (VPN)</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t("catalog.gluetun.label")}</h3>
           <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-            The tunnel every instance's traffic will route through.
+            {t("setup.vpn.gluetunHelp")}
           </p>
           <div className="mt-4">
             {fields === null ? (
-              <p className="text-sm text-slate-400">Loading…</p>
+              <p className="text-sm text-slate-400">{t("common.loading")}</p>
             ) : (
               <SchemaForm
                 kind="gluetun"
@@ -89,11 +98,11 @@ export default function StepVpn({ onNext, onBack }) {
                 onSave={saveGluetun}
                 saving={saving}
                 error={error}
-                submitLabel="Continue"
+                submitLabel={t("common.continue")}
                 secondaryAction={
                   onBack && (
                     <Button tone="ghost" onClick={onBack}>
-                      Back
+                      {t("common.back")}
                     </Button>
                   )
                 }
@@ -105,12 +114,12 @@ export default function StepVpn({ onNext, onBack }) {
         <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
           {onBack && (
             <Button tone="ghost" onClick={onBack}>
-              Back
+              {t("common.back")}
             </Button>
           )}
           <div className="ml-auto">
             <Button tone="accent" onClick={() => onNext("done")}>
-              Continue
+              {t("common.continue")}
             </Button>
           </div>
         </div>

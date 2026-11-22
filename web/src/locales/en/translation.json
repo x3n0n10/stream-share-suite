@@ -25,7 +25,11 @@
       "last168": "Last 7 days",
       "last720": "Last 30 days",
       "all": "All time"
-    }
+    },
+    "back": "Back",
+    "continue": "Continue",
+    "close": "Close",
+    "edit": "Edit"
   },
   "language": {
     "label": "Language"
@@ -699,5 +703,120 @@
     "updateAvailable": "Update available",
     "updateAvailableVersion": "Update available: {{latest}}",
     "suite": "Suite"
+  },
+  "setup": {
+    "steps": {
+      "portRange": "Port range",
+      "instances": "Instances",
+      "features": "Features",
+      "database": "Database",
+      "access": "External access",
+      "vpn": "VPN",
+      "health": "Health check",
+      "done": "Done"
+    },
+    "title": "Setup wizard",
+    "welcome": {
+      "highlights": {
+        "instances": "Add your IPTV provider(s) as instances — each gets its own container, database and API key, set up for you.",
+        "caching": "Turn on VOD caching and catchup buffering, per instance.",
+        "external": "Make an instance reachable from outside your network, with HTTPS handled automatically if you want it.",
+        "vpn": "Route everything through a VPN, shared across every instance.",
+        "health": "Watch instance health and have the VPN reconnect itself when a provider blocks it."
+      },
+      "title": "Welcome",
+      "intro": "A few short steps get StreamShare Suite fully configured. Answer what you know; anything you leave blank keeps a sensible default, and everything here can be changed again later from Settings or the Stack page. Don't worry, nothing will be changed or created until you hit \"Apply\" on the Stack page at the end of the setup.",
+      "start": "Get started!"
+    },
+    "done": {
+      "title": "You're set up!",
+      "body": "Don't worry, nothing will actually be applied yet. In the stack plan, review the setup and hit apply if you're satisfied. You can always change anything from the Stack page or just re-run the wizard.",
+      "review": "Review the stack plan"
+    },
+    "database": {
+      "intro": "Where every instance keeps stuff like its history, VOD index and aliases. Each instance gets its own database, created automatically."
+    },
+    "portRange": {
+      "title": "Instance port range",
+      "intro": "Let's start with a port range. Each instance gets its own port, allocated from a band of 20 starting here. Only worth changing if that range is already taken by something else on the host."
+    },
+    "vpn": {
+      "title": "Route traffic through a VPN?",
+      "intro": "Recommended if your provider restricts access by location or IP. StreamShare Suite sets up a Gluetun instance for you. Every instance shares this tunnel. You will probably need an account with a supported VPN provider. Read all about it <wiki>over here</wiki>.",
+      "use": "Use a VPN",
+      "gluetunHelp": "The tunnel every instance's traffic will route through."
+    },
+    "features": {
+      "intro": "Special features offered by StreamShare. Here you can set up stuff like caching and buffering. The folder below is where an instance keeps its temporary files: VOD cache and catchup buffers.",
+      "helper": "<i>Helper</i>: you may enter a parent folder on the Docker host here which will then be used as the parent folder for instances below. Only instances that don't already have a files path set are affected. Subfolders will be appended automatically.",
+      "pathNote": "Leave the paths below blank to keep each cache in the Suite's own data folder. Caches can grow to tens of gigabytes, so we recommend an absolute path on a disk meant for caching with that much room free. If the folder does not exist yet, the Suite creates it for the PUID/PGID the Suite runs as. An existing folder keeps its owner, so it must be writable for that user.",
+      "vodCache": "Cache VOD locally",
+      "catchup": "Buffer live channels for catchup",
+      "catchupHours": "Hours of catchup to keep",
+      "cachePath": "Temporary files location on this host",
+      "cachePathPlaceholder": "Blank: the Suite's data folder"
+    },
+    "health": {
+      "intro": "Optional. Lets the VPN watchdog reconnect the tunnel when a provider blocks the current exit IP — pick which instances to take into account.",
+      "probeTitle": "Probe channel per instance",
+      "probeHelp": "In order for the health check to work, you need to specify a channel to probe for each instance. This channel will be synthetically 'viewed' to see if it's accessible. Type a channel name to search and pick a result, or enter a stream ID directly if you already know it.",
+      "streamId": "{{name}} — Stream ID",
+      "checkTimes": "Check times (local) — usually twice a day should be enough. Pick times that are usually outside of your own viewing hours, so the health check doesn't interfere with you watching.",
+      "checkTimesLabel": "Check times",
+      "skip": "Skip"
+    },
+    "access": {
+      "intro": "Completely optional. Allows you to reach the instances from outside your local network. You're responsible for the DNS/routing part — this just tells each instance what its own externally-reachable address is.",
+      "discordEnable": "Enable Discord bot",
+      "discordNeedsUrl": "(needs a public base URL first)",
+      "tokenSet": "A token is set. Leave blank to keep it, or type a new one to replace it.",
+      "tokenRequired": "Required to enable Discord.",
+      "adminRole": "Admin role ID (optional)",
+      "caddyTitle": "Reach these URLs from your local network?",
+      "caddyHelp": "This is what Caddy is for. It redirects the URL you enter above to the right instance and port. Beware: you're still responsible for pointing that URL's DNS at this host; you will most likely need your own DNS server for this (like AdGuard Home or Pi-hole).",
+      "caddyPublish": "Publish instances through Caddy"
+    },
+    "instances": {
+      "accessModes": {
+        "provider": {
+          "label": "Use my provider credentials",
+          "help": "Simplest option — everyone signs in with the same Xtream username and password typed in above."
+        },
+        "custom": {
+          "label": "Set custom credentials",
+          "help": "A separate username and password from your provider's, for connecting without handing out the real ones."
+        },
+        "ldap": {
+          "label": "Use LDAP",
+          "help": "Sign in against an existing directory server instead — for handing out per-user access."
+        }
+      },
+      "providerTypes": {
+        "xtream": {
+          "help": "Unlocks VOD, series, EPG and subscription status. Use this if your provider offers an Xtream API — most do."
+        },
+        "m3u": {
+          "help": "Just a playlist link, no Xtream API. Live channels work; no VOD/series/EPG or subscription status."
+        }
+      },
+      "title": "Your instances",
+      "intro": "Now let's set up a StreamShare instance, one per IPTV provider. At least one is required. To remove an instance, use the Stack page instead — it's not available here because reasons.",
+      "containerName": "Container name: {{name}}",
+      "port": "Port: {{port}}",
+      "saveChanges": "Save changes",
+      "addAnother": "+ Add another instance",
+      "fields": {
+        "m3uUrl": "M3U playlist URL"
+      },
+      "hints": {
+        "xtreamBaseUrl": "e.g. http://provider.example:8080",
+        "m3uUrl": "e.g. http://provider.example/get.php?username=u&password=p&type=m3u_plus&output=m3u8"
+      },
+      "signIn": "How users sign in",
+      "add": "Add instance",
+      "addOne": "Add at least one instance to continue",
+      "continueWith_one": "Continue with {{count}} instance",
+      "continueWith_other": "Continue with {{count}} instances"
+    }
   }
 }

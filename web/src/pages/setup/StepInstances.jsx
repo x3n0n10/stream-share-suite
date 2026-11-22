@@ -5,38 +5,11 @@ import SchemaForm from "../../components/SchemaForm.jsx";
 import UseProviderCredentialsButton from "../../components/UseProviderCredentialsButton.jsx";
 import { api } from "../../lib/api.js";
 import { useTranslation } from "react-i18next";
+import { fieldText } from "../../lib/schemaKeys.js";
 import { errorText } from "../../lib/serverText.js";
 
-const ACCESS_MODES = [
-  {
-    value: "provider",
-    label: "Use my provider credentials",
-    help: "Simplest option — everyone signs in with the same Xtream username and password typed in above.",
-  },
-  {
-    value: "custom",
-    label: "Set custom credentials",
-    help: "A separate username and password from your provider's, for connecting without handing out the real ones.",
-  },
-  {
-    value: "ldap",
-    label: "Use LDAP",
-    help: "Sign in against an existing directory server instead — for handing out per-user access.",
-  },
-];
-
-const PROVIDER_TYPES = [
-  {
-    value: "xtream",
-    label: "Xtream API (recommended)",
-    help: "Unlocks VOD, series, EPG and subscription status. Use this if your provider offers an Xtream API — most do.",
-  },
-  {
-    value: "m3u",
-    label: "M3U playlist",
-    help: "Just a playlist link, no Xtream API. Live channels work; no VOD/series/EPG or subscription status.",
-  },
-];
+const ACCESS_MODES = ["provider", "custom", "ldap"];
+const PROVIDER_TYPES = ["xtream", "m3u"];
 
 // Groups editable here — Addressing/Discord/Caching/Health check/Container
 // each have their own dedicated later step, so an existing instance's edit
@@ -196,10 +169,9 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Your instances</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.instances.title")}</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Now let's set up a StreamShare instance, one per IPTV provider. At least one is required. To remove an
-        instance, use the Stack page instead — it's not available here because reasons.
+        {t("setup.instances.intro")}
       </p>
 
       {instances.length > 0 && (
@@ -214,8 +186,8 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   {(i.containerName || i.port) && (
                     <p className="truncate text-xs text-slate-400">
                       {[
-                        i.containerName && `Container name: ${i.containerName}`,
-                        i.port && `Port: ${i.port}`,
+                        i.containerName && t("setup.instances.containerName", { name: i.containerName }),
+                        i.port && t("setup.instances.port", { port: i.port }),
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -224,12 +196,12 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                 </div>
                 <button
                   onClick={() => toggleEditing(i.key)}
-                  aria-label={editingKey === i.key ? "Close" : "Edit"}
-                  title={editingKey === i.key ? "Close" : "Edit"}
+                  aria-label={editingKey === i.key ? t("common.close") : t("common.edit")}
+                  title={editingKey === i.key ? t("common.close") : t("common.edit")}
                   className="shrink-0 rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
                 >
                   {editingKey === i.key ? (
-                    <span className="text-xs font-medium">Close</span>
+                    <span className="text-xs font-medium">{t("common.close")}</span>
                   ) : (
                     <IconEdit className="h-4 w-4" />
                   )}
@@ -239,7 +211,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
               {editingKey === i.key && (
                 <div className="border-t border-slate-200 px-3 py-3 dark:border-slate-800">
                   {editFields === null ? (
-                    <p className="text-sm text-slate-400">Loading…</p>
+                    <p className="text-sm text-slate-400">{t("common.loading")}</p>
                   ) : (
                     <SchemaForm
                       kind="instance"
@@ -247,7 +219,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                       onSave={saveEdit}
                       saving={editSaving}
                       error={editError}
-                      submitLabel="Save changes"
+                      submitLabel={t("setup.instances.saveChanges")}
                       extraOptions={
                         editFields.find((f) => f.key === "providerType")?.value === "xtream"
                           ? {
@@ -271,7 +243,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
 
       <div className="mt-4">
         <Button type="button" tone="ghost" onClick={toggleAdding}>
-          {adding ? "Cancel" : "+ Add another instance"}
+          {adding ? t("common.cancel") : t("setup.instances.addAnother")}
         </Button>
       </div>
 
@@ -281,7 +253,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
           className="mt-4 flex flex-col gap-5 border-t border-slate-200 pt-4 dark:border-slate-800"
         >
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Name">
+            <Field label={fieldText(t, "instance", "displayName", "label")}>
               <input
                 className={FIELD}
                 value={draft.displayName}
@@ -293,31 +265,31 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
           </div>
 
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Playlist source</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{fieldText(t, "instance", "providerType", "label")}</span>
             <div className="flex flex-wrap gap-2">
               {PROVIDER_TYPES.map((type) => (
                 <button
-                  key={type.value}
+                  key={type}
                   type="button"
-                  onClick={() => setProviderType(type.value)}
+                  onClick={() => setProviderType(type)}
                   className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                    draft.providerType === type.value
+                    draft.providerType === type
                       ? "bg-accent-600 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                   }`}
                 >
-                  {type.label}
+                  {fieldText(t, "instance", "providerType", `options.${type}`)}
                 </button>
               ))}
             </div>
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              {PROVIDER_TYPES.find((t) => t.value === draft.providerType)?.help}
+              {t(`setup.instances.providerTypes.${draft.providerType}.help`)}
             </span>
           </div>
 
           {draft.providerType === "xtream" ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Xtream base URL" hint="e.g. http://provider.example:8080">
+              <Field label={fieldText(t, "instance", "xtreamBaseUrl", "label")} hint={t("setup.instances.hints.xtreamBaseUrl")}>
                 <input
                   className={FIELD}
                   value={draft.xtreamBaseUrl}
@@ -325,7 +297,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   required
                 />
               </Field>
-              <Field label="Xtream username">
+              <Field label={fieldText(t, "instance", "xtreamUser", "label")}>
                 <input
                   className={FIELD}
                   value={draft.xtreamUser}
@@ -333,7 +305,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   required
                 />
               </Field>
-              <Field label="Xtream password">
+              <Field label={fieldText(t, "instance", "xtreamPassword", "label")}>
                 <input
                   className={FIELD}
                   type="password"
@@ -346,8 +318,8 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field
-                label="M3U playlist URL"
-                hint="e.g. http://provider.example/get.php?username=u&password=p&type=m3u_plus&output=m3u8"
+                label={t("setup.instances.fields.m3uUrl")}
+                hint={t("setup.instances.hints.m3uUrl")}
               >
                 <input
                   className={FIELD}
@@ -360,33 +332,33 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
           )}
 
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">How users sign in</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{t("setup.instances.signIn")}</span>
             <div className="flex flex-wrap gap-2">
-              {ACCESS_MODES.filter((mode) => mode.value !== "provider" || draft.providerType === "xtream").map(
+              {ACCESS_MODES.filter((mode) => mode !== "provider" || draft.providerType === "xtream").map(
                 (mode) => (
                   <button
-                    key={mode.value}
+                    key={mode}
                     type="button"
-                    onClick={() => set("accessMode", mode.value)}
+                    onClick={() => set("accessMode", mode)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                      draft.accessMode === mode.value
+                      draft.accessMode === mode
                         ? "bg-accent-600 text-white"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                     }`}
                   >
-                    {mode.label}
+                    {t(`setup.instances.accessModes.${mode}.label`)}
                   </button>
                 )
               )}
             </div>
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              {ACCESS_MODES.find((m) => m.value === draft.accessMode)?.help}
+              {t(`setup.instances.accessModes.${draft.accessMode}.help`)}
             </span>
           </div>
 
           {draft.accessMode === "custom" && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Username">
+              <Field label={fieldText(t, "instance", "authUser", "label")}>
                 <input
                   className={FIELD}
                   value={draft.authUser}
@@ -394,7 +366,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   required
                 />
               </Field>
-              <Field label="Password">
+              <Field label={fieldText(t, "instance", "authPassword", "label")}>
                 <input
                   className={FIELD}
                   type="password"
@@ -408,7 +380,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
 
           {draft.accessMode === "ldap" && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="LDAP server" hint="e.g. ldap://ldap.example:389">
+              <Field label={fieldText(t, "instance", "ldapServer", "label")} hint={fieldText(t, "instance", "ldapServer", "help")}>
                 <input
                   className={FIELD}
                   value={draft.ldapServer}
@@ -416,7 +388,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   required
                 />
               </Field>
-              <Field label="Base DN">
+              <Field label={fieldText(t, "instance", "ldapBaseDn", "label")}>
                 <input
                   className={FIELD}
                   value={draft.ldapBaseDn}
@@ -424,7 +396,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   required
                 />
               </Field>
-              <Field label="Bind DN">
+              <Field label={fieldText(t, "instance", "ldapBindDn", "label")}>
                 <input
                   className={FIELD}
                   value={draft.ldapBindDn}
@@ -432,7 +404,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
                   required
                 />
               </Field>
-              <Field label="Bind password">
+              <Field label={fieldText(t, "instance", "ldapBindPassword", "label")}>
                 <input
                   className={FIELD}
                   type="password"
@@ -448,7 +420,7 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
 
           <div>
             <Button type="submit" tone="accent" loading={saving} disabled={saving}>
-              Add instance
+              {t("setup.instances.add")}
             </Button>
           </div>
         </form>
@@ -457,14 +429,14 @@ export default function StepInstances({ instances, setInstances, onNext, onBack 
       <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
         {onBack && (
           <Button type="button" tone="ghost" onClick={onBack}>
-            Back
+            {t("common.back")}
           </Button>
         )}
         <div className="ml-auto">
           <Button type="button" tone="accent" onClick={() => onNext("features")} disabled={instances.length === 0}>
             {instances.length === 0
-              ? "Add at least one instance to continue"
-              : `Continue with ${instances.length} instance${instances.length === 1 ? "" : "s"}`}
+              ? t("setup.instances.addOne")
+              : t("setup.instances.continueWith", { count: instances.length })}
           </Button>
         </div>
       </div>
