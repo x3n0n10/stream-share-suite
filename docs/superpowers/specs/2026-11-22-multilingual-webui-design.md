@@ -73,8 +73,7 @@ without touching code.
 The web app loads one JSON file per language and renders text with `t()`.
 The server keeps sending English but adds stable keys/codes alongside, and the
 web app translates them from the same JSON files. One set of translations.
-Cost: the `i18next`, `react-i18next` and `i18next-browser-languagedetector`
-dependencies (~40 KB).
+Cost: the `i18next` and `react-i18next` dependencies (~40 KB).
 
 **B. Same split, with a home-made `t()` helper.** No dependency, but sentences
 with embedded links or markup, plurals, detection and fallback all become
@@ -109,12 +108,12 @@ backward compatible.
 
 ### Language selection
 
-- `i18next-browser-languagedetector`, order: `localStorage` then `navigator`.
+- The initial language is the saved choice, else the browser language, mapped
+  by one small tested function (`resolveLanguage`). No detector dependency.
 - Unsupported browser languages fall back to English; regional variants map to
   the base language (`nl-BE` → `nl`).
-- The detector stores the choice itself (`caches: ["localStorage"]`), like
-  the existing theme toggle does in `web/src/lib/useTheme.js`. No separate
-  storage code. It is per browser, not per user
+- The choice is saved in `localStorage` on every language change, like the
+  existing theme toggle does in `web/src/lib/useTheme.js`. It is per browser, not per user
   account, so it also works on the login and first-run setup screens.
 - A language picker sits next to the theme toggle in `Layout.jsx`, and on the
   login/setup screens. Each language shows its own name ("Nederlands",
