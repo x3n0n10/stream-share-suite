@@ -359,6 +359,7 @@
         "addressing": "Direccionamiento",
         "discord": "Discord",
         "caching": "Caché",
+        "nowPlaying": "Reproduciendo ahora",
         "healthCheck": "Comprobación de estado",
         "errorSlates": "Pantallas de error",
         "container": "Contenedor",
@@ -473,6 +474,14 @@
         "cachePath": {
           "label": "Ubicación de la caché en el host",
           "help": "Dónde está en el host de Docker la caché de VOD, catchup y catálogo en disco de esta instancia. Déjalo en blanco para usar una carpeta dentro del directorio de datos de la Suite, que la Suite crea por ti. Una caché puede crecer hasta decenas de gigabytes, así que recomendamos una ruta propia en un disco pensado para caché, con ese espacio libre. Si la carpeta aún no existe, la Suite la crea con PUID/PGID del compose de la Suite como propietario. Una carpeta existente que tenga archivos, o cuyo propietario no sea root, conserva su propietario, por lo que debe poder escribirse para ese usuario."
+        },
+        "streamTechProbeEnabled": {
+          "label": "Mostrar detalles del stream",
+          "help": "Muestra las pistas de vídeo, audio y subtítulos de cada stream en «Reproduciendo ahora» del Resumen. No usa ninguna conexión adicional con el proveedor.",
+          "options": {
+            "true": "Activado",
+            "false": "Desactivado"
+          }
         },
         "healthCheckEnabled": {
           "label": "Vigilar el proveedor de esta instancia",

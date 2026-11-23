@@ -353,6 +353,7 @@
         "addressing": "Adressering",
         "discord": "Discord",
         "caching": "Caching",
+        "nowPlaying": "Nu aan het afspelen",
         "healthCheck": "Statuscontrole",
         "errorSlates": "Foutschermen",
         "container": "Container",
@@ -467,6 +468,14 @@
         "cachePath": {
           "label": "Cachelocatie op de host",
           "help": "Waar de VOD-, catchup- en schijfcatalogus-cache van deze instance op de Docker-host staat. Laat leeg om een map in de datamap van de Suite te gebruiken, die de Suite voor je aanmaakt. Een cache kan tientallen gigabytes groeien, dus we raden een eigen pad aan op een schijf bedoeld voor caching, met zoveel vrije ruimte. Bestaat de map nog niet, dan maakt de Suite hem aan met PUID/PGID uit het compose-bestand van de Suite als eigenaar. Een bestaande map met bestanden erin, of met een andere eigenaar dan root, behoudt zijn eigenaar en moet dus beschrijfbaar zijn voor die gebruiker."
+        },
+        "streamTechProbeEnabled": {
+          "label": "Streamdetails tonen",
+          "help": "Toont de video-, audio- en ondertitelsporen van elke stream onder Nu aan het afspelen in het Overzicht. Gebruikt geen extra providerverbinding.",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
         },
         "healthCheckEnabled": {
           "label": "De provider van deze instance bewaken",

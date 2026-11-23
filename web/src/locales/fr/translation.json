@@ -359,6 +359,7 @@
         "addressing": "Adressage",
         "discord": "Discord",
         "caching": "Cache",
+        "nowPlaying": "En cours de lecture",
         "healthCheck": "Vérification d'état",
         "errorSlates": "Écrans d'erreur",
         "container": "Conteneur",
@@ -473,6 +474,14 @@
         "cachePath": {
           "label": "Emplacement du cache sur l'hôte",
           "help": "Où se trouvent, sur l'hôte Docker, le cache VOD, catchup et catalogue sur disque de cette instance. Laissez vide pour utiliser un dossier dans le répertoire de données de la Suite, que la Suite crée pour vous. Un cache peut atteindre des dizaines de gigaoctets ; nous recommandons donc votre propre chemin sur un disque prévu pour le cache, avec autant d'espace libre. Si le dossier n'existe pas encore, la Suite le crée avec PUID/PGID du fichier compose de la Suite comme propriétaire. Un dossier existant qui contient des fichiers, ou dont le propriétaire n'est pas root, garde son propriétaire ; il doit donc être accessible en écriture pour cet utilisateur."
+        },
+        "streamTechProbeEnabled": {
+          "label": "Afficher les détails du flux",
+          "help": "Affiche les pistes vidéo, audio et de sous-titres de chaque flux sous « En cours de lecture » dans la vue d'ensemble. N'utilise aucune connexion supplémentaire au fournisseur.",
+          "options": {
+            "true": "Activé",
+            "false": "Désactivé"
+          }
         },
         "healthCheckEnabled": {
           "label": "Surveiller le fournisseur de cette instance",

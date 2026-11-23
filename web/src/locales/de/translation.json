@@ -353,6 +353,7 @@
         "addressing": "Adressierung",
         "discord": "Discord",
         "caching": "Caching",
+        "nowPlaying": "Läuft gerade",
         "healthCheck": "Health-Check",
         "errorSlates": "Fehlerbildschirme",
         "container": "Container",
@@ -467,6 +468,14 @@
         "cachePath": {
           "label": "Cache-Speicherort auf dem Host",
           "help": "Wo der VOD-, Catchup- und Festplattenkatalog-Cache dieser Instanz auf dem Docker-Host liegt. Leer lassen, um einen Ordner im Datenverzeichnis der Suite zu verwenden, den die Suite für dich erstellt. Ein Cache kann zig Gigabyte groß werden, daher empfehlen wir einen eigenen Pfad auf einer fürs Caching gedachten Festplatte mit entsprechend freiem Platz. Existiert der Ordner noch nicht, erstellt ihn die Suite mit PUID/PGID aus der Compose-Datei der Suite als Besitzer. Ein vorhandener Ordner mit Dateien darin oder mit einem anderen Besitzer als root behält seinen Besitzer und muss daher für diesen Benutzer beschreibbar sein."
+        },
+        "streamTechProbeEnabled": {
+          "label": "Stream-Details anzeigen",
+          "help": "Zeigt die Video-, Audio- und Untertitelspuren jedes Streams unter „Läuft gerade“ in der Übersicht. Benötigt keine zusätzliche Anbieterverbindung.",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
         },
         "healthCheckEnabled": {
           "label": "Anbieter dieser Instanz überwachen",
