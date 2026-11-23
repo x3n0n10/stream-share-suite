@@ -270,6 +270,22 @@ export const INSTANCE_SCHEMA = {
       },
     },
 
+    // --- now playing ----------------------------------------------------------
+    //
+    // Default on (stream-share defaults off): a field wins over extraEnv, so off
+    // would silently undo an operator's extraEnv STREAM_TECH_PROBE_ENABLED=true.
+    {
+      key: "streamTechProbeEnabled",
+      envVar: "STREAM_TECH_PROBE_ENABLED",
+      label: "Show stream details",
+      help: "Shows the video, audio and subtitle tracks of each stream under Now playing on the Overview. Uses no extra provider connection.",
+      type: "select",
+      options: ["true", "false"],
+      optionLabels: { true: "On", false: "Off" },
+      default: "true",
+      group: "Now playing",
+    },
+
     // --- health check ---------------------------------------------------------
     //
     // Whether the VPN watchdog watches this instance at all. HEALTHCHECK_TIMES
