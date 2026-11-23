@@ -62,6 +62,9 @@ The form is grouped. Each group maps to something StreamShare can do:
   RAM, about 2-3 times the catalogue size on disk), and the **cache location** on
   the host. Blank keeps it in the data directory. See
   [cache paths](configuration.md#cache-paths) before choosing your own.
+- **Now playing:** **Show stream details** (on by default) adds the video, audio
+  and subtitle tracks of each stream under Now playing on the Overview. It uses
+  no extra provider connection. Turning it on or off recreates the instance.
 - **Health check:** whether the [VPN watchdog](vpn-watchdog.md) probes this
   instance's provider, and which channel it uses. Search channel names (with their
   category, since names repeat) or enter a stream ID.

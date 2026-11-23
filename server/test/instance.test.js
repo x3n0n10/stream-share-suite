@@ -368,6 +368,10 @@ test("disk catalogue storage alone mounts the cache and sets CACHE_FOLDER; memor
   assert.equal(memSpec.env.CATALOG_STORAGE, "memory");
 });
 
+test("stream details default on and render STREAM_TECH_PROBE_ENABLED", () => {
+  assert.equal(renderEnv(INSTANCE_SCHEMA, PROVIDER).STREAM_TECH_PROBE_ENABLED, "true");
+});
+
 test("Discord on computes DISCORD_API_URL from publicBaseUrl rather than asking for it twice", async () => {
   configureStack();
   vpn(false);
