@@ -28,6 +28,9 @@ import {
 import { isLentViewer, withoutLentViewers } from "../reconcile/failover.js";
 import { shapeShare } from "../shareLinks.js";
 import { getVpnStatus, setVpnStatus, getPublicIP, reconnectVpn } from "../gluetunClient.js";
+import { SuiteError, UNKNOWN_INSTANCE, sendError } from "../errors.js";
+
+const GLUETUN_NOT_CONFIGURED = new SuiteError("gluetun_not_configured", "Gluetun is not configured (set it under Settings)");
 
 function findInstance(config, id) {
   return config.instances.find((i) => i.id === id);
@@ -68,7 +71,7 @@ function failure(res, err) {
   // (Bad Gateway) here is what correctly describes "the Suite couldn't
   // authenticate to that instance," without tripping the logout handler.
   const passthrough = err.status && err.status < 500 && err.status !== 401 && err.status !== 403;
-  res.status(passthrough ? err.status : 502).json({ error: err.message });
+  sendError(res, passthrough ? err.status : 502, err);
 }
 
 export function createOpsRouter() {
@@ -231,7 +234,7 @@ export function createOpsRouter() {
   // Drill-down: one user's history on one specific instance.
   router.get("/instances/:id/users/:username/history", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const hours = hoursParam(req, 24 * 7);
     const limit = Math.min(Number(req.query.limit) || 50, 500);
@@ -272,7 +275,7 @@ export function createOpsRouter() {
   // Starts/stops the VPN connection via gluetun's control server.
   router.post("/gluetun/:action(start|stop)", async (req, res) => {
     if (!req.config.gluetun) {
-      return res.status(404).json({ error: "Gluetun is not configured (set it under Settings)" });
+      return sendError(res, 404, GLUETUN_NOT_CONFIGURED);
     }
 
     const desired = req.params.action === "start" ? "running" : "stopped";
@@ -289,7 +292,7 @@ export function createOpsRouter() {
   // the exit IP naturally shows up once it's ready.
   router.post("/gluetun/reconnect", async (req, res) => {
     if (!req.config.gluetun) {
-      return res.status(404).json({ error: "Gluetun is not configured (set it under Settings)" });
+      return sendError(res, 404, GLUETUN_NOT_CONFIGURED);
     }
 
     try {
@@ -333,10 +336,10 @@ export function createOpsRouter() {
   // public address) — the browser opens it directly, not through this backend.
   router.post("/instances/:id/vod/download", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const { streamId, title, type } = req.body;
-    if (!streamId) return res.status(400).json({ error: "streamId is required" });
+    if (!streamId) return sendError(res, 400, new SuiteError("stream_id_required", "streamId is required"));
 
     try {
       const data = await createVODDownload(
@@ -357,7 +360,7 @@ export function createOpsRouter() {
   // means an unknown channel or link.
   router.get("/instances/:id/shares", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     try {
       const raw = await listShares(instance, timeouts(req));
@@ -365,10 +368,11 @@ export function createOpsRouter() {
       res.json({ shares: (raw || []).map((s) => shapeShare(s, publicBaseUrl)), publicBaseUrl });
     } catch (err) {
       if (err.status === 404) {
-        return res.status(501).json({
-          error: "This instance does not support share links. Update it to a newer image.",
-          code: "shares_unsupported",
-        });
+        return sendError(
+          res,
+          501,
+          new SuiteError("shares_unsupported", "This instance does not support share links. Update it to a newer image."),
+        );
       }
       failure(res, err);
     }
@@ -376,11 +380,11 @@ export function createOpsRouter() {
 
   router.post("/instances/:id/shares", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const { guest, streamId, startsAt, endsAt } = req.body;
-    if (!streamId) return res.status(400).json({ error: "streamId is required" });
-    if (!endsAt) return res.status(400).json({ error: "endsAt is required" });
+    if (!streamId) return sendError(res, 400, new SuiteError("stream_id_required", "streamId is required"));
+    if (!endsAt) return sendError(res, 400, new SuiteError("ends_at_required", "endsAt is required"));
 
     try {
       const created = await createShare(
@@ -396,7 +400,7 @@ export function createOpsRouter() {
 
   router.delete("/instances/:id/shares/:token", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     try {
       const revoked = await revokeShare(instance, req.params.token, timeouts(req));
@@ -408,7 +412,7 @@ export function createOpsRouter() {
 
   router.get("/instances/:id/shares/channels", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const query = (req.query.q || "").toString().trim();
     if (!query) return res.json({ results: [] });
@@ -427,7 +431,7 @@ export function createOpsRouter() {
   // as free text either way, so this is never surfaced as an ErrorNote.
   router.get("/instances/:id/health-check/channels", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const query = (req.query.q || "").toString().trim();
     if (!query) return res.json({ results: [] });
@@ -462,11 +466,11 @@ export function createOpsRouter() {
   // Creates the alias for an IP on one instance, or replaces its existing one.
   router.post("/instances/:id/aliases", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const { ipAddress, alias } = req.body;
     if (!ipAddress || !alias) {
-      return res.status(400).json({ error: "ipAddress and alias are required" });
+      return sendError(res, 400, new SuiteError("ip_and_alias_required", "ipAddress and alias are required"));
     }
 
     try {
@@ -479,10 +483,10 @@ export function createOpsRouter() {
   // Removes the alias for an IP on one instance, if it has one.
   router.post("/instances/:id/aliases/delete", async (req, res) => {
     const instance = findInstance(req.config, req.params.id);
-    if (!instance) return res.status(404).json({ error: "Unknown instance" });
+    if (!instance) return sendError(res, 404, UNKNOWN_INSTANCE);
 
     const { ipAddress } = req.body;
-    if (!ipAddress) return res.status(400).json({ error: "ipAddress is required" });
+    if (!ipAddress) return sendError(res, 400, new SuiteError("ip_required", "ipAddress is required"));
 
     try {
       await deleteIPAlias(instance, ipAddress, timeouts(req));

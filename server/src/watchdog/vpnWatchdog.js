@@ -68,10 +68,16 @@ async function probeAll(instances, log) {
     instances.map(async (instance) => {
       try {
         const { status, detail } = await fetchHealth(instance, { timeoutMs: PACING_MS.healthTimeout });
-        log(`${instance.name}: ${status}${detail ? ` (${detail})` : ""}`);
+        log(`${instance.name}: ${status}${detail ? ` (${detail})` : ""}`, {
+          code: detail ? "instance_status_detail" : "instance_status",
+          params: { name: instance.name, status, detail },
+        });
         return { instance, status };
       } catch (err) {
-        log(`${instance.name}: could not reach it (${err.message})`);
+        log(`${instance.name}: could not reach it (${err.message})`, {
+          code: "instance_unreachable",
+          params: { name: instance.name, message: err.message },
+        });
         return { instance, status: "" };
       }
     })
@@ -98,7 +104,12 @@ async function logExitIp(gluetun, log) {
   try {
     const ip = await getPublicIP(gluetun);
     const address = ip.public_ip || ip.ip;
-    if (address) log(`Exit IP is now ${address}${ip.country ? ` (${ip.country})` : ""}.`);
+    if (address) {
+      log(`Exit IP is now ${address}${ip.country ? ` (${ip.country})` : ""}.`, {
+        code: ip.country ? "exit_ip_country" : "exit_ip",
+        params: { address, country: ip.country },
+      });
+    }
   } catch {
     // Purely a log line — nothing downstream depends on this succeeding.
   }
@@ -118,11 +129,11 @@ export async function heal({ log = () => {}, config = loadConfig() } = {}) {
   const instances = watchedInstances(config);
 
   if (instances.length === 0) {
-    log("No instance has health checking enabled — nothing to watch.");
+    log("No instance has health checking enabled — nothing to watch.", { code: "no_health_checks" });
     return;
   }
   if (!config.gluetun) {
-    log("Gluetun is not configured — cannot act on a blocked provider.");
+    log("Gluetun is not configured — cannot act on a blocked provider.", { code: "gluetun_not_configured" });
     return;
   }
 
@@ -130,21 +141,23 @@ export async function heal({ log = () => {}, config = loadConfig() } = {}) {
   let blocked = results.filter((r) => r.status === "blocked");
 
   if (blocked.length === 0) {
-    log("Every watched instance's provider looks reachable — nothing to do.");
+    log("Every watched instance's provider looks reachable — nothing to do.", { code: "all_reachable" });
     return;
   }
 
   const maxReconnects = watchdogMaxReconnects();
-  log(
-    `Blocked: ${blocked.map((r) => r.instance.name).join(", ")}. Reconnecting (up to ${maxReconnects} attempt(s)).`
-  );
+  const blockedNames = blocked.map((r) => r.instance.name).join(", ");
+  log(`Blocked: ${blockedNames}. Reconnecting (up to ${maxReconnects} attempt(s)).`, {
+    code: "blocked_reconnecting",
+    params: { names: blockedNames, count: maxReconnects },
+  });
 
   for (let attempt = 1; attempt <= maxReconnects; attempt++) {
-    log(`Reconnect attempt ${attempt}/${maxReconnects}...`);
+    log(`Reconnect attempt ${attempt}/${maxReconnects}...`, { code: "reconnect_attempt", params: { attempt, max: maxReconnects } });
     try {
       await reconnectVpn(config.gluetun);
     } catch (err) {
-      log(`Reconnect failed: ${err.message}`);
+      log(`Reconnect failed: ${err.message}`, { code: "reconnect_failed", params: { message: err.message } });
     }
     await logExitIp(config.gluetun, log);
 
@@ -152,16 +165,17 @@ export async function heal({ log = () => {}, config = loadConfig() } = {}) {
     blocked = results.filter((r) => r.status === "blocked");
 
     if (blocked.length === 0) {
-      log(`Recovered after ${attempt} reconnect(s).`);
+      log(`Recovered after ${attempt} reconnect(s).`, { code: "recovered", params: { count: attempt } });
       return;
     }
-    log(`Still blocked: ${blocked.map((r) => r.instance.name).join(", ")}.`);
+    const names = blocked.map((r) => r.instance.name).join(", ");
+    log(`Still blocked: ${names}.`, { code: "still_blocked", params: { names } });
     if (attempt < maxReconnects) await sleep(PACING_MS.reconnectSettle);
   }
 
-  log(
-    `Gave up after ${maxReconnects} reconnect(s); still blocked: ${blocked
-      .map((r) => r.instance.name)
-      .join(", ")}.`
-  );
+  const names = blocked.map((r) => r.instance.name).join(", ");
+  log(`Gave up after ${maxReconnects} reconnect(s); still blocked: ${names}.`, {
+    code: "gave_up",
+    params: { count: maxReconnects, names },
+  });
 }

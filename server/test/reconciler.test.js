@@ -774,3 +774,9 @@ test("applyStack does nothing extra when gluetun is not create/recreate", async 
 
   assert.ok(containers.get("streamshare-suite-main-4"), "the instance should still have been created normally");
 });
+
+test("create plan carries a reason code", async () => {
+  const plan = await planComponent(NODE, SPEC);
+  assert.equal(plan.reasonI18n.code, "not_created_yet");
+  assert.equal(plan.reasonI18n.params.name, SPEC.name);
+});

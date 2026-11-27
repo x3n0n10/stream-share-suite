@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FIELD } from "./common.jsx";
 
 // A free-text input with a filtered dropdown of field.options — unlike the
@@ -8,6 +9,7 @@ import { FIELD } from "./common.jsx";
 // from needing gluetun's exact spelling). Selecting a known option surfaces
 // its field.optionNotes entry, if any, below the input.
 export default function ProviderCombobox({ field, value, onChange }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const options = field.options || [];
   const optionLabels = field.optionLabels || {};
@@ -34,7 +36,7 @@ export default function ProviderCombobox({ field, value, onChange }) {
         onClick={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         autoComplete="off"
-        placeholder="Start typing to search…"
+        placeholder={t("providerCombobox.placeholder")}
       />
       {open && matches.length > 0 && (
         <div className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">

@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote, FIELD, OnOffToggle } from "../../components/common.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
+import { useTranslation } from "react-i18next";
+import { fieldText } from "../../lib/schemaKeys.js";
+import { errorText } from "../../lib/serverText.js";
 
 export default function StepExternalAccess({ instances, onNext, onBack }) {
+  const { t } = useTranslation();
   const [byKey, setByKey] = useState(null); // null until seeded
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -80,7 +84,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
         tasks.push(api.saveComponent("caddy", p));
       }
       const results = await Promise.allSettled(tasks);
-      const failureMessage = describeFailures(targets, results);
+      const failureMessage = describeFailures(targets, results, t);
       if (failureMessage) {
         setError(failureMessage);
         return;
@@ -97,26 +101,24 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
       await api.saveStackSettings({ caddyEnabled: enabled });
       setCaddyEnabled(enabled);
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
     }
   }
 
   if (byKey === null || caddyEnabled === null) {
     return (
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white">External access</h2>
-        <p className="mt-5 text-sm text-slate-400">Loading…</p>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.access")}</h2>
+        <p className="mt-5 text-sm text-slate-400">{t("common.loading")}</p>
       </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">External access</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.access")}</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Completely optional. Allows you to reach the instances from outside your local network.
-        You're responsible for the DNS/routing part — this just tells each instance what 
-        its own externally-reachable address is.
+        {t("setup.access.intro")}
       </p>
 
       <div className="mt-5 flex flex-col gap-6">
@@ -129,7 +131,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
             >
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{instance.displayName}</h3>
               <label className="mt-3 flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Public base URL</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{fieldText(t, "instance", "publicBaseUrl", "label")}</span>
                 <input
                   className={FIELD}
                   value={values.publicBaseUrl}
@@ -148,9 +150,9 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="text-sm text-slate-700 dark:text-slate-300">
-                  Enable Discord bot
+                  {t("setup.access.discordEnable")}
                   {!values.publicBaseUrl.trim() && (
-                    <span className="ml-1 text-xs text-slate-400">(needs a public base URL first)</span>
+                    <span className="ml-1 text-xs text-slate-400">{t("setup.access.discordNeedsUrl")}</span>
                   )}
                 </span>
                 <OnOffToggle
@@ -163,23 +165,23 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
               {values.discordEnabled && (
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Bot token</span>
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{fieldText(t, "instance", "discordBotToken", "label")}</span>
                     <input
                       className={FIELD}
                       type="password"
                       value={values.discordBotToken}
-                      placeholder={values.discordBotTokenSet ? "••••••••  (unchanged)" : ""}
+                      placeholder={values.discordBotTokenSet ? t("common.unchanged") : ""}
                       onChange={(e) => patch(instance.key, { discordBotToken: e.target.value })}
                     />
                     <span className="text-[11px] text-slate-400 dark:text-slate-500">
                       {values.discordBotTokenSet
-                        ? "A token is set. Leave blank to keep it, or type a new one to replace it."
-                        : "Required to enable Discord."}
+                        ? t("setup.access.tokenSet")
+                        : t("setup.access.tokenRequired")}
                     </span>
                   </label>
                   <label className="flex flex-col gap-1.5">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      Admin role ID (optional)
+                      {t("setup.access.adminRole")}
                     </span>
                     <input
                       className={FIELD}
@@ -202,42 +204,37 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
 
       <div className="mt-6 border-t border-slate-200 pt-5 dark:border-slate-800">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-          Reach these URLs from your local network?
+          {t("setup.access.caddyTitle")}
         </h3>
         <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-          This is what Caddy is for. It redirects the URL you enter above to the right instance and port. 
-          Beware: you're still responsible for pointing that URL's DNS at this
-          host; you will most likely need your own DNS server for this (like AdGuard Home or Pi-hole).
+          {t("setup.access.caddyHelp")}
         </p>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="text-sm text-slate-700 dark:text-slate-300">Publish instances through Caddy</span>
+          <span className="text-sm text-slate-700 dark:text-slate-300">{t("setup.access.caddyPublish")}</span>
           <OnOffToggle value={caddyEnabled} onChange={toggleCaddy} />
         </div>
 
         {caddyEnabled && (
           <div className="mt-3">
             {caddyDraft === null ? (
-              <p className="text-sm text-slate-400">Loading…</p>
+              <p className="text-sm text-slate-400">{t("common.loading")}</p>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">HTTPS</span>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{fieldText(t, "caddy", "tlsMode", "label")}</span>
                   <div className="flex flex-wrap gap-2">
-                    {[
-                      { value: "internal", label: "Self-signed" },
-                      { value: "acme", label: "Automatic (ACME)" },
-                    ].map((mode) => (
+                    {["internal", "acme"].map((mode) => (
                       <button
-                        key={mode.value}
+                        key={mode}
                         type="button"
-                        onClick={() => patchCaddy({ tlsMode: mode.value })}
+                        onClick={() => patchCaddy({ tlsMode: mode })}
                         className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                          caddyDraft.tlsMode === mode.value
+                          caddyDraft.tlsMode === mode
                             ? "bg-accent-600 text-white"
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
-                        {mode.label}
+                        {fieldText(t, "caddy", "tlsMode", `options.${mode}`)}
                       </button>
                     ))}
                   </div>
@@ -245,7 +242,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
                 {caddyDraft.tlsMode === "acme" && (
                   <label className="flex flex-col gap-1.5">
                     <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      ACME contact email
+                      {fieldText(t, "caddy", "acmeEmail", "label")}
                     </span>
                     <input
                       className={FIELD}
@@ -263,7 +260,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
       <div className="mt-6 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
         {onBack && (
           <Button tone="ghost" onClick={onBack}>
-            Back
+            {t("common.back")}
           </Button>
         )}
         <div className="ml-auto">
@@ -273,7 +270,7 @@ export default function StepExternalAccess({ instances, onNext, onBack }) {
             loading={saving}
             disabled={saving || !caddyValid}
           >
-            Continue
+            {t("common.continue")}
           </Button>
         </div>
       </div>

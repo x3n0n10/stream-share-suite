@@ -12,6 +12,7 @@
 // projects declared fields, so they never reach the API either.
 
 import { randomUUID } from "node:crypto";
+import { SuiteError } from "../errors.js";
 import {
   getComponentValues,
   saveComponentValues,
@@ -53,7 +54,7 @@ export function provisionInstance(values) {
   const port = allocatePort();
 
   if (port === null) {
-    throw new Error("No ports left in the allocation band. Free one, or set this instance's port by hand.");
+    throw new SuiteError("no_ports_left", "No ports left in the allocation band. Free one, or set this instance's port by hand.");
   }
 
   const names = databaseNamesFor(key);
@@ -98,9 +99,9 @@ export async function deprovisionInstance(key, { dropData = false, log = () => {
   const labels = existing?.Config?.Labels || {};
 
   if (existing && isManaged(labels) && !belongsToAnotherSuite(labels)) {
-    log(`Stopping ${name}...`);
+    log(`Stopping ${name}...`, { code: "stopping", params: { name } });
     await stopContainer(existing.Id, { timeoutSeconds: 30 });
-    log(`Removing ${name}...`);
+    log(`Removing ${name}...`, { code: "removing", params: { name } });
     await removeContainer(existing.Id, { force: true });
   } else if (existing) {
     // Adopted, not ours to stop — the same invariant Adopt itself rests on.
@@ -108,25 +109,28 @@ export async function deprovisionInstance(key, { dropData = false, log = () => {
     // If dropData is also asked for, the drop below may fail while this is
     // still connected to it; there is no way around that without touching a
     // container the Suite was never allowed to touch.
-    log(
-      belongsToAnotherSuite(labels)
-        ? `${name} belongs to another Suite — leaving it running.`
-        : `${name} was not created by the Suite — leaving it running.`
-    );
+    if (belongsToAnotherSuite(labels)) {
+      log(`${name} belongs to another Suite — leaving it running.`, { code: "other_suite_running", params: { name } });
+    } else {
+      log(`${name} was not created by the Suite — leaving it running.`, { code: "unmanaged_running", params: { name } });
+    }
   }
 
   if (dropData && values._dbName) {
     const target = connectionTarget(getComponentValues("postgres"));
     if (!target.host) {
-      throw new Error("Cannot drop the database: no PostgreSQL server is configured.");
+      throw new SuiteError("no_postgres_server", "Cannot drop the database: no PostgreSQL server is configured.");
     }
     await dropDatabase(target, { database: values._dbName, user: values._dbUser }, { log });
   } else if (values._dbName) {
-    log(`Keeping database ${values._dbName}. Remove it yourself if you want it gone.`);
+    log(`Keeping database ${values._dbName}. Remove it yourself if you want it gone.`, {
+      code: "keeping_database",
+      params: { database: values._dbName },
+    });
   }
 
   deleteComponent("instance", key);
-  log(`Removed ${name} from the stack.`);
+  log(`Removed ${name} from the stack.`, { code: "removed_from_stack", params: { name } });
   return true;
 }
 
@@ -140,7 +144,8 @@ export async function prepareInstance(key, values, { log = () => {} } = {}) {
 
   const target = connectionTarget(getComponentValues("postgres"));
   if (!target.host) {
-    throw new Error(
+    throw new SuiteError(
+      "no_postgres_configured",
       "No PostgreSQL server is configured, so this instance has nowhere to store its data. Configure the database component first."
     );
   }

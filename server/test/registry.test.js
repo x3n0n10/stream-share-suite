@@ -347,7 +347,7 @@ test("validate enforces a field's pattern, with its message", () => {
   const schema = { fields: [{ key: "n", label: "Name", pattern: /^[a-z]+$/, patternMessage: "Letters only." }] };
 
   assert.deepEqual(validate(schema, { n: "abc" }), []);
-  assert.deepEqual(validate(schema, { n: "a b" }), [{ key: "n", message: "Letters only." }]);
+  assert.deepEqual(validate(schema, { n: "a b" }), [{ key: "n", code: "pattern", message: "Letters only." }]);
   assert.deepEqual(validate(schema, {}), [], "an empty optional field is not checked");
 });
 

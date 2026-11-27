@@ -8,11 +8,11 @@ export function moveItem(items, index, delta) {
   return next;
 }
 
-// Why an instance cannot be a fallback right now, or null when it can.
+// Why an instance cannot be a fallback right now (a fallbacks.reason.* key), or null when it can.
 // support is the /failover-support answer; null while it is still loading.
 export function unsupportedReason(key, support) {
   if (!support || support.supported.includes(key)) return null;
-  return support.unreachable.includes(key) ? "not running yet" : "needs a newer StreamShare version";
+  return support.unreachable.includes(key) ? "notRunning" : "needsNewer";
 }
 
 // Whether to keep rechecking support: while it loads, or while some other
@@ -34,7 +34,7 @@ export function fallbackChoices(instances, selfKey, selected, support) {
 
 // The amber line under a stream served through a fallback instance. live is
 // true on Overview (now playing), false on History (past tense).
-export function failoverNote({ via, via_channel }, live) {
-  if (via_channel) return live ? `Showing ${via}'s ${via_channel} instead` : `Used ${via}'s ${via_channel}`;
-  return live ? `Using ${via}'s connection` : `Used ${via}'s connection`;
+export function failoverNote({ via, via_channel }, live, t) {
+  const kind = `${live ? "live" : "past"}${via_channel ? "Channel" : "Connection"}`;
+  return t(`fallbacks.note.${kind}`, { via, channel: via_channel });
 }

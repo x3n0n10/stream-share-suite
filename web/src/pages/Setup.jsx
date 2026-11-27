@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout.jsx";
+import { useTranslation } from "react-i18next";
 import { api } from "../lib/api.js";
 import StepWelcome from "./setup/StepWelcome.jsx";
 import StepPortRange from "./setup/StepPortRange.jsx";
@@ -12,28 +13,18 @@ import StepVpn from "./setup/StepVpn.jsx";
 import StepHealthCheck from "./setup/StepHealthCheck.jsx";
 import StepDone from "./setup/StepDone.jsx";
 
-// Each step decides for itself where "next" goes (StepVpn skips
-// StepHealthCheck when the VPN is off), so this is a lookup by id rather
-// than a fixed-index array — see each step's own onNext call for the
-// sequencing decision that actually matters.
-const STEP_LABELS = {
-  portRange: "Port range",
-  instances: "Instances",
-  features: "Features",
-  database: "Database",
-  access: "External access",
-  vpn: "VPN",
-  health: "Health check",
-  done: "Done",
-};
+// Step ids in display order, for the progress bar only. Each step decides for
+// itself where "next" goes (StepVpn skips StepHealthCheck when the VPN is
+// off); see each step's own onNext call.
+const STEP_ORDER = ["portRange", "instances", "features", "database", "access", "vpn", "health", "done"];
 
 function Progress({ step }) {
-  const order = Object.keys(STEP_LABELS);
-  const current = order.indexOf(step);
+  const { t } = useTranslation();
+  const current = STEP_ORDER.indexOf(step);
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-2 px-1">
-      {order.map((id, i) => (
+      {STEP_ORDER.map((id, i) => (
         <div key={id} className="flex items-center gap-2">
           <span
             className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
@@ -51,9 +42,9 @@ function Progress({ step }) {
               i === current ? "font-medium text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"
             }`}
           >
-            {STEP_LABELS[id]}
+            {t(`setup.steps.${id}`)}
           </span>
-          {i < order.length - 1 && <span className="mx-1 h-px w-6 bg-slate-200 dark:bg-slate-800" />}
+          {i < STEP_ORDER.length - 1 && <span className="mx-1 h-px w-6 bg-slate-200 dark:bg-slate-800" />}
         </div>
       ))}
     </div>
@@ -61,9 +52,10 @@ function Progress({ step }) {
 }
 
 export default function Setup() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [step, setStep] = useState("welcome");
-  // The steps actually visited, in order — not a fixed prior-in-STEP_LABELS
+  // The steps actually visited, in order — not a fixed prior-in-display-order
   // lookup, because the sequence itself branches (StepVpn skips StepHealthCheck
   // when the VPN is off). Back has to retrace what really happened, not the
   // display order.
@@ -97,7 +89,7 @@ export default function Setup() {
   };
 
   return (
-    <Layout title="Setup wizard">
+    <Layout title={t("setup.title")}>
       <div className="mx-auto flex max-w-2xl flex-col gap-4">
         {step !== "welcome" && <Progress step={step} />}
 

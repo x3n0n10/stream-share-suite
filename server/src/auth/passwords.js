@@ -7,6 +7,7 @@
 
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
+import { SuiteError } from "../errors.js";
 
 const scryptAsync = promisify(scrypt);
 
@@ -61,10 +62,10 @@ export async function verifyPassword(password, stored) {
 // toward predictable substitutions without buying much.
 export function validatePassword(password) {
   if (typeof password !== "string" || password.length < 12) {
-    return "Password must be at least 12 characters.";
+    return new SuiteError("password_too_short", "Password must be at least 12 characters.", { min: 12 });
   }
   if (password.length > 200) {
-    return "Password must be at most 200 characters.";
+    return new SuiteError("password_too_long", "Password must be at most 200 characters.", { max: 200 });
   }
   return null;
 }

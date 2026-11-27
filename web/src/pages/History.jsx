@@ -1,16 +1,20 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import Layout from "../components/Layout.jsx";
 import HoursSelect from "../components/HoursSelect.jsx";
-import { Card, Badge, EmptyState, ErrorNote, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
+import { Card, Badge, EmptyState, ErrorNote, RefreshError, Skeleton, RefreshButton, PollStatus } from "../components/common.jsx";
 import { IconTag } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { usePolling } from "../lib/usePolling.js";
-import { formatDuration, formatDateTime, formatRelativeTime, titleCase } from "../lib/format.js";
+import { streamTypeText } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 import { isAliasableId } from "../lib/aliasing.js";
 import { failoverNote } from "../lib/failover.js";
 
 export default function History({ pollIntervalMs }) {
+  const { t } = useTranslation();
+  const { formatDuration, formatRelativeTime, formatDateTime } = useFormat();
   const [hours, setHours] = useState(24);
   const [search, setSearch] = useState("");
   const [relativeTime, setRelativeTime] = useState(
@@ -44,7 +48,7 @@ export default function History({ pollIntervalMs }) {
 
   return (
     <Layout
-      title="History"
+      title={t("nav.history")}
       headerExtra={
         <>
           <HoursSelect hours={hours} onChange={setHours} />
@@ -57,7 +61,7 @@ export default function History({ pollIntervalMs }) {
                   : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
             >
-              Date
+              {t("history.date")}
             </button>
             <button
               onClick={() => toggleWhenFormat(true)}
@@ -67,7 +71,7 @@ export default function History({ pollIntervalMs }) {
                   : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
               }`}
             >
-              Relative
+              {t("history.relative")}
             </button>
           </div>
           <RefreshButton onClick={refresh} />
@@ -77,7 +81,7 @@ export default function History({ pollIntervalMs }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <input
           type="search"
-          placeholder="Search user, title, instance…"
+          placeholder={t("history.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900"
@@ -85,7 +89,7 @@ export default function History({ pollIntervalMs }) {
         <PollStatus updatedAt={updatedAt} />
       </div>
 
-      {error && <ErrorNote message={`Refresh failed: ${error}`} />}
+      {error && <RefreshError error={error} />}
       {data?.errors?.length > 0 && (
         <div className="mt-2 space-y-1">
           {data.errors.map((e) => (
@@ -98,19 +102,19 @@ export default function History({ pollIntervalMs }) {
         {loading && !data ? (
           <Skeleton className="h-96" />
         ) : filtered.length === 0 ? (
-          <EmptyState title="No watch history" subtitle="Try a wider time range, or check back once someone starts watching." />
+          <EmptyState title={t("history.empty")} subtitle={t("history.emptyHint")} />
         ) : (
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b border-slate-100 bg-accent-50 text-left text-xs uppercase tracking-wide text-accent-700 dark:border-slate-800 dark:bg-accent-900/20 dark:text-accent-300">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Instance</th>
-                    <th className="px-4 py-2.5 font-medium">Type</th>
-                    <th className="px-4 py-2.5 font-medium">When</th>
-                    <th className="px-4 py-2.5 font-medium">User</th>
-                    <th className="px-4 py-2.5 font-medium">Title</th>
-                    <th className="px-4 py-2.5 font-medium">Duration</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.instance")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.type")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.when")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.user")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.title")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("common.duration")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 [&>tr:nth-child(even)]:bg-accent-50/50 dark:[&>tr:nth-child(even)]:bg-accent-900/10">
@@ -122,7 +126,7 @@ export default function History({ pollIntervalMs }) {
                         {e.instance_name}
                       </td>
                       <td className="px-4 py-2.5">
-                        <Badge tone="slate">{titleCase(e.stream_type)}</Badge>
+                        <Badge tone="slate">{streamTypeText(t, e.stream_type)}</Badge>
                       </td>
                       <td
                         className="whitespace-nowrap px-4 py-2.5 text-slate-500 dark:text-slate-400"
@@ -142,7 +146,7 @@ export default function History({ pollIntervalMs }) {
                         {isAliasableId(e.username, e.display_name) && (
                           <Link
                             to={`/aliases?ip=${encodeURIComponent(e.username)}`}
-                            title={`Add an alias for ${e.username}`}
+                            title={t("common.addAliasFor", { ip: e.username })}
                             className="ml-1.5 inline-flex items-center align-middle text-slate-400 hover:text-accent-600 dark:text-slate-500 dark:hover:text-accent-400"
                           >
                             <IconTag className="h-3 w-3" />
@@ -152,7 +156,7 @@ export default function History({ pollIntervalMs }) {
                       <td className="max-w-[16rem] px-4 py-2.5">
                         <p className="truncate">{e.stream_title}</p>
                         {e.via && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400">{failoverNote(e, false)}</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">{failoverNote(e, false, t)}</p>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400">

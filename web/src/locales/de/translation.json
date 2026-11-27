@@ -1,0 +1,1213 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "failedOn": "Fehlgeschlagen bei {{list}}",
+    "updated": "Aktualisiert {{when}}",
+    "loading": "Wird geladen…",
+    "refresh": "Aktualisieren",
+    "on": "An",
+    "off": "Aus",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "removeItem": "{{name}} entfernen",
+    "secretSet": "Gesetzt. Leer lassen, um es beizubehalten.",
+    "secretNotSet": "Nicht gesetzt.",
+    "unchanged": "••••••••  (unverändert)",
+    "tech": {
+      "audio": "Audio: {{list}}",
+      "subs": "Untertitel: {{list}}",
+      "subsCount": "Untertitel: {{count}}"
+    },
+    "hours": {
+      "last1": "Letzte Stunde",
+      "last24": "Letzte 24 Std.",
+      "last168": "Letzte 7 Tage",
+      "last720": "Letzte 30 Tage",
+      "all": "Gesamte Zeit"
+    },
+    "back": "Zurück",
+    "continue": "Weiter",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "refreshFailed": "Aktualisierung fehlgeschlagen: {{detail}}",
+    "online": "online",
+    "offline": "offline",
+    "unreachable": "Nicht erreichbar",
+    "instance": "Instanz",
+    "type": "Typ",
+    "title": "Titel",
+    "user": "Benutzer",
+    "since": "Seit",
+    "viewers": "Zuschauer",
+    "uptime": "Laufzeit",
+    "duration": "Dauer",
+    "when": "Wann",
+    "updatedCol": "Aktualisiert",
+    "addAliasFor": "Alias für {{ip}} hinzufügen",
+    "searchFailed": "Suche fehlgeschlagen: {{detail}}",
+    "streamType": {
+      "live": "Live",
+      "movie": "Film",
+      "series": "Serie",
+      "vod": "VOD"
+    },
+    "jobStatus": {
+      "running": "läuft",
+      "success": "erfolgreich",
+      "failed": "fehlgeschlagen"
+    },
+    "copy": "Kopieren",
+    "copied": "Kopiert"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "errors": {
+    "internal_error": "Interner Serverfehler",
+    "setup_required": "Einrichtung erforderlich",
+    "authentication_required": "Authentifizierung erforderlich",
+    "invalid_csrf": "Ungültiges oder fehlendes CSRF-Token",
+    "invalid_api_token": "Ungültiges API-Token",
+    "api_token_route_forbidden": "Diese Route ist mit einem API-Token nicht verfügbar",
+    "too_many_attempts_one": "Zu viele Anmeldeversuche. Versuche es in {{count}} Minute erneut.",
+    "too_many_attempts_other": "Zu viele Anmeldeversuche. Versuche es in {{count}} Minuten erneut.",
+    "password_too_short": "Das Passwort muss mindestens {{min}} Zeichen lang sein.",
+    "password_too_long": "Das Passwort darf höchstens {{max}} Zeichen lang sein.",
+    "setup_complete": "Die Einrichtung ist bereits abgeschlossen.",
+    "username_too_short": "Der Benutzername muss mindestens {{min}} Zeichen lang sein.",
+    "login_fields_required": "Benutzername und Passwort sind erforderlich.",
+    "bad_credentials": "Benutzername oder Passwort falsch.",
+    "current_password_incorrect": "Das aktuelle Passwort ist falsch.",
+    "backup_failed": "Sicherung fehlgeschlagen: {{detail}}",
+    "backup_download_failed": "Download der Sicherung fehlgeschlagen",
+    "no_file_uploaded": "Keine Datei hochgeladen.",
+    "not_sqlite": "Das sieht nicht nach einer SQLite-Datenbankdatei aus.",
+    "restore_failed": "Wiederherstellung fehlgeschlagen: {{detail}}",
+    "check_times_invalid": "Prüfzeiten müssen eine kommagetrennte Liste von HH:MM-Zeiten sein, z. B. 04:00,16:00.",
+    "max_reconnects_invalid": "Max. Wiederverbindungen muss eine ganze Zahl zwischen 1 und {{max}} sein.",
+    "unknown_job": "Unbekannter Job",
+    "unknown_instance": "Unbekannte Instanz",
+    "gluetun_not_configured": "Gluetun ist nicht konfiguriert (unter Einstellungen festlegen)",
+    "stream_id_required": "streamId ist erforderlich",
+    "ends_at_required": "endsAt ist erforderlich",
+    "ip_and_alias_required": "ipAddress und alias sind erforderlich",
+    "ip_required": "ipAddress ist erforderlich",
+    "shares_unsupported": "Diese Instanz unterstützt keine Freigabelinks. Aktualisiere sie auf ein neueres Image.",
+    "name_required": "Name ist erforderlich.",
+    "name_too_long": "Der Name darf höchstens {{max}} Zeichen lang sein.",
+    "title_required": "Titel ist erforderlich.",
+    "title_too_long": "Der Titel darf höchstens {{max}} Zeichen lang sein.",
+    "url_required": "URL ist erforderlich.",
+    "url_not_absolute": "Die URL muss absolut sein, z. B. http://example.com:8080",
+    "url_bad_scheme": "Die URL muss mit http:// oder https:// beginnen",
+    "api_key_required": "Ein API-Schlüssel ist erforderlich. Verwende den INTERNAL_API_KEY der Instanz.",
+    "order_not_array": "order muss ein Array von IDs sein",
+    "url_or_id_required": "url oder id ist erforderlich",
+    "unknown_kind": "Unbekannter Komponententyp: {{kind}}",
+    "apply_in_progress": "Eine andere Änderung wird noch angewendet. Warte, bis sie fertig ist.",
+    "versions_failed": "Versionen konnten nicht gelesen werden: {{detail}}",
+    "update_checks_off": "Automatische Update-Prüfungen sind aus. Schalte sie ein und speichere zuerst.",
+    "port_start_invalid": "Der Anfang des Instanz-Portbereichs muss eine ganze Zahl zwischen 1 und {{max}} sein.",
+    "instance_edit_route": "Bearbeite eine Instanz über /api/stack/instances/:key.",
+    "unknown_history_entry": "Unbekannter Verlaufseintrag",
+    "kind_not_active": "{{kind}} ist derzeit nicht Teil des Stacks",
+    "unknown_instance_key": "Unbekannte Instanz: {{key}}",
+    "xtream_only": "Nur eine Xtream-Instanz hat Anbieter-Zugangsdaten, die verwendet werden können.",
+    "no_database_host": "Es ist noch kein Datenbank-Host konfiguriert.",
+    "container_and_kind_required": "containerId und kind sind erforderlich",
+    "container_id_required": "containerId ist erforderlich",
+    "no_postgres_server": "Die Datenbank kann nicht gelöscht werden: Es ist kein PostgreSQL-Server konfiguriert.",
+    "remove_other_suite": "Entfernen von {{containerId}} verweigert: Er gehört zu einer anderen Suite ({{suite}}).",
+    "gluetun_already_configured": "gluetun ist bereits konfiguriert. Importiere erneut mit Überschreiben, um es zu ersetzen.",
+    "postgres_already_configured": "PostgreSQL ist bereits konfiguriert. Importiere erneut mit Überschreiben, um es zu ersetzen.",
+    "already_imported": "Dieser Container ist bereits als Instanz \"{{key}}\" importiert.",
+    "port_in_use": "Port {{port}} wird bereits von {{key}} verwendet — löse das zuerst.",
+    "container_not_found": "Kein Container für {{containerId}} gefunden.",
+    "container_already_managed": "Dieser Container wird bereits von der Suite verwaltet.",
+    "unknown_import_kind": "Unbekannte Importart: {{kind}}",
+    "no_ports_left": "Im Zuteilungsbereich sind keine Ports mehr frei. Gib einen frei oder lege den Port dieser Instanz von Hand fest.",
+    "no_postgres_configured": "Es ist kein PostgreSQL-Server konfiguriert, daher kann diese Instanz ihre Daten nirgends speichern. Konfiguriere zuerst die Datenbankkomponente.",
+    "port_range_too_small_one": "{{count}} Instanz liegt außerhalb des neuen Bereichs und dort sind nicht genug freie Plätze vorhanden ({{free}} verfügbar) — erweitere den Bereich oder entferne zuerst Instanzen.",
+    "port_range_too_small_other": "{{count}} Instanzen liegen außerhalb des neuen Bereichs und dort sind nicht genug freie Plätze vorhanden ({{free}} verfügbar) — erweitere den Bereich oder entferne zuerst Instanzen.",
+    "postgres_wait_timeout": "PostgreSQL unter {{describe}} hat innerhalb von {{seconds}} s keine Verbindungen angenommen: {{message}}",
+    "http_failed": "Anfrage an {{path}} fehlgeschlagen: HTTP {{status}}"
+  },
+  "validation": {
+    "required": "{{field}} ist erforderlich.",
+    "not_one_of": "{{field}} muss eines von diesen sein: {{options}}.",
+    "invalid": "{{field}} ist ungültig.",
+    "invalid_json": "{{field}} muss gültiges JSON sein.",
+    "port_in_use": "Port {{port}} wird bereits von {{instance}} verwendet."
+  },
+  "log": {
+    "error": "Fehler: {{message}}",
+    "plan_action": "Plan: {{action}}.",
+    "cache_folder_owned": "Den neuen Cache-Ordner {{path}} an {{owner}} übergeben.",
+    "cache_folder_failed": "Warnung: Der Cache-Ordner {{path}} konnte nicht vorbereitet werden: {{message}}",
+    "waiting_postgres": "Warte, bis PostgreSQL Verbindungen annimmt...",
+    "creating_role": "Datenbankrolle {{user}} wird erstellt...",
+    "role_exists": "Rolle {{user}} existiert bereits — ihr Passwort wird auf das gespeicherte aktualisiert.",
+    "creating_database": "Datenbank {{database}} wird erstellt...",
+    "database_exists": "Datenbank {{database}} existiert bereits — wird genau so belassen.",
+    "dropping_database": "Datenbank {{database}} wird gelöscht...",
+    "dropping_role": "Rolle {{user}} wird gelöscht...",
+    "done": "Fertig.",
+    "stopping": "{{name}} wird gestoppt...",
+    "removing": "{{name}} wird entfernt...",
+    "other_suite_running": "{{name}} gehört zu einer anderen Suite — läuft weiter.",
+    "unmanaged_running": "{{name}} wurde nicht von der Suite erstellt — läuft weiter.",
+    "keeping_database": "Datenbank {{database}} bleibt erhalten. Entferne sie selbst, wenn du sie loswerden willst.",
+    "removed_from_stack": "{{name}} aus dem Stack entfernt.",
+    "instance_status": "{{name}}: {{status}}",
+    "instance_status_detail": "{{name}}: {{status}} ({{detail}})",
+    "instance_unreachable": "{{name}}: nicht erreichbar ({{message}})",
+    "exit_ip": "Die Exit-IP ist jetzt {{address}}.",
+    "exit_ip_country": "Die Exit-IP ist jetzt {{address}} ({{country}}).",
+    "no_health_checks": "Keine Instanz hat Health-Checks aktiviert — nichts zu überwachen.",
+    "gluetun_not_configured": "Gluetun ist nicht konfiguriert — kann bei einem blockierten Anbieter nicht eingreifen.",
+    "all_reachable": "Der Anbieter jeder überwachten Instanz scheint erreichbar — nichts zu tun.",
+    "blocked_reconnecting_one": "Blockiert: {{names}}. Verbinde neu (bis zu {{count}} Versuch).",
+    "blocked_reconnecting_other": "Blockiert: {{names}}. Verbinde neu (bis zu {{count}} Versuche).",
+    "reconnect_attempt": "Wiederverbindungsversuch {{attempt}}/{{max}}...",
+    "reconnect_failed": "Wiederverbindung fehlgeschlagen: {{message}}",
+    "recovered_one": "Wiederhergestellt nach {{count}} Neuverbindung.",
+    "recovered_other": "Wiederhergestellt nach {{count}} Neuverbindungen.",
+    "still_blocked": "Weiterhin blockiert: {{names}}.",
+    "gave_up_one": "Aufgegeben nach {{count}} Neuverbindung; weiterhin blockiert: {{names}}.",
+    "gave_up_other": "Aufgegeben nach {{count}} Neuverbindungen; weiterhin blockiert: {{names}}.",
+    "skipped_incomplete": "{{label}} ist nicht vollständig konfiguriert — übersprungen.",
+    "orphan_left_alone": "{{name}} ist verwaist. Das Entfernen ist eine eigene Aktion — bleibt unverändert.",
+    "disabled_left_alone": "{{name}} gehört zu einer ausgeschalteten Komponente und wird nicht von der Suite verwaltet — wird in Ruhe gelassen.",
+    "already_matches": "{{name}} entspricht bereits der gewünschten Konfiguration.",
+    "adopting_existing": "Ein vorhandener Container namens „{{name}}“ gefunden, den diese Suite nicht erstellt hat — wird ohne Neuerstellung übernommen.",
+    "adopt_stays": "Er bleibt genau so, wie er ist, bis du die Suite ausdrücklich bittest, ihn zu übernehmen.",
+    "adopt_warning": "Warnung: {{warning}}",
+    "pulling": "{{image}} wird geladen...",
+    "taking_over": "„{{name}}“ wird übernommen: Der nicht verwaltete Container wird gestoppt und entfernt.",
+    "recreating_cascaded": "„{{name}}“ wird neu erstellt — {{host}} wurde ersetzt und hat seinen Netzwerk-Namespace mitgenommen.",
+    "recreating_stopped": "„{{name}}“ wird neu erstellt — er wurde außerhalb der Suite gestoppt.",
+    "recreating_pulled": "„{{name}}“ wird neu erstellt — ein neueres Image wurde geladen.",
+    "recreating_changed": "„{{name}}“ wird neu erstellt — Konfiguration geändert ({{from}} -> {{to}}).",
+    "stopping_current": "Der aktuelle Container wird gestoppt...",
+    "removing_it": "Wird entfernt...",
+    "creating": "„{{name}}“ wird erstellt...",
+    "joining_network": "Netzwerk „{{network}}“ wird beigetreten...",
+    "starting": "„{{name}}“ wird gestartet...",
+    "update_not_applicable": "{{label}}: {{reason}} — das Laden eines Images ist hier nicht anwendbar.",
+    "image_pulled": "Ein neueres Image für {{image}} wurde geladen.",
+    "image_up_to_date": "{{image}} ist bereits aktuell.",
+    "nothing_to_apply": "Nichts anzuwenden — der Stack entspricht bereits seiner Konfiguration.",
+    "gluetun_stopping_first": "Gluetun wurde gerade ausgeschaltet, läuft aber noch und belegt den Port jeder Instanz — wird zuerst gestoppt.",
+    "instance_stopping_for_port": "{{label}} läuft noch und belegt seinen eigenen Port — wird gestoppt, bevor {{gluetun}} zurückkommt.",
+    "step_progress": "[{{done}}/{{total}}] {{label}}",
+    "applied_changes_one": "{{count}} Änderung angewendet.",
+    "applied_changes_other": "{{count}} Änderungen angewendet."
+  },
+  "plan": {
+    "reason": {
+      "not_created_yet": "Es existiert noch kein Container namens {{name}}",
+      "running_before_suite": "Läuft seit vor der Suite — wird ohne Übernahme nie angefasst",
+      "other_suite": "Von einer anderen Suite erstellt ({{suite}}) — wird ohne Übernahme nie angefasst",
+      "stopped_outside": "Außerhalb der Suite gestoppt — wird wieder gestartet",
+      "matches_config": "Entspricht der gespeicherten Konfiguration",
+      "config_changed": "Die gespeicherte Konfiguration hat sich geändert",
+      "not_in_stack": "Die Suite hat dies erstellt, aber es ist nicht mehr Teil des Stacks",
+      "switched_off_running": "Ausgeschaltet, aber dieser Container läuft noch. Die Suite hat ihn nicht erstellt und lässt ihn in Ruhe.",
+      "not_configured": "Noch nicht konfiguriert — {{message}}",
+      "shares_namespace": "Teilt den Netzwerk-Namespace von {{host}}",
+      "newer_image_pulled": "Ein neueres Image wurde geladen"
+    },
+    "warning": {
+      "other_suite_prefix": "Dieser Container gehört zu einer anderen Suite auf diesem Host. Gib jeder Suite ihr eigenes SUITE_CONTAINER_PREFIX (und stelle sicher, dass kein containerName-Override auf denselben Namen zeigt), damit ihre Containernamen nicht kollidieren.",
+      "host_replaced": "{{host}} wird ersetzt, wodurch dieser Container getrennt wird. Die Suite fasst ihn nicht an — starte ihn danach neu oder übernimm ihn selbst."
+    }
+  },
+  "schema": {
+    "gluetun": {
+      "label": "Gluetun (VPN)",
+      "groups": {
+        "vpn": "VPN",
+        "serverSelection": "Serverauswahl",
+        "advanced": "Erweitert"
+      },
+      "fields": {
+        "vpnServiceProvider": {
+          "label": "VPN-Anbieter",
+          "help": "Die gluetun-Kennung deines VPN-Dienstes. Nicht aufgelistet? Gib sie trotzdem ein — gluetun kennt mehr Anbieter als hier stehen, und Zusätzliche Umgebungsvariablen (unten) deckt alles ab, was das Formular noch nicht abbildet."
+        },
+        "vpnType": {
+          "label": "VPN-Typ",
+          "options": {
+            "wireguard": "WireGuard",
+            "openvpn": "OpenVPN"
+          }
+        },
+        "wireguardPrivateKey": {
+          "label": "Privater WireGuard-Schlüssel"
+        },
+        "openvpnUser": {
+          "label": "OpenVPN-Benutzername"
+        },
+        "openvpnPassword": {
+          "label": "OpenVPN-Passwort"
+        },
+        "wireguardAddresses": {
+          "label": "WireGuard-Schnittstellenadresse",
+          "help": "Für Mullvad erforderlich: die CIDR-Adresse aus dem eigenen Konfigurationsgenerator von Mullvad — für jeden Mullvad-Server gleich und an deinen privaten Schlüssel gebunden. Die meisten anderen WireGuard-Anbieter leiten sie selbst ab und brauchen sie nicht."
+        },
+        "serverCountries": {
+          "label": "Serverländer",
+          "help": "z. B. Niederlande. Leer lassen, damit der Anbieter wählt."
+        },
+        "serverCategories": {
+          "label": "Serverkategorien",
+          "help": "z. B. P2P. Anbieterspezifisch — leer lassen, wenn deiner keine Kategorien nutzt."
+        },
+        "serverHostnames": {
+          "label": "Bevorzugte Server-Hostnamen",
+          "help": "Das ist die Liste, die ein VPN-Healer in einer späteren Phase durchlaufen würde."
+        },
+        "serverRegions": {
+          "label": "Serverregionen",
+          "help": "Private Internet Access identifiziert Server nach Region statt nach Land, z. B. us_east. Leer lassen, damit PIA wählt."
+        },
+        "blockMalicious": {
+          "label": "Schädliche Domains blockieren",
+          "options": {
+            "on": "An",
+            "off": "Aus"
+          }
+        },
+        "image": {
+          "label": "Image",
+          "help": "Jeder Tag von qmcgaw/gluetun. Nutze „Nach Updates suchen“ auf dieser Karte, um ihn zu laden und nur neu zu erstellen, wenn er sich wirklich geändert hat."
+        },
+        "containerName": {
+          "label": "Containername",
+          "help": "Standardmäßig das Container-Präfix der Suite gefolgt von gluetun (streamshare-suite-gluetun, sofern nicht überschrieben). Verweise auf einen Container, den du bereits betreibst, und die Suite übernimmt diesen, statt einen zweiten zu erstellen.",
+          "patternMessage": "Verwende nur Buchstaben, Ziffern, „_“, „.“ und „-“ und beginne mit einem Buchstaben oder einer Ziffer."
+        },
+        "networks": {
+          "label": "Beizutretende Docker-Netzwerke",
+          "help": "Namen vorhandener Docker-Netzwerke, z. B. vpnnet, ssbackend. Das erste wird zum primären Netzwerk des Containers. Standardmäßig das streamshare-Netzwerk, das die eigene Compose-Datei der Suite bereits deklariert — ändere das nur, um zusätzlich einem eigenen Stack beizutreten."
+        },
+        "extraEnv": {
+          "label": "Zusätzliche Umgebungsvariablen",
+          "help": "Ein KEY=VALUE pro Zeile, direkt an den Container übergeben. Für einen Anbieter, dessen Felder oben noch nicht abgebildet sind — nicht validiert, und ein oben benanntes Feld gewinnt immer, wenn es denselben Schlüssel setzt."
+        }
+      }
+    },
+    "postgres": {
+      "label": "PostgreSQL",
+      "groups": {
+        "database": "Datenbank",
+        "credentials": "Zugangsdaten",
+        "advanced": "Erweitert"
+      },
+      "fields": {
+        "mode": {
+          "label": "Wo es läuft",
+          "help": "Lass die Suite einen PostgreSQL-Container betreiben oder verweise auf einen vorhandenen Server.",
+          "options": {
+            "managed": "Von der Suite verwaltet",
+            "external": "Externer Server"
+          }
+        },
+        "host": {
+          "label": "Host",
+          "help": "Hostname oder Adresse, unter der die Instanzen (und die Suite) den Server erreichen. Der Port ist standardmäßig 5432 und wird unten unter Erweitert festgelegt."
+        },
+        "adminUser": {
+          "label": "Administrator-Benutzername",
+          "help": "Muss CREATE DATABASE und CREATE ROLE ausführen können. Bei einem verwalteten Server ist das der Superuser, mit dem er erstellt wird."
+        },
+        "adminPassword": {
+          "label": "Administrator-Passwort",
+          "help": "Erforderlich für einen von der Suite betriebenen Server — das postgres-Image startet ohne nicht. Optional für einen externen Server mit Trust- oder Peer-Authentifizierung."
+        },
+        "containerName": {
+          "label": "Containername",
+          "help": "Standardmäßig das Container-Präfix der Suite gefolgt von postgres (streamshare-suite-postgres, sofern nicht überschrieben). Verweise auf einen Container, den du bereits betreibst, und die Suite übernimmt diesen, statt einen zweiten zu erstellen.",
+          "patternMessage": "Verwende nur Buchstaben, Ziffern, „_“, „.“ und „-“ und beginne mit einem Buchstaben oder einer Ziffer."
+        },
+        "image": {
+          "label": "Image",
+          "help": "Jeder postgres-Tag. Eine Änderung erstellt den Container neu; das Datenverzeichnis wird nicht migriert, überschreite so also keine Hauptversion."
+        },
+        "networks": {
+          "label": "Beizutretende Docker-Netzwerke",
+          "help": "Muss das Netzwerk enthalten, über das deine Instanzen die Datenbank erreichen. Standardmäßig das streamshare-Netzwerk, das die eigene Compose-Datei der Suite bereits deklariert — ändere das nur, wenn deine Instanzen sie stattdessen über einen eigenen Stack erreichen müssen."
+        },
+        "port": {
+          "label": "Port"
+        }
+      }
+    },
+    "instance": {
+      "label": "StreamShare-Instanz",
+      "groups": {
+        "instance": "Instanz",
+        "provider": "Anbieter",
+        "access": "Zugriff",
+        "addressing": "Adressierung",
+        "discord": "Discord",
+        "caching": "Caching",
+        "nowPlaying": "Läuft gerade",
+        "healthCheck": "Health-Check",
+        "errorSlates": "Fehlerbildschirme",
+        "container": "Container",
+        "failover": "Failover"
+      },
+      "fields": {
+        "displayName": {
+          "label": "Name",
+          "help": "Wie dieser Anbieter im Dashboard erscheint, z. B. „Provider 1“."
+        },
+        "providerType": {
+          "label": "Playlist-Quelle",
+          "help": "Xtream schaltet VOD, Serien, EPG und Abostatus frei. Wähle M3U nur, wenn dein Anbieter keine Xtream-API bietet.",
+          "options": {
+            "xtream": "Xtream-API",
+            "m3u": "M3U-Playlist"
+          }
+        },
+        "xtreamBaseUrl": {
+          "label": "Xtream-Basis-URL",
+          "help": "Portaladresse und Port deines Anbieters, z. B. http://provider.example:8080"
+        },
+        "xtreamUser": {
+          "label": "Xtream-Benutzername"
+        },
+        "xtreamPassword": {
+          "label": "Xtream-Passwort"
+        },
+        "m3uUrl": {
+          "label": "M3U-URL",
+          "help": "Die URL der M3U-Playlist des Anbieters."
+        },
+        "authMode": {
+          "label": "Wie sich Benutzer anmelden",
+          "options": {
+            "basic": "Benutzername & Passwort",
+            "ldap": "LDAP"
+          }
+        },
+        "authUser": {
+          "label": "Benutzername"
+        },
+        "authPassword": {
+          "label": "Passwort"
+        },
+        "ldapServer": {
+          "label": "LDAP-Server",
+          "help": "z. B. ldap://ldap.example:389"
+        },
+        "ldapBaseDn": {
+          "label": "Base DN"
+        },
+        "ldapBindDn": {
+          "label": "Bind DN"
+        },
+        "ldapBindPassword": {
+          "label": "Bind-Passwort"
+        },
+        "ldapRequiredGroup": {
+          "label": "Erforderliche Gruppe",
+          "help": "Nur Mitglieder dieser Gruppe dürfen sich anmelden."
+        },
+        "publicBaseUrl": {
+          "label": "Öffentliche Basis-URL",
+          "help": "Die Adresse, unter der deine Player diese Instanz erreichen, z. B. https://tv.example.com/provider-1. Leer lassen, wenn sie nicht extern veröffentlicht ist."
+        },
+        "timezone": {
+          "label": "Zeitzone",
+          "help": "Muss zur Zeitzone deiner Player passen — Catchup hängt davon ab."
+        },
+        "discordEnabled": {
+          "label": "Discord-Bot aktivieren",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
+        },
+        "discordBotToken": {
+          "label": "Bot-Token"
+        },
+        "discordAdminRoleId": {
+          "label": "Admin-Rollen-ID",
+          "help": "Optional. Eine Discord-Rollen-ID, die Admin-Befehle des Bots erhält."
+        },
+        "vodCacheEnabled": {
+          "label": "VOD lokal cachen",
+          "help": "Speichert die VOD-Streams vorübergehend auf dem Docker-Host für schnelleren und unterbrechungsfreien Zugriff.",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
+        },
+        "catchupEnabled": {
+          "label": "Live-Kanäle für Catchup puffern",
+          "help": "Fügt jedem Kanal Catchup (Pause und Zurückspulen) hinzu, sofern der Anbieter es nicht schon bietet. Beginnt zu puffern, sobald ein Kanal zum ersten Mal angesehen wird, und behält die letzten Stunden davon.",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
+        },
+        "catchupDurationHours": {
+          "label": "Stunden Catchup, die behalten werden"
+        },
+        "catalogStorage": {
+          "label": "Anbieterkatalog speichern in",
+          "help": "Arbeitsspeicher ist am schnellsten, aber der RAM wächst mit dem Katalog des Anbieters (über 700 MB bei einem sehr großen). Festplatte braucht viel weniger RAM (etwa 90 MB) und im Cache-Ordner etwa das 2- bis 3-Fache der Katalogsgröße, bei etwas langsameren Suchen.",
+          "options": {
+            "memory": "Arbeitsspeicher",
+            "disk": "Festplatte"
+          }
+        },
+        "cachePath": {
+          "label": "Cache-Speicherort auf dem Host",
+          "help": "Wo der VOD-, Catchup- und Festplattenkatalog-Cache dieser Instanz auf dem Docker-Host liegt. Leer lassen, um einen Ordner im Datenverzeichnis der Suite zu verwenden, den die Suite für dich erstellt. Ein Cache kann zig Gigabyte groß werden, daher empfehlen wir einen eigenen Pfad auf einer fürs Caching gedachten Festplatte mit entsprechend freiem Platz. Existiert der Ordner noch nicht, erstellt ihn die Suite mit PUID/PGID aus der Compose-Datei der Suite als Besitzer. Ein vorhandener Ordner mit Dateien darin oder mit einem anderen Besitzer als root behält seinen Besitzer und muss daher für diesen Benutzer beschreibbar sein."
+        },
+        "streamTechProbeEnabled": {
+          "label": "Stream-Details anzeigen",
+          "help": "Zeigt die Video-, Audio- und Untertitelspuren jedes Streams unter „Läuft gerade“ in der Übersicht. Benötigt keine zusätzliche Anbieterverbindung.",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
+        },
+        "healthCheckEnabled": {
+          "label": "Anbieter dieser Instanz überwachen",
+          "help": "Lässt den VPN-Watchdog (siehe VPN-Seite) den Tunnel neu verbinden, wenn der Anbieter dieser Instanz die aktuelle Exit-IP blockiert.",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
+        },
+        "healthCheckStreamId": {
+          "label": "Prüfkanal-ID",
+          "help": "Eine Live-Kanal-ID deines Anbieters (wie in einer Stream-URL), die die Instanz regelmäßig abruft, um festzustellen, ob der Anbieter diese Exit-IP blockiert. Gib einen Kanalnamen zum Suchen ein oder direkt die ID."
+        },
+        "healthCheckBlockedCodes": {
+          "label": "Statuscodes, die eine Sperre anzeigen",
+          "help": "HTTP-Statuscodes, die dein Anbieter zurückgibt, wenn er diese Exit-IP blockiert. Standardmäßig 456 (die gängige Xtream-Konvention), wenn leer."
+        },
+        "errorSlateEnabled": {
+          "label": "Fehlerbildschirme anzeigen",
+          "help": "Streamt einen synthetischen Fehlerbildschirm an Zuschauer, statt direkt zu scheitern, wenn der Upstream-Anbieter einen Fehler meldet.",
+          "options": {
+            "true": "An",
+            "false": "Aus"
+          }
+        },
+        "errorSlateMessages": {
+          "label": "Eigene Meldungen",
+          "help": "Überschreibe die Standardmeldung für einen numerischen HTTP-Statuscode oder für einen Fehler auf Verbindungsebene ohne eigenen Statuscode: UNREACHABLE, TIMEOUT, DNS oder TLS; oder NO_RECORDING für Catchup ohne Aufnahme zum angefragten Zeitpunkt, oder IN_USE, wenn alle Verbindungen von anderen Zuschauern belegt sind. Lass einen Code weg, um seinen Standard zu behalten."
+        },
+        "errorSlateRetryMaxMinutes": {
+          "label": "Wiederholen für (Minuten)",
+          "help": "Wie lange hinter dem Bildschirm weiter versucht wird, den Upstream-Anbieter zu erreichen, bevor diese Anfrage aufgegeben wird."
+        },
+        "image": {
+          "label": "Image",
+          "help": "Nutze „Nach Updates suchen“ bei dieser Instanz, um diesen Tag zu laden und nur neu zu erstellen, wenn er sich wirklich geändert hat."
+        },
+        "containerName": {
+          "label": "Containername",
+          "help": "Standardmäßig das Container-Präfix der Suite gefolgt vom Slug dieser Instanz — siehe die Vorschau über der Schaltfläche Erstellen. Verweise auf einen Container, den du bereits betreibst, und die Suite übernimmt diesen, statt einen zweiten zu erstellen.",
+          "patternMessage": "Verwende nur Buchstaben, Ziffern, „_“, „.“ und „-“ und beginne mit einem Buchstaben oder einer Ziffer."
+        },
+        "port": {
+          "label": "Port",
+          "help": "Wird automatisch aus dem unter Stack festgelegten Instanz-Portbereich vergeben. Ändere ihn nur, wenn auf diesem Host bereits etwas anderes den vergebenen Port nutzt."
+        },
+        "fallbacks": {
+          "label": "Fallback-Instanzen",
+          "help": "Wenn ein Live-Kanal auf dieser Instanz nicht starten kann (ihr Anbieter fällt aus oder alle Verbindungen sind von anderen Zuschauern belegt), probiere diese Instanzen der Reihe nach. Jede liefert den Kanal nur, solange sie eine freie eigene Anbieterverbindung hat."
+        },
+        "extraEnv": {
+          "label": "Zusätzliche Umgebungsvariablen",
+          "help": "Ein KEY=VALUE pro Zeile, direkt an den Container übergeben — für jede stream-share-Einstellung, die oben nicht abgebildet ist. Nicht validiert, und ein Feld oben gewinnt immer, wenn es denselben Schlüssel setzt."
+        }
+      }
+    },
+    "caddy": {
+      "label": "Caddy (Reverse-Proxy)",
+      "groups": {
+        "https": "HTTPS",
+        "dnsChallenge": "DNS-Challenge",
+        "dashboard": "Dashboard",
+        "container": "Container"
+      },
+      "fields": {
+        "tlsMode": {
+          "label": "HTTPS",
+          "help": "„Selbstsigniert“ stellt ein Zertifikat von Caddys eigener interner CA aus — Browser warnen einmal, in einem privaten Netzwerk in Ordnung. „Automatisch (ACME)“ holt pro Hostname ein echtes, vertrauenswürdiges Zertifikat, braucht aber aus dem Internet erreichbare Ports 80 und 443 und DNS-Einträge, die bereits hierher zeigen. „Automatisch (DNS-Challenge)“ holt dieselbe Art Zertifikat, indem die Domain-Inhaberschaft über die API deines DNS-Anbieters nachgewiesen wird, es sind also keine eingehenden Ports nötig. Caddy fügt das Plugin deines Anbieters beim Start selbst hinzu.",
+          "options": {
+            "internal": "Selbstsigniert",
+            "acme": "Automatisch (ACME)",
+            "dns": "Automatisch (DNS-Challenge)"
+          }
+        },
+        "acmeEmail": {
+          "label": "ACME-Kontakt-E-Mail",
+          "help": "Wird nur für Ablaufbenachrichtigungen an deine Zertifizierungsstelle gesendet — nirgends veröffentlicht.",
+          "patternMessage": "Gib eine einfache E-Mail-Adresse ein."
+        },
+        "dnsModule": {
+          "label": "Caddy-Modul",
+          "help": "Das Go-Paket des Caddy-Plugins deines Anbieters, auf eine exakte Version festgelegt — z. B. github.com/caddy-dns/hetzner@v2.0.1 oder github.com/caddy-dns/cloudflare@v0.2.4. Ohne festgelegte Version kann Caddys add-package statt des neuesten Releases den unveröffentlichten Branch des Moduls bauen. Siehe caddyserver.com/download für die vollständige Paketliste."
+        },
+        "dnsDirective": {
+          "label": "Direktive",
+          "help": "Alles nach `dns` im tls-Block der Site, z. B. `hetzner {env.HETZNER_API_TOKEN}` oder `cloudflare {env.CLOUDFLARE_API_TOKEN}`. Verweise auf Zugangsdaten als {env.NAME} — unten erscheint für jede ein passendes Feld zum Ausfüllen."
+        },
+        "dnsEnv": {
+          "label": "Umgebungsvariablen des Anbieters",
+          "help": "Wird automatisch aus den {env.NAME}-Namen in der Direktive oben befüllt. Nur schreibbar gespeichert und an die Umgebung des Caddy-Containers übergeben; nie in die Caddyfile geschrieben."
+        },
+        "dnsPropagationDelay": {
+          "label": "Propagierungsverzögerung",
+          "help": "Optional. Wie lange nach dem Anlegen des DNS-Eintrags gewartet wird, bevor die CA ihn prüfen soll, z. B. 30s. Langsame DNS-Anbieter brauchen das manchmal. Leer lassen für Caddys Standard."
+        },
+        "dashboardUrl": {
+          "label": "Öffentliche Dashboard-URL",
+          "help": "Optional. Die Adresse, unter der dieses Dashboard von außen erreicht wird, z. B. https://suite.example.com. Nur der Hostname (und ggf. der Port) wird verwendet — gib ihr einen eigenen Hostnamen statt eines Pfads. Leer lassen, um das Dashboard unveröffentlicht zu lassen. Die Suite muss in einem Docker-Netzwerk sein, dem Caddy beitritt (das Standard-streamshare-Netzwerk deckt das ab). Die Veröffentlichung stellt die Anmeldeseite ins Internet: Sie hat eine echte Anmeldung, CSRF-Schutz und gedrosselte Anmeldeversuche, aber diese Angriffsfläche liegt dann bei dir."
+        },
+        "networks": {
+          "label": "Beizutretende Docker-Netzwerke",
+          "help": "Muss jedes Netzwerk enthalten, in dem gluetun und deine Instanzen erreichbar sind. Standardmäßig das streamshare-Netzwerk, das die eigene Compose-Datei der Suite bereits deklariert."
+        },
+        "httpPort": {
+          "label": "HTTP-Port",
+          "help": "Der Host-Port, auf dem Caddy einfaches HTTP beantwortet (und von dem er im ACME-Modus auf HTTPS umleitet)."
+        },
+        "httpsPort": {
+          "label": "HTTPS-Port"
+        },
+        "image": {
+          "label": "Image",
+          "help": "Jeder Caddy-2-Tag. Im DNS-Challenge-Modus fügt Caddy das Plugin deines Anbieters beim Start selbst hinzu (ein Image, das es bereits enthält, überspringt den Download); das Image darf dann keinen eigenen ENTRYPOINT setzen."
+        },
+        "containerName": {
+          "label": "Containername",
+          "help": "Standardmäßig das Container-Präfix der Suite gefolgt von caddy (streamshare-suite-caddy, sofern nicht überschrieben). Verweise auf einen Container, den du bereits betreibst, und die Suite übernimmt diesen, statt einen zweiten zu erstellen.",
+          "patternMessage": "Verwende nur Buchstaben, Ziffern, „_“, „.“ und „-“ und beginne mit einem Buchstaben oder einer Ziffer."
+        },
+        "extraCaddyfile": {
+          "label": "Zusätzliche Caddyfile",
+          "help": "Roher Caddyfile-Text, der nach jedem generierten Site-Block angehängt wird — für alles, was die Suite nicht für dich rendert, etwa eine Route zu etwas, das sie nicht verwaltet. Im JSON-Format."
+        }
+      }
+    }
+  },
+  "catalog": {
+    "gluetun": {
+      "label": "Gluetun (VPN)",
+      "description": "Der VPN-Tunnel. Wenn aktiviert, teilen alle StreamShare-Instanzen seinen Netzwerk-Namespace und werden darüber veröffentlicht; ihn zu ersetzen reißt sie also kurz mit. Wenn deaktiviert, bekommt jeder Container ein eigenes Netzwerk und veröffentlicht seinen eigenen Port."
+    },
+    "postgres": {
+      "label": "PostgreSQL",
+      "description": "Wo jede Instanz ihren Verlauf, VOD-Index und ihre Aliase speichert. Jede Instanz bekommt eine eigene Datenbank, statt eine zu teilen."
+    },
+    "instance": {
+      "label": "StreamShare-Instanz",
+      "description": "Ein IPTV-Anbieter, geteilt mit deinen Benutzern."
+    },
+    "caddy": {
+      "label": "Caddy (Reverse-Proxy)",
+      "description": "Veröffentlicht jede Instanz mit öffentlicher Basis-URL unter einem echten Hostnamen, mit automatisch erledigtem HTTPS."
+    }
+  },
+  "nav": {
+    "overview": "Übersicht",
+    "users": "Benutzer",
+    "history": "Verlauf",
+    "leaderboard": "Bestenliste",
+    "instances": "Instanzen",
+    "vod": "VOD-Suche",
+    "shares": "Freigabelinks",
+    "aliases": "Aliase",
+    "vpn": "VPN",
+    "setup": "Einrichtungsassistent",
+    "stack": "Stack",
+    "settings": "Einstellungen",
+    "activeStreams": "aktive Streams",
+    "signOut": "Abmelden",
+    "signOutTitle": "Abmelden?",
+    "signOutBody": "Du musst dich erneut anmelden, um wieder hineinzukommen.",
+    "expandSidebar": "Seitenleiste ausklappen",
+    "collapseSidebar": "Seitenleiste einklappen",
+    "collapse": "Einklappen",
+    "toggleTheme": "Design wechseln"
+  },
+  "signIn": {
+    "createTitle": "Erstelle dein Admin-Konto",
+    "signInTitle": "Anmelden",
+    "createIntro": "Das ist das einzige Konto. Nichts anderes funktioniert, bis es existiert.",
+    "signInIntro": "Gib deine Zugangsdaten ein, um fortzufahren.",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "passwordHint": "Mindestens 12 Zeichen. Es gibt keine Wiederherstellung — bewahre es sicher auf.",
+    "confirmPassword": "Passwort bestätigen",
+    "mismatch": "Die beiden Passwörter stimmen nicht überein.",
+    "createAccount": "Konto erstellen"
+  },
+  "schemaForm": {
+    "advanced": "Erweitert"
+  },
+  "subscription": {
+    "title": "Abo",
+    "providerTitle": "Anbieter-Abo",
+    "trial": "Testphase",
+    "status": {
+      "rejected": "Abgelehnt",
+      "expired": "Abgelaufen",
+      "inactive": "Inaktiv",
+      "active": "Aktiv"
+    },
+    "rejectedNote": "Der Anbieter lehnt die Zugangsdaten dieser Instanz ab",
+    "expiry": {
+      "expired": "Abgelaufen",
+      "expiredAgo": "Abgelaufen {{when}}",
+      "none": "Kein Ablaufdatum",
+      "on": "Läuft ab {{date}}",
+      "today": "Läuft heute ab ({{date}})",
+      "daysLeft_one": "Noch {{count}} Tag ({{date}})",
+      "daysLeft_other": "Noch {{count}} Tage ({{date}})"
+    },
+    "expiryParts": {
+      "none": "Kein Ablauf",
+      "today": "Heute",
+      "daysLeft_one": "Noch {{count}} Tag",
+      "daysLeft_other": "Noch {{count}} Tage"
+    },
+    "connections": {
+      "ofMax_one": "{{used}} von {{count}} Verbindung belegt",
+      "ofMax_other": "{{used}} von {{count}} Verbindungen belegt",
+      "noMax_one": "{{count}} Verbindung belegt",
+      "noMax_other": "{{count}} Verbindungen belegt",
+      "withHere": "{{total}} · {{here}} hier",
+      "meter": "Belegte Anbieterverbindungen",
+      "usedOfMax": "{{used}} von {{max}}",
+      "fromInstance": "{{here}} von dieser Instanz"
+    },
+    "checkedTitle": "Anbietersumme gelesen {{when}}; „hier“ ist live",
+    "lastRead": "Zuletzt gelesen {{when}}",
+    "lastReadError": "Zuletzt gelesen {{when}} — {{error}}",
+    "lastGood": "Zeigt die letzte erfolgreiche Abfrage",
+    "lastGoodError": "Zeigt die letzte erfolgreiche Abfrage — Aktualisierung fehlgeschlagen: {{error}}",
+    "facts": {
+      "expires": "Läuft ab",
+      "connections": "Verbindungen",
+      "checked": "Geprüft"
+    }
+  },
+  "channelSearch": {
+    "selected": "Ausgewählt: {{caption}}"
+  },
+  "directiveEnv": {
+    "hint": "Verweise oben in der Direktive als {{ref}} auf eine Zugangsangabe, um hier ein Feld dafür zu erhalten."
+  },
+  "errorSlates": {
+    "empty": "Keine Überschreibungen — jeder Code zeigt seine Standardmeldung.",
+    "code": "Code",
+    "codePlaceholder": "404, UNREACHABLE",
+    "meaning": "Bedeutung (optional)",
+    "meaningPlaceholder": "Kanalproblem",
+    "message": "Meldung für Zuschauer",
+    "messagePlaceholder": "Diesen Kanal gibt es nicht mehr.",
+    "addEntry": "+ Eintrag hinzufügen"
+  },
+  "fallbacks": {
+    "group": "Fallback-Instanzen",
+    "removed": "{{key}} (entfernt)",
+    "moveUp": "{{name}} nach oben",
+    "moveDown": "{{name}} nach unten",
+    "loadFailed": "Instanzen konnten nicht geladen werden",
+    "loadFailedDetail": "Instanzen konnten nicht geladen werden: {{detail}}",
+    "addLabel": "Fallback-Instanz hinzufügen",
+    "add": "Fallback hinzufügen…",
+    "none": "Keine Instanz zum Hinzufügen",
+    "noneYet": "Noch keine Instanz zum Hinzufügen",
+    "reason": {
+      "notRunning": "läuft noch nicht",
+      "needsNewer": "braucht eine neuere StreamShare-Version"
+    },
+    "note": {
+      "liveChannel": "Zeigt stattdessen {{channel}} von {{via}}",
+      "liveConnection": "Nutzt die Verbindung von {{via}}",
+      "pastChannel": "{{channel}} von {{via}} genutzt",
+      "pastConnection": "Verbindung von {{via}} genutzt"
+    }
+  },
+  "list": {
+    "addTime": "+ Zeit hinzufügen",
+    "addPlaceholder": "Hinzufügen…"
+  },
+  "providerCombobox": {
+    "placeholder": "Zum Suchen tippen…"
+  },
+  "providerCredentials": {
+    "button": "Anbieter-Zugangsdaten verwenden",
+    "needXtream": "Gib zuerst Xtream-Benutzername und -Passwort ein",
+    "confirmTitle": "Anbieter-Zugangsdaten verwenden?",
+    "confirmBody": "Setzt die Anmeldung dieser Instanz sofort auf denselben Benutzernamen und dasselbe Passwort wie ihr Xtream-Anbieterkonto, du musst danach nicht auf Speichern klicken. Ein eigener Benutzername/ein eigenes Passwort funktioniert sofort nicht mehr."
+  },
+  "versions": {
+    "stopped": "gestoppt",
+    "unknown": "unbekannt",
+    "image": "Image {{version}}",
+    "running": "läuft",
+    "notRunning": "läuft nicht",
+    "updateAvailable": "Update verfügbar",
+    "updateAvailableVersion": "Update verfügbar: {{latest}}",
+    "suite": "Suite"
+  },
+  "setup": {
+    "steps": {
+      "portRange": "Portbereich",
+      "instances": "Instanzen",
+      "features": "Funktionen",
+      "database": "Datenbank",
+      "access": "Externer Zugriff",
+      "vpn": "VPN",
+      "health": "Health-Check",
+      "done": "Fertig"
+    },
+    "title": "Einrichtungsassistent",
+    "welcome": {
+      "highlights": {
+        "instances": "Füge deine IPTV-Anbieter als Instanzen hinzu — jede bekommt einen eigenen Container, eine eigene Datenbank und einen eigenen API-Schlüssel, für dich eingerichtet.",
+        "caching": "Aktiviere VOD-Caching und Catchup-Pufferung, pro Instanz.",
+        "external": "Mache eine Instanz von außerhalb deines Netzwerks erreichbar, auf Wunsch mit automatisch erledigtem HTTPS.",
+        "vpn": "Leite alles über ein VPN, geteilt von allen Instanzen.",
+        "health": "Überwache den Zustand der Instanzen und lass das VPN sich selbst neu verbinden, wenn ein Anbieter es blockiert."
+      },
+      "title": "Willkommen",
+      "intro": "In wenigen kurzen Schritten ist StreamShare Suite vollständig konfiguriert. Beantworte, was du weißt; alles, was du leer lässt, behält einen sinnvollen Standardwert, und alles hier lässt sich später in den Einstellungen oder auf der Stack-Seite wieder ändern. Keine Sorge, es wird nichts geändert oder erstellt, bis du am Ende der Einrichtung auf der Stack-Seite auf „Anwenden“ klickst.",
+      "start": "Los geht's!"
+    },
+    "done": {
+      "title": "Alles eingerichtet!",
+      "body": "Keine Sorge, es wird noch nichts tatsächlich angewendet. Prüfe die Einrichtung im Stack-Plan und klicke auf Anwenden, wenn du zufrieden bist. Du kannst jederzeit alles auf der Stack-Seite ändern oder den Assistenten einfach erneut durchlaufen.",
+      "review": "Stack-Plan prüfen"
+    },
+    "database": {
+      "intro": "Wo jede Instanz Dinge wie Verlauf, VOD-Index und Aliase speichert. Jede Instanz bekommt eine eigene, automatisch erstellte Datenbank."
+    },
+    "portRange": {
+      "title": "Instanz-Portbereich",
+      "intro": "Beginnen wir mit einem Portbereich. Jede Instanz bekommt einen eigenen Port, vergeben aus einem Block von 20 ab hier. Nur sinnvoll zu ändern, wenn dieser Bereich auf dem Host schon anderweitig belegt ist."
+    },
+    "vpn": {
+      "title": "Datenverkehr über ein VPN leiten?",
+      "intro": "Empfohlen, wenn dein Anbieter den Zugriff nach Standort oder IP einschränkt. StreamShare Suite richtet dafür eine Gluetun-Instanz ein. Jede Instanz teilt sich diesen Tunnel. Du brauchst wahrscheinlich ein Konto bei einem unterstützten VPN-Anbieter. Mehr dazu liest du <wiki>hier</wiki>.",
+      "use": "Ein VPN verwenden",
+      "gluetunHelp": "Der Tunnel, über den der Datenverkehr jeder Instanz läuft."
+    },
+    "features": {
+      "intro": "Besondere Funktionen von StreamShare. Hier richtest du Dinge wie Caching und Pufferung ein. Der Ordner unten ist der Ort, an dem eine Instanz ihre temporären Dateien ablegt: VOD-Cache und Catchup-Puffer.",
+      "helper": "<i>Hilfe</i>: Du kannst hier einen übergeordneten Ordner auf dem Docker-Host angeben, der dann als übergeordneter Ordner für die Instanzen unten dient. Betroffen sind nur Instanzen, für die noch kein Dateipfad gesetzt ist. Unterordner werden automatisch angehängt.",
+      "pathNote": "Lass die Pfade unten leer, um jeden Cache im eigenen Datenordner der Suite zu halten. Caches können zig Gigabyte groß werden, daher empfehlen wir einen absoluten Pfad auf einer fürs Caching gedachten Festplatte mit entsprechend freiem Platz. Existiert der Ordner noch nicht, erstellt ihn die Suite für die PUID/PGID, unter der die Suite läuft. Ein vorhandener Ordner behält seinen Besitzer und muss daher für diesen Benutzer beschreibbar sein.",
+      "vodCache": "VOD lokal cachen",
+      "catchup": "Live-Kanäle für Catchup puffern",
+      "catchupHours": "Stunden Catchup, die behalten werden",
+      "cachePath": "Speicherort temporärer Dateien auf diesem Host",
+      "cachePathPlaceholder": "Leer: der Datenordner der Suite"
+    },
+    "health": {
+      "intro": "Optional. Lässt den VPN-Watchdog den Tunnel neu verbinden, wenn ein Anbieter die aktuelle Exit-IP blockiert — wähle, welche Instanzen berücksichtigt werden.",
+      "probeTitle": "Prüfkanal pro Instanz",
+      "probeHelp": "Damit der Health-Check funktioniert, musst du für jede Instanz einen Prüfkanal angeben. Dieser Kanal wird synthetisch „angesehen“, um zu prüfen, ob er erreichbar ist. Gib einen Kanalnamen zum Suchen ein und wähle ein Ergebnis, oder gib direkt eine Stream-ID ein, falls du sie schon kennst.",
+      "streamId": "{{name}} — Stream-ID",
+      "checkTimes": "Prüfzeiten (lokal) — meist reichen zweimal täglich. Wähle Zeiten, die normalerweise außerhalb deiner eigenen Sehzeiten liegen, damit der Health-Check dich beim Schauen nicht stört.",
+      "checkTimesLabel": "Prüfzeiten",
+      "skip": "Überspringen"
+    },
+    "access": {
+      "intro": "Völlig optional. Ermöglicht dir, die Instanzen von außerhalb deines lokalen Netzwerks zu erreichen. Für den DNS-/Routing-Teil bist du selbst zuständig — das hier teilt jeder Instanz nur ihre eigene von außen erreichbare Adresse mit.",
+      "discordEnable": "Discord-Bot aktivieren",
+      "discordNeedsUrl": "(braucht zuerst eine öffentliche Basis-URL)",
+      "tokenSet": "Ein Token ist gesetzt. Leer lassen, um es zu behalten, oder ein neues eingeben, um es zu ersetzen.",
+      "tokenRequired": "Zum Aktivieren von Discord erforderlich.",
+      "adminRole": "Admin-Rollen-ID (optional)",
+      "caddyTitle": "Diese URLs aus deinem lokalen Netzwerk erreichen?",
+      "caddyHelp": "Dafür ist Caddy da. Er leitet die oben eingegebene URL an die richtige Instanz und den richtigen Port weiter. Achtung: Du musst weiterhin selbst den DNS dieser URL auf diesen Host zeigen lassen; dafür brauchst du höchstwahrscheinlich einen eigenen DNS-Server (wie AdGuard Home oder Pi-hole).",
+      "caddyPublish": "Instanzen über Caddy veröffentlichen"
+    },
+    "instances": {
+      "accessModes": {
+        "provider": {
+          "label": "Meine Anbieter-Zugangsdaten verwenden",
+          "help": "Einfachste Option — alle melden sich mit demselben oben eingegebenen Xtream-Benutzernamen und -Passwort an."
+        },
+        "custom": {
+          "label": "Eigene Zugangsdaten festlegen",
+          "help": "Ein eigener Benutzername und ein eigenes Passwort, getrennt von denen deines Anbieters, zum Verbinden, ohne die echten weiterzugeben."
+        },
+        "ldap": {
+          "label": "LDAP verwenden",
+          "help": "Stattdessen an einem vorhandenen Verzeichnisserver anmelden — um Zugriff pro Benutzer zu vergeben."
+        }
+      },
+      "providerTypes": {
+        "xtream": {
+          "help": "Schaltet VOD, Serien, EPG und Abostatus frei. Nutze dies, wenn dein Anbieter eine Xtream-API bietet — die meisten tun das."
+        },
+        "m3u": {
+          "help": "Nur ein Playlist-Link, keine Xtream-API. Live-Kanäle funktionieren; kein VOD/Serien/EPG oder Abostatus."
+        }
+      },
+      "recommendedOption": "{{label}} (empfohlen)",
+      "title": "Deine Instanzen",
+      "intro": "Jetzt richten wir eine StreamShare-Instanz ein, eine pro IPTV-Anbieter. Mindestens eine ist erforderlich. Zum Entfernen einer Instanz nutze stattdessen die Stack-Seite — hier ist das nicht möglich, aus Gründen.",
+      "containerName": "Containername: {{name}}",
+      "port": "Port: {{port}}",
+      "saveChanges": "Änderungen speichern",
+      "addAnother": "+ Weitere Instanz hinzufügen",
+      "fields": {
+        "m3uUrl": "URL der M3U-Playlist"
+      },
+      "hints": {
+        "xtreamBaseUrl": "z. B. http://provider.example:8080",
+        "m3uUrl": "z. B. http://provider.example/get.php?username=u&password=p&type=m3u_plus&output=m3u8"
+      },
+      "signIn": "Wie sich Benutzer anmelden",
+      "add": "Instanz hinzufügen",
+      "addOne": "Füge mindestens eine Instanz hinzu, um fortzufahren",
+      "continueWith_one": "Weiter mit {{count}} Instanz",
+      "continueWith_other": "Weiter mit {{count}} Instanzen"
+    }
+  },
+  "stack": {
+    "tabs": {
+      "instances": "Instanzen",
+      "components": "Komponenten",
+      "import": "Import",
+      "plan": "Plan"
+    },
+    "pendingChanges": "Ausstehende Änderungen",
+    "dockerUnreachable": "Der Docker-Socket-Proxy ist nicht erreichbar. Setze DOCKER_PROXY_URL oder prüfe, ob der Dienst docker-socket-proxy läuft und erreichbar ist.",
+    "card": {
+      "notInStack": "Nicht im Stack",
+      "checkUpdates": "Nach Updates suchen",
+      "checkUpdatesTitle": "Den konfigurierten Image-Tag von {{name}} prüfen, die neueste Version laden und neu erstellen, wenn er sich wirklich geändert hat",
+      "saveConfiguration": "Konfiguration speichern",
+      "takeoverNote": "Ein Container mit diesem Namen läuft bereits ohne die Labels der Suite. Er bleibt unangetastet, es sei denn, du ersetzt ihn durch einen verwalteten.",
+      "takeover": "Trotzdem übernehmen"
+    },
+    "caddy": {
+      "suiteContainerName": "Container-Name der Suite",
+      "suiteContainerHint": "Automatisch erkannt. Caddy erreicht das Dashboard unter diesem Namen."
+    },
+    "history": {
+      "show": "Verlauf",
+      "hide": "Verlauf ausblenden",
+      "empty": "Noch keine früheren Versionen gespeichert.",
+      "restore": "Wiederherstellen",
+      "confirmTitle": "Diese Version wiederherstellen?",
+      "confirmBody": "Dies ersetzt die aktuell gespeicherte Konfiguration durch diese frühere. Auf Docker wird nichts angewendet, bis du auf Anwenden klickst."
+    },
+    "import": {
+      "title": "Aus laufenden Containern importieren",
+      "intro": "Findet gluetun-, PostgreSQL- und StreamShare-Container, die bereits außerhalb der Suite laufen, und liest ihre echte Konfiguration ein, statt sie von Hand neu einzutippen. Die Container selbst werden nie angefasst.",
+      "scan": "Nach vorhandenen Containern suchen",
+      "scanAgain": "Erneut suchen",
+      "none": "Nichts gefunden, was nicht schon Teil des Stacks ist.",
+      "import": "Importieren"
+    },
+    "connect": {
+      "title": "Richte deinen IPTV-Client auf diese aus",
+      "body": "Die interne URL funktioniert nur von diesem Host aus oder wenn du Zugriff auf dein lokales Netzwerk hast. Die öffentliche URL richtest du auf deinen mobilen Geräten ein, um dich von anderswo zu verbinden. Wenn du Caddy eingerichtet hast, kannst du die öffentliche URL auch innerhalb deines lokalen Netzwerks nutzen.",
+      "internal": "Intern:",
+      "internalAddress": "<IP-Adresse oder Hostname deines Docker-Hosts>:{{port}}",
+      "public": "Öffentlich:"
+    },
+    "instances": {
+      "title": "Instanzen",
+      "subtitle": "Erstelle eine pro IPTV-Anbieter. Ports werden aus {{first}}–{{last}} vergeben.",
+      "add": "Instanz hinzufügen",
+      "empty": "Noch keine Instanzen. Beim Hinzufügen werden Container und Datenbank automagisch erstellt.",
+      "containerName": "Containername: {{name}}",
+      "port": "Port: {{port}}",
+      "checkUpdatesTitle": "Den konfigurierten Image-Tag dieser Instanz prüfen, die neueste Version laden und neu erstellen, wenn er sich wirklich geändert hat",
+      "saveChanges": "Änderungen speichern",
+      "create": "Instanz erstellen",
+      "portRange": {
+        "title": "Instanz-Portbereich",
+        "description": "Instanzen bekommen ab hier {{size}} Ports (derzeit {{start}}–{{end}}). Instanzen, die schon im Bereich liegen, behalten ihren Port; alle außerhalb des neuen Bereichs wechseln auf einen freien Port darin."
+      },
+      "removeDialog": {
+        "title": "{{name}} entfernen?",
+        "body": "Das nimmt sie aus dem Stack. Ihr Container läuft weiter, bis du den Plan anwendest, der dann anbietet, ihn zu entfernen.",
+        "dropDatabase": "Auch <code>{{database}}</code> und ihre Rolle löschen. <warn>Das löscht den Wiedergabeverlauf dauerhaft.</warn> Lass das Häkchen weg, um die Daten zu behalten.",
+        "typeToConfirm": "Gib zur Bestätigung <strong>{{name}}</strong> ein",
+        "confirmDrop": "Entfernen und Datenbank löschen"
+      }
+    },
+    "plan": {
+      "title": "Stack-Plan",
+      "nothingToApply": "Nichts anzuwenden",
+      "apply_one": "{{count}} Änderung anwenden",
+      "apply_other": "{{count}} Änderungen anwenden",
+      "emptySwitchedOff_one": "Derzeit nichts im Stack — {{list}} ist ausgeschaltet. Schalte das VPN unter dem Tab Komponenten wieder ein, um es erneut zu verwalten.",
+      "emptySwitchedOff_other": "Derzeit nichts im Stack — {{list}} sind ausgeschaltet. Schalte das VPN unter dem Tab Komponenten wieder ein, um es erneut zu verwalten.",
+      "emptyFresh": "Noch nichts im Stack. Konfiguriere eine Komponente unter dem Tab Komponenten, um loszulegen, oder starte den <setup>Einrichtungsassistenten</setup> für eine geführte Einrichtung.",
+      "summary": {
+        "changes_one": "{{count}} Änderung",
+        "changes_other": "{{count}} Änderungen",
+        "restarts_one": "{{count}} Container-Neustart",
+        "restarts_other": "{{count}} Container-Neustarts",
+        "orphans": "{{count}} verwaist",
+        "disabled": "{{count}} ausgeschaltet",
+        "incomplete": "{{count}} nicht konfiguriert",
+        "nothing": "Nichts zu verwalten",
+        "matches": "Alles entspricht der Konfiguration"
+      },
+      "action": {
+        "create": "Erstellen",
+        "recreate": "Neu erstellen",
+        "adopt": "Übernommen",
+        "noop": "Keine Änderung",
+        "orphaned": "Verwaist",
+        "disabled": "Ausgeschaltet",
+        "incomplete": "Nicht konfiguriert"
+      },
+      "runtime": {
+        "running": "Läuft",
+        "restarting": "Startet neu",
+        "paused": "Pausiert",
+        "exited": "Gestoppt",
+        "dead": "Tot",
+        "created": "Erstellt"
+      },
+      "health": {
+        "healthy": "Gesund",
+        "unhealthy": "Fehlerhaft",
+        "starting": "Startet"
+      },
+      "removeTitle": "Diesen Container entfernen?",
+      "removeBody": "{{name}} wurde von der Suite erstellt, ist aber nicht mehr Teil deines Stacks. Beim Entfernen wird der Container gestoppt und gelöscht."
+    }
+  },
+  "overview": {
+    "nowPlaying": "Läuft gerade",
+    "nothingPlaying": "Es läuft nichts",
+    "nothingPlayingHint": "Aktive Streams aller Instanzen erscheinen hier.",
+    "streams": "Streams"
+  },
+  "instances": {
+    "started": "Gestartet",
+    "database": "Datenbank",
+    "connected": "verbunden",
+    "discord": "Discord",
+    "vodCache": "VOD-Cache",
+    "catchup": "Catchup",
+    "none": "Keine Instanzen konfiguriert. Setze INSTANCE_1_NAME / INSTANCE_1_URL / INSTANCE_1_API_KEY (und _2_, _3_, …) in der Umgebung des Dashboards."
+  },
+  "aliases": {
+    "intro": "Gib Zuschauern, die per IP-Adresse erscheinen (z. B. wenn bei einer Instanz LDAP deaktiviert ist), einen verständlichen Namen. Ein Alias bedeutet überall dasselbe, aber jede Instanz speichert ihre eigene Kopie — standardmäßig wird er bei allen Instanzen gleichzeitig gespeichert, und die zugrunde liegende IP wird weiterhin zur Identifizierung des Zuschauers verwendet.",
+    "addTitle": "Alias hinzufügen",
+    "prefill": "Alias für {{ip}} wird hinzugefügt — wähle unten einen Namen.",
+    "ipAddress": "IP-Adresse",
+    "alias": "Alias",
+    "aliasPlaceholder": "Wohnzimmer-TV",
+    "save": "Alias speichern",
+    "applyAll_one": "Auf alle {{count}} Instanz anwenden",
+    "applyAll_other": "Auf alle {{count}} Instanzen anwenden",
+    "searchPlaceholder": "IP, Alias oder Instanz suchen…",
+    "mixed": "Je nach Instanz verschieden",
+    "instanceCount_one": "{{count}} Instanz",
+    "instanceCount_other": "{{count}} Instanzen",
+    "removeEverywhere": "Alias für {{ip}} überall entfernen",
+    "removeOn": "Alias für {{ip}} bei {{instance}} entfernen",
+    "savedPartial_one": "Bei {{saved}}/{{count}} Instanz gespeichert. {{failures}}",
+    "savedPartial_other": "Bei {{saved}}/{{count}} Instanzen gespeichert. {{failures}}",
+    "empty": "Keine Aliase konfiguriert",
+    "emptyHint": "Füge oben einen hinzu, um einem Zuschauer, der derzeit per IP-Adresse erscheint, einen verständlichen Namen zu geben."
+  },
+  "history": {
+    "date": "Datum",
+    "relative": "Relativ",
+    "searchPlaceholder": "Benutzer, Titel, Instanz suchen…",
+    "empty": "Kein Wiedergabeverlauf",
+    "emptyHint": "Wähle einen größeren Zeitraum oder schau später wieder vorbei, wenn jemand zu schauen beginnt."
+  },
+  "leaderboard": {
+    "summed": " · über alle Instanzen summiert",
+    "topTitles": "Top-Titel",
+    "topViewers": "Top-Zuschauer",
+    "noData": "Noch keine Wiedergabedaten",
+    "views_one": "{{formatted}} Aufruf",
+    "views_other": "{{formatted}} Aufrufe",
+    "sessions_one": "{{formatted}} Sitzung",
+    "sessions_other": "{{formatted}} Sitzungen"
+  },
+  "users": {
+    "searchPlaceholder": "Benutzer oder Instanz suchen…",
+    "status": "Status",
+    "currentStream": "Aktueller Stream",
+    "ip": "IP",
+    "watching": "schaut",
+    "idle": "inaktiv",
+    "empty": "Keine bekannten Sitzungen",
+    "emptyHint": "Benutzer erscheinen hier, sobald sie sich mit einer stream-share-Instanz verbinden."
+  },
+  "vod": {
+    "shareLinksHint": "Du brauchst einen Live-Kanal-Link für ein Zeitfenster? Nutze <link>Freigabelinks</link>.",
+    "searchPlaceholder": "Filme und Serien in allen Instanzen suchen…",
+    "search": "Suchen",
+    "copyUrl": "URL kopieren",
+    "download": "Herunterladen",
+    "initialTitle": "Suche nach einem Film oder einer Serie",
+    "initialHint": "Ergebnisse werden live von jeder Instanz mit konfiguriertem Xtream-Anbieter abgerufen — hier wird nichts indiziert oder gespeichert.",
+    "searching": "Suche läuft…",
+    "noResults": "Keine Ergebnisse für „{{query}}“",
+    "noResultsHint": "Versuche einen anderen Titel oder eine andere Schreibweise.",
+    "episodeCount_one": "{{count}} Folge",
+    "episodeCount_other": "{{count}} Folgen",
+    "hideEpisodes": "Folgen ausblenden",
+    "showEpisodes": "Folgen anzeigen"
+  },
+  "settings": {
+    "generalSaved": "Allgemeine Einstellungen gespeichert.",
+    "general": {
+      "title": "Allgemein",
+      "description": "Gilt für jede Seite.",
+      "siteTitle": "Titel",
+      "siteTitleHint": "Wird in der Seitenleiste und im Browser-Tab angezeigt.",
+      "poll": "Abfrageintervall (ms)",
+      "pollHint": "Wie oft der Browser neu abfragt. Minimum 5000.",
+      "timeout": "Instanz-Timeout (ms)",
+      "timeoutHint": "Wie lange auf eine Instanz gewartet wird, bevor sie aufgegeben wird.",
+      "autoCheck": "Automatisch nach Updates suchen",
+      "autoCheckHint": "Einmal am Tag fragt die Suite bei GitHub die neueste Version von sich selbst, StreamShare, gluetun und Caddy ab. Es wird nichts heruntergeladen oder geändert.",
+      "checkNow": "Jetzt prüfen",
+      "lastChecked": "Zuletzt geprüft {{when}}",
+      "notChecked": "Noch nicht geprüft",
+      "checksFailed": "Einige Prüfungen sind fehlgeschlagen. Die Suite versucht es innerhalb der Stunde erneut."
+    },
+    "backup": {
+      "title": "Sicherung & Wiederherstellung",
+      "description": "Alle Zugangsdaten, Instanzdefinitionen und Komponenteneinstellungen liegen in einer Datei. Lade sie vor einer riskanten Änderung herunter.",
+      "download": "Sicherung herunterladen",
+      "restoreLabel": "Aus einer Sicherungsdatei wiederherstellen",
+      "restoreHint": "Ersetzt alles, was derzeit gespeichert ist — alle Zugangsdaten und Einstellungen — durch den Inhalt der Datei. Meldet alle ab.",
+      "restore": "Aus Sicherung wiederherstellen",
+      "restored": "Wiederhergestellt. Lade die Seite neu — du musst dich erneut anmelden, wenn diese Sicherung älter als deine Sitzung ist.",
+      "confirmTitle": "Aus dieser Sicherung wiederherstellen?",
+      "confirmBody": "Dies ersetzt alle derzeit gespeicherten Zugangsdaten, Instanzdefinitionen und Komponenteneinstellungen durch den Inhalt der Datei und meldet alle ab. Das lässt sich hier nicht rückgängig machen — sorge zuerst für eine aktuelle Sicherung, wenn du den jetzigen Stand behalten willst.",
+      "confirm": "Wiederherstellen"
+    },
+    "password": {
+      "title": "Passwort ändern",
+      "description": "Beim Ändern werden alle anderen Sitzungen abgemeldet und das API-Token widerrufen.",
+      "submit": "Passwort ändern",
+      "current": "Aktuelles Passwort",
+      "new": "Neues Passwort",
+      "newHint": "Mindestens 12 Zeichen.",
+      "changed": "Passwort geändert."
+    },
+    "api": {
+      "title": "API-Zugriff",
+      "description": "Lass Skripte und andere Tools mit StreamShare Suite interagieren. Sende das Token als Authorization: Bearer-Header.",
+      "regenerate": "Token neu erzeugen",
+      "generate": "Token erzeugen",
+      "revoke": "Widerrufen",
+      "exists": "Es gibt ein Token, erstellt {{when}}.",
+      "none": "Noch kein Token.",
+      "newToken": "Dein neues Token",
+      "newTokenHint": "Kopiere es jetzt. Es wird nicht noch einmal angezeigt.",
+      "revokeTitle": "Das API-Token widerrufen?",
+      "replaceTitle": "Das API-Token ersetzen?",
+      "confirmBody": "Alles, was noch das aktuelle Token verwendet, funktioniert sofort nicht mehr."
+    }
+  },
+  "vpn": {
+    "notConfigured": "Gluetun ist nicht konfiguriert",
+    "notConfiguredHint": "Setze GLUETUN_URL (z. B. http://gluetun:8000) — und GLUETUN_API_KEY, falls dein Control-Server einen verlangt — in der Umgebung des Dashboards, um diese Seite zu aktivieren.",
+    "connection": "Verbindung",
+    "status": {
+      "connected": "Verbunden",
+      "disconnected": "Getrennt",
+      "unknown": "Unbekannt"
+    },
+    "reconnecting": "Verbindung wird neu aufgebaut…",
+    "waitingForIp": "Warte auf Exit-IP…",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "reconnect": "Neu verbinden",
+    "reconnectNote": "Neu verbinden stoppt den Tunnel, wartet auf die Bestätigung, startet ihn wieder und wartet auf eine frische Exit-IP — das Dashboard aktualisiert sich dabei jede Sekunde und tut das auch danach weiter, bis die Karte Exit-IP tatsächlich einen Wert hat.",
+    "exitIp": "Exit-IP",
+    "locationUnavailable": "Standort nicht verfügbar",
+    "unavailable": "Nicht verfügbar",
+    "showRaw": "Rohe gluetun-Antwort anzeigen",
+    "hideRaw": "Rohe gluetun-Antwort ausblenden",
+    "stopTitle": "Die VPN-Verbindung stoppen?",
+    "stopBody": "Dies trennt gluetun. Jeder darüber geleitete Datenverkehr (z. B. die ausgehende Verbindung deiner stream-share-Instanz) wird unterbrochen oder ungeschützt, bis er wieder gestartet ist.",
+    "stopConfirm": "VPN stoppen",
+    "reconnectTitle": "Das VPN neu verbinden?",
+    "reconnectBody": "Dies stoppt den Tunnel und startet ihn neu, genau wie Stoppen gefolgt von Starten. Jeder darüber geleitete Datenverkehr wird unterbrochen, bis er wieder oben ist, was je nach Anbieter eine Weile dauern kann.",
+    "watchdog": {
+      "title": "VPN-Watchdog",
+      "description": "Prüft zeitgesteuert jede Instanz mit aktiviertem Health-Check und verbindet den Tunnel neu, wenn eine meldet, dass ihr Anbieter die aktuelle Exit-IP blockiert.",
+      "checkTimes": "Prüfzeiten (lokal)",
+      "checkTimesLabel": "Prüfzeiten",
+      "noTimes": "Mindestens eine Zeit ist erforderlich.",
+      "maxReconnects": "Max. Wiederverbindungsversuche",
+      "runNow": "Jetzt ausführen"
+    }
+  },
+  "shareLinks": {
+    "vodHint": "Du brauchst einen Film- oder Folgenlink? Nutze die <link>VOD-Suche</link>.",
+    "newLink": "+ Neuer Link",
+    "noPublicUrl": "Die Suite kennt die öffentliche Adresse dieser Instanz nicht und kann daher keine kopierbaren Links erstellen. Lege die öffentliche Basis-URL bei der Instanz (Stack-Seite) fest, um Kopieren zu aktivieren.",
+    "unsupported": "Diese Instanz unterstützt keine Freigabelinks",
+    "unsupportedHint": "Aktualisiere sie auf ein neueres Image und lade neu.",
+    "empty": "Noch keine Freigabelinks",
+    "emptyHint": "Erstelle einen, damit ein Gast eine Weile einen Kanal ansehen kann.",
+    "channel": "Kanal",
+    "for": "Für",
+    "window": "Zeitfenster",
+    "state": "Status",
+    "stateName": {
+      "active": "aktiv",
+      "scheduled": "geplant",
+      "ended": "beendet",
+      "revoked": "widerrufen"
+    },
+    "playlist": "Playlist",
+    "stream": "Stream",
+    "revoke": "Widerrufen",
+    "revokeTitle": "Diesen Link widerrufen?",
+    "revokeBody": "{{title}} funktioniert sofort nicht mehr.",
+    "revokeBodyGuest": "{{title}} für {{guest}} funktioniert sofort nicht mehr.",
+    "windowRange": "{{start}} bis {{end}}",
+    "windowProblem": {
+      "pick": "Wähle eine Start- und eine Endzeit.",
+      "order": "Das Ende muss nach dem Start liegen.",
+      "tooLong": "Ein Freigabelink darf höchstens 24 Stunden gelten.",
+      "over": "Das Zeitfenster ist bereits vorbei."
+    },
+    "dialog": {
+      "created": "Link erstellt",
+      "createdBody": "{{title}} auf {{instance}}. Teile einen dieser Links mit deinem Gast.",
+      "playlistLink": "Playlist-Link",
+      "playlistHint": "für VLC und IPTV-Apps",
+      "streamLink": "Stream-Link",
+      "streamHint": "direkt",
+      "pathsOnly": "Die Suite kennt die öffentliche Adresse dieser Instanz nicht, daher sind das nur Pfade. Setze deine öffentliche Adresse davor.",
+      "newTitle": "Neuer Freigabelink auf {{instance}}",
+      "channel": "Kanal",
+      "channelPlaceholder": "Kanäle suchen, z. B. eurosport",
+      "guest": "Gast (optionale Bezeichnung)",
+      "guestPlaceholder": "z. B. Onkel Bert",
+      "from": "Von",
+      "until": "Bis",
+      "limits": "Maximal erlaubt: 24 Stunden. Bis zu 3 Geräte können einen Link gleichzeitig nutzen.",
+      "create": "Link erstellen"
+    }
+  }
+}

@@ -24,6 +24,9 @@ import {
 import { changePassword, checkCredentials, countUsers, createUser } from "../auth/users.js";
 import { validatePassword } from "../auth/passwords.js";
 import { revokeApiToken } from "../auth/apiToken.js";
+import { SuiteError, sendError } from "../errors.js";
+
+const SETUP_DONE = new SuiteError("setup_complete", "Setup has already been completed.");
 
 function setSessionCookie(req, res, session) {
   res.set(
@@ -57,23 +60,23 @@ export function createAuthRouter() {
   // create an admin.
   router.post("/setup", async (req, res) => {
     if (countUsers() > 0) {
-      return res.status(409).json({ error: "Setup has already been completed." });
+      return sendError(res, 409, SETUP_DONE);
     }
 
     const username = normaliseUsername(req.body.username);
     const { password } = req.body;
 
     if (!username || username.length < 3) {
-      return res.status(400).json({ error: "Username must be at least 3 characters." });
+      return sendError(res, 400, new SuiteError("username_too_short", "Username must be at least 3 characters.", { min: 3 }));
     }
     const pwError = validatePassword(password);
-    if (pwError) return res.status(400).json({ error: pwError });
+    if (pwError) return sendError(res, 400, pwError);
 
     let user;
     try {
       user = await createUser(username, password);
     } catch {
-      return res.status(409).json({ error: "Setup has already been completed." });
+      return sendError(res, 409, SETUP_DONE);
     }
 
     const session = createSession(user.id, { userAgent: req.get("User-Agent") });
@@ -86,7 +89,7 @@ export function createAuthRouter() {
     const { password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: "Username and password are required." });
+      return sendError(res, 400, new SuiteError("login_fields_required", "Username and password are required."));
     }
 
     const user = await checkCredentials(username, password);
@@ -94,7 +97,7 @@ export function createAuthRouter() {
       recordFailedLogin(req);
       // One message for both "no such user" and "wrong password" — the timing
       // is already equalised in checkCredentials.
-      return res.status(401).json({ error: "Incorrect username or password." });
+      return sendError(res, 401, new SuiteError("bad_credentials", "Incorrect username or password."));
     }
 
     clearLoginAttempts(req);
@@ -115,10 +118,10 @@ export function createAuthRouter() {
     const { currentPassword, newPassword } = req.body;
 
     const user = await checkCredentials(req.user.username, currentPassword || "");
-    if (!user) return res.status(401).json({ error: "Current password is incorrect." });
+    if (!user) return sendError(res, 401, new SuiteError("current_password_incorrect", "Current password is incorrect."));
 
     const pwError = validatePassword(newPassword);
-    if (pwError) return res.status(400).json({ error: pwError });
+    if (pwError) return sendError(res, 400, pwError);
 
     await changePassword(req.user.userId, newPassword);
     destroyAllSessions(req.user.userId, { exceptToken: req.sessionToken });

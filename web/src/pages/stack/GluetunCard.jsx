@@ -5,6 +5,9 @@ import { IconRefresh } from "../../components/Icons.jsx";
 import SchemaForm from "../../components/SchemaForm.jsx";
 import { api } from "../../lib/api.js";
 import HistoryPanel from "./HistoryPanel.jsx";
+import { useTranslation } from "react-i18next";
+import { catalogText } from "../../lib/schemaKeys.js";
+import { errorText } from "../../lib/serverText.js";
 
 export default function GluetunCard({
   component,
@@ -16,6 +19,7 @@ export default function GluetunCard({
   onApplyTakeover,
   onPull,
 }) {
+  const { t } = useTranslation();
   const [fields, setFields] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +36,7 @@ export default function GluetunCard({
       setFields(result.fields);
       await onSaved();
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -49,9 +53,9 @@ export default function GluetunCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{component.label}</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{catalogText(t, component, "label")}</h2>
             <p className="mt-1 max-w-prose text-xs text-slate-500 dark:text-slate-400">
-              {component.description}
+              {catalogText(t, component, "description")}
             </p>
           </div>
           {settings && (
@@ -63,13 +67,13 @@ export default function GluetunCard({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {!component.active && <Badge tone="slate">Not in the stack</Badge>}
+          {!component.active && <Badge tone="slate">{t("stack.card.notInStack")}</Badge>}
           {component.active && (
             <button
               onClick={onPull}
               disabled={busy}
-              aria-label="Check for updates"
-              title="Check and pull the latest version of Gluetun's configured image tag and recreate if it actually changed"
+              aria-label={t("stack.card.checkUpdates")}
+              title={t("stack.card.checkUpdatesTitle", { name: "Gluetun" })}
               className="rounded-lg p-1.5 text-accent-600 hover:bg-accent-50 disabled:opacity-50 dark:text-accent-400 dark:hover:bg-accent-900/30"
             >
               <IconRefresh className="h-4 w-4" />
@@ -80,14 +84,15 @@ export default function GluetunCard({
 
       <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
         {fields === null ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <p className="text-sm text-slate-400">{t("common.loading")}</p>
         ) : (
           <SchemaForm
+            kind="gluetun"
             fields={fields}
             onSave={save}
             saving={saving}
             error={error}
-            submitLabel="Save configuration"
+            submitLabel={t("stack.card.saveConfiguration")}
           />
         )}
 
@@ -95,12 +100,9 @@ export default function GluetunCard({
 
         {takeoverAvailable && (
           <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-800">
-            <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-              A container by this name is already running without the Suite's labels. It stays
-              untouched unless you replace it with a managed one.
-            </p>
+            <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">{t("stack.card.takeoverNote")}</p>
             <Button tone="rose" onClick={onApplyTakeover} loading={busy} disabled={busy}>
-              Take over anyway
+              {t("stack.card.takeover")}
             </Button>
           </div>
         )}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { FIELD } from "./common.jsx";
 
 // One write-only box per {env.NAME} the current directive references,
@@ -41,6 +42,7 @@ function detectNames(directive) {
 }
 
 export default function DirectiveEnvEditor({ value, directive, onChange, namesSet }) {
+  const { t } = useTranslation();
   const names = useMemo(() => detectNames(directive), [directive]);
   const values = useMemo(() => parseValue(value), [value]);
 
@@ -62,7 +64,7 @@ export default function DirectiveEnvEditor({ value, directive, onChange, namesSe
   if (names.length === 0) {
     return (
       <p className="text-xs text-slate-400 dark:text-slate-500">
-        Reference a credential in Directive above as {"{env.NAME}"} to get a box for it here.
+        {t("directiveEnv.hint", { ref: "{env.NAME}" })}
       </p>
     );
   }
@@ -76,12 +78,12 @@ export default function DirectiveEnvEditor({ value, directive, onChange, namesSe
             className={FIELD}
             type="password"
             autoComplete="new-password"
-            placeholder={namesSet?.[name] ? "••••••••  (unchanged)" : ""}
+            placeholder={namesSet?.[name] ? t("common.unchanged") : ""}
             value={values[name] ?? ""}
             onChange={(e) => setName(name, e.target.value)}
           />
           <span className="text-[11px] text-slate-400 dark:text-slate-500">
-            {namesSet?.[name] ? "Set. Leave blank to keep it." : "Not set."}
+            {namesSet?.[name] ? t("common.secretSet") : t("common.secretNotSet")}
           </span>
         </label>
       ))}

@@ -1,50 +1,54 @@
 // web/src/pages/stack/PlanPanel.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
+import { serverText, jobLine, errorText } from "../../lib/serverText.js";
+import { useFormat } from "../../lib/useFormat.js";
+import { catalogText } from "../../lib/schemaKeys.js";
 import { Card, Badge, Button, ErrorNote, ConfirmDialog } from "../../components/common.jsx";
 
 // How each plan action reads on screen. The wording matters more than usual
 // here: this is the last thing anyone sees before containers get replaced.
-const ACTION = {
-  create: { label: "Create", tone: "accent" },
-  recreate: { label: "Recreate", tone: "rose" },
-  adopt: { label: "Adopted", tone: "amber" },
-  noop: { label: "No change", tone: "slate" },
-  orphaned: { label: "Orphaned", tone: "amber" },
-  disabled: { label: "Switched off", tone: "slate" },
-  incomplete: { label: "Not configured", tone: "slate" },
+const ACTION_TONE = {
+  create: "accent",
+  recreate: "rose",
+  adopt: "amber",
+  noop: "slate",
+  orphaned: "amber",
+  disabled: "slate",
+  incomplete: "slate",
 };
 
 function ActionBadge({ action }) {
-  const copy = ACTION[action] || { label: action, tone: "slate" };
-  return <Badge tone={copy.tone}>{copy.label}</Badge>;
+  const { t } = useTranslation();
+  return <Badge tone={ACTION_TONE[action] || "slate"}>{t(`stack.plan.action.${action}`, { defaultValue: action })}</Badge>;
 }
+
 
 // Live container state, alongside the action badge's config-drift verdict —
 // "will this change" and "is this actually running right now" are different
 // questions, and a noop row can still be a container stuck restarting.
-const RUNTIME_STATUS = {
-  running: { label: "Running", tone: "green" },
-  restarting: { label: "Restarting", tone: "amber" },
-  paused: { label: "Paused", tone: "amber" },
-  exited: { label: "Stopped", tone: "rose" },
-  dead: { label: "Dead", tone: "rose" },
-  created: { label: "Created", tone: "slate" },
+const RUNTIME_TONE = {
+  running: "green",
+  restarting: "amber",
+  paused: "amber",
+  exited: "rose",
+  dead: "rose",
+  created: "slate",
 };
-const HEALTH = {
-  healthy: { label: "Healthy", tone: "green" },
-  unhealthy: { label: "Unhealthy", tone: "rose" },
-  starting: { label: "Starting", tone: "amber" },
-};
+const HEALTH_TONE = { healthy: "green", unhealthy: "rose", starting: "amber" };
 
 function RuntimeBadges({ runtime }) {
+  const { t } = useTranslation();
   if (!runtime) return null;
-  const status = RUNTIME_STATUS[runtime.status] || { label: runtime.status, tone: "slate" };
-  const health = runtime.health && HEALTH[runtime.health];
   return (
     <>
-      <Badge tone={status.tone}>{status.label}</Badge>
-      {health && <Badge tone={health.tone}>{health.label}</Badge>}
+      <Badge tone={RUNTIME_TONE[runtime.status] || "slate"}>
+        {t(`stack.plan.runtime.${runtime.status}`, { defaultValue: runtime.status })}
+      </Badge>
+      {HEALTH_TONE[runtime.health] && (
+        <Badge tone={HEALTH_TONE[runtime.health]}>{t(`stack.plan.health.${runtime.health}`)}</Badge>
+      )}
     </>
   );
 }
@@ -54,49 +58,54 @@ function RuntimeBadges({ runtime }) {
 // while a stack whose only component is switched off has everything configured
 // and simply isn't running any of it.
 function EmptyPlan({ components }) {
+  const { t } = useTranslation();
+  const { formatList } = useFormat();
   const switchedOff = components.filter((component) => !component.active);
 
   return (
     <p className="px-5 py-6 text-sm text-slate-500 dark:text-slate-400">
       {switchedOff.length > 0 ? (
-        `Nothing in the stack right now — ${switchedOff
-          .map((component) => component.label)
-          .join(" and ")} ${switchedOff.length === 1 ? "is" : "are"} switched off. Turn the VPN back on under the Components tab to manage it again.`
+        t("stack.plan.emptySwitchedOff", {
+          count: switchedOff.length,
+          list: formatList(switchedOff.map((component) => catalogText(t, component, "label"))),
+        })
       ) : (
-        <>
-          Nothing in the stack yet. Configure a component under the Components tab to get started,
-          or run the{" "}
-          <Link to="/setup" className="font-medium text-accent-600 hover:underline dark:text-accent-400">
-            setup wizard
-          </Link>{" "}
-          for a guided walkthrough.
-        </>
+        <Trans
+          i18nKey="stack.plan.emptyFresh"
+          components={{
+            setup: (
+              <Link to="/setup" className="font-medium text-accent-600 hover:underline dark:text-accent-400" />
+            ),
+          }}
+        />
       )}
     </p>
   );
 }
 
 function PlanSummary({ summary }) {
+  const { t } = useTranslation();
   const parts = [];
-  if (summary.changes > 0) parts.push(`${summary.changes} change${summary.changes === 1 ? "" : "s"}`);
-  if (summary.restarts > 0)
-    parts.push(`${summary.restarts} container${summary.restarts === 1 ? "" : "s"} restart`);
-  if (summary.orphans > 0) parts.push(`${summary.orphans} orphaned`);
-  if (summary.disabled > 0) parts.push(`${summary.disabled} switched off`);
-  if (summary.incomplete > 0) parts.push(`${summary.incomplete} not configured`);
+  if (summary.changes > 0) parts.push(t("stack.plan.summary.changes", { count: summary.changes }));
+  if (summary.restarts > 0) parts.push(t("stack.plan.summary.restarts", { count: summary.restarts }));
+  if (summary.orphans > 0) parts.push(t("stack.plan.summary.orphans", { count: summary.orphans }));
+  if (summary.disabled > 0) parts.push(t("stack.plan.summary.disabled", { count: summary.disabled }));
+  if (summary.incomplete > 0) parts.push(t("stack.plan.summary.incomplete", { count: summary.incomplete }));
 
   // "Everything matches" is only true when there is something to match.
   if (parts.length === 0) {
-    parts.push(summary.total === 0 ? "Nothing to manage" : "Everything matches its configuration");
+    parts.push(summary.total === 0 ? t("stack.plan.summary.nothing") : t("stack.plan.summary.matches"));
   }
   return parts.join(" · ");
 }
 
 function PlanRow({ row, ordinal, onRemoveOrphan }) {
+  const { t } = useTranslation();
   const cascaded = !!row.cascadedFrom;
   // noop's reason is always the same boilerplate ("Matches the saved
   // configuration") — only worth a line when the row is doing something.
   const explain = row.action !== "noop" && row.reason;
+  const label = row.spec?.name || row.containerName || catalogText(t, row, "label");
 
   return (
     <li
@@ -106,11 +115,11 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
     >
       <span className="text-xs tabular-nums text-slate-400 dark:text-slate-500">{ordinal}</span>
       <div className="min-w-0">
-        <p className={`truncate font-mono text-sm text-slate-900 dark:text-white ${cascaded ? "pl-4" : ""}`}>
+        <p title={label} className={`truncate font-mono text-sm text-slate-900 dark:text-white ${cascaded ? "pl-4" : ""}`}>
           {cascaded && <span className="mr-1 text-slate-300 dark:text-slate-600">└</span>}
-          {row.spec?.name || row.containerName || row.label}
+          {label}
         </p>
-        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{row.label}</p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{catalogText(t, row, "label")}</p>
         {row.runtime && (
           <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
             <RuntimeBadges runtime={row.runtime} />
@@ -119,12 +128,12 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
             )}
           </p>
         )}
-        {(row.warnings || []).map((warning) => (
+        {(row.warnings || []).map((warning, i) => (
           <p key={warning} className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-            {warning}
+            {serverText(t, "plan.warning", row.warningsI18n?.[i], warning)}
           </p>
         ))}
-        {explain && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{row.reason}</p>}
+        {explain && <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{serverText(t, "plan.reason", row.reasonI18n, row.reason)}</p>}
       </div>
       <div className="flex items-center gap-2">
         {row.action === "orphaned" && (
@@ -132,7 +141,7 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
             onClick={() => onRemoveOrphan(row)}
             className="text-xs font-medium text-rose-600 hover:underline dark:text-rose-400"
           >
-            Remove
+            {t("common.remove")}
           </button>
         )}
         <ActionBadge action={row.action} />
@@ -142,18 +151,22 @@ function PlanRow({ row, ordinal, onRemoveOrphan }) {
 }
 
 function JobLog({ job }) {
+  const { t } = useTranslation();
+  const failureText = job.failure
+    ? errorText(job.failure, t)
+    : job.error && serverText(t, "errors", job.errorI18n, job.error);
   return (
     <Card className="p-5">
       <div className="mb-2 flex items-center gap-2">
         <Badge tone={job.status === "success" ? "green" : job.status === "failed" ? "rose" : "slate"}>
-          {job.status}
+          {t(`common.jobStatus.${job.status}`, { defaultValue: job.status })}
         </Badge>
       </div>
       <div className="max-h-64 overflow-y-auto font-mono text-xs text-slate-600 dark:text-slate-400">
         {(job.log || []).map((entry, i) => (
-          <div key={i}>{entry.line}</div>
+          <div key={i}>{jobLine(t, entry)}</div>
         ))}
-        {job.error && <div className="text-rose-600 dark:text-rose-400">{job.error}</div>}
+        {failureText && <div className="text-rose-600 dark:text-rose-400">{failureText}</div>}
       </div>
     </Card>
   );
@@ -163,6 +176,7 @@ function JobLog({ job }) {
 // the job log — this is what stays visible regardless of which other tab is
 // open, since editing any of them changes what this shows.
 export default function PlanPanel({ plan, planError, components, busy, job, onApply, onConfirmRemoveOrphan }) {
+  const { t } = useTranslation();
   const [orphanToConfirm, setOrphanToConfirm] = useState(null);
 
   async function confirmRemoveOrphan() {
@@ -178,7 +192,7 @@ export default function PlanPanel({ plan, planError, components, busy, job, onAp
       {plan && (
         <Card className="overflow-hidden">
           <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Stack plan</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white">{t("stack.plan.title")}</h2>
             <p className="text-xs tabular-nums text-slate-500 dark:text-slate-400">
               <PlanSummary summary={plan.summary} />
             </p>
@@ -202,8 +216,8 @@ export default function PlanPanel({ plan, planError, components, busy, job, onAp
           <div className="flex flex-wrap gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-800">
             <Button tone="accent" onClick={onApply} loading={busy} disabled={busy || plan.summary.changes === 0}>
               {plan.summary.changes === 0
-                ? "Nothing to apply"
-                : `Apply ${plan.summary.changes} change${plan.summary.changes === 1 ? "" : "s"}`}
+                ? t("stack.plan.nothingToApply")
+                : t("stack.plan.apply", { count: plan.summary.changes })}
             </Button>
           </div>
         </Card>
@@ -213,13 +227,13 @@ export default function PlanPanel({ plan, planError, components, busy, job, onAp
 
       <ConfirmDialog
         open={!!orphanToConfirm}
-        title="Remove this container?"
+        title={t("stack.plan.removeTitle")}
         body={
           orphanToConfirm
-            ? `${orphanToConfirm.containerName} was created by the Suite but is no longer part of your stack. Removing it stops and deletes the container.`
+            ? t("stack.plan.removeBody", { name: orphanToConfirm.containerName })
             : ""
         }
-        confirmLabel="Remove"
+        confirmLabel={t("common.remove")}
         onConfirm={confirmRemoveOrphan}
         onCancel={() => setOrphanToConfirm(null)}
       />

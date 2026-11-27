@@ -21,6 +21,7 @@ import { connectionTarget } from "./postgres.js";
 import { failoverEnv } from "./failover.js";
 import { parseExtraEnv } from "./env.js";
 import { containerPrefix } from "./prefix.js";
+import { SuiteError } from "../errors.js";
 
 // Where stream-share keeps things inside its own container. Fixed rather than
 // configurable: they are the image's own paths, not a preference.
@@ -104,8 +105,10 @@ export function reassignOutOfRangeInstances(newBand) {
     if (!kept.has(port)) free.push(port);
   }
   if (free.length < stray.length) {
-    throw new Error(
-      `${stray.length} instance(s) fall outside the new range and only ${free.length} free slot(s) are available there — widen the range or remove instances first.`
+    throw new SuiteError(
+      "port_range_too_small",
+      `${stray.length} instance(s) fall outside the new range and only ${free.length} free slot(s) are available there — widen the range or remove instances first.`,
+      { count: stray.length, free: free.length }
     );
   }
 

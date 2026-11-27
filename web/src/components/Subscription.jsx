@@ -1,7 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "./common.jsx";
 import { IconAlert } from "./Icons.jsx";
 import { connectionUsage } from "../lib/connections.js";
-import { formatDate, formatRelativeTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
 
 // Renders the upstream IPTV provider's own view of an instance's subscription,
 // from stream-share's /api/internal/provider.
@@ -18,63 +19,69 @@ export function hasSubscription(provider) {
 
 // Status label + tone. The label always carries the meaning in words — color is
 // only ever a second channel on top of it.
-function statusOf(provider) {
+function statusOf(provider, t) {
   if (provider.authenticated === false) {
-    return { label: "Rejected", tone: "rose", note: "The provider is rejecting this instance's credentials" };
+    return { label: t("subscription.status.rejected"), tone: "rose", note: t("subscription.rejectedNote") };
   }
   if (provider.expired) {
-    return { label: "Expired", tone: "rose", note: null };
+    return { label: t("subscription.status.expired"), tone: "rose", note: null };
   }
   if (!provider.active) {
     // The provider's own wording for anything that isn't plainly active
     // ("Banned", "Disabled", …) beats us inventing a synonym for it.
-    return { label: provider.status || "Inactive", tone: "rose", note: null };
+    return { label: provider.status || t("subscription.status.inactive"), tone: "rose", note: null };
   }
   const days = provider.days_remaining;
   if (typeof days === "number" && days <= 7) {
-    return { label: provider.status || "Active", tone: "amber", note: null };
+    return { label: provider.status || t("subscription.status.active"), tone: "amber", note: null };
   }
-  return { label: provider.status || "Active", tone: "green", note: null };
+  return { label: provider.status || t("subscription.status.active"), tone: "green", note: null };
 }
 
 // Expiry in words: "85 days left", "Expires today", "Expired 3 days ago", or
 // the absence of an expiry date, which is a real state and not missing data.
-function expiryText(provider) {
+function expiryText(provider, fmt, t) {
   if (provider.expired) {
-    return provider.expires_at ? `Expired ${formatRelativeTime(provider.expires_at)}` : "Expired";
+    return provider.expires_at
+      ? t("subscription.expiry.expiredAgo", { when: fmt.formatRelativeTime(provider.expires_at) })
+      : t("subscription.expiry.expired");
   }
-  if (!provider.expires_at) return "No expiry date";
+  if (!provider.expires_at) return t("subscription.expiry.none");
 
   const days = provider.days_remaining;
-  const on = formatDate(provider.expires_at);
-  if (typeof days !== "number") return `Expires ${on}`;
-  if (days <= 0) return `Expires today (${on})`;
-  if (days === 1) return `1 day left (${on})`;
-  return `${days} days left (${on})`;
+  const on = fmt.formatDate(provider.expires_at);
+  if (typeof days !== "number") return t("subscription.expiry.on", { date: on });
+  if (days <= 0) return t("subscription.expiry.today", { date: on });
+  return t("subscription.expiry.daysLeft", { count: days, date: on });
 }
 
 // The same facts split into a short value and a muted second line, for the
 // Instances page's narrow columns where the one-liner above would wrap.
-function expiryParts(provider) {
+function expiryParts(provider, fmt, t) {
   if (provider.expired) {
-    return { value: "Expired", sub: provider.expires_at ? formatRelativeTime(provider.expires_at) : null };
+    return {
+      value: t("subscription.expiry.expired"),
+      sub: provider.expires_at ? fmt.formatRelativeTime(provider.expires_at) : null,
+    };
   }
-  if (!provider.expires_at) return { value: "No expiry", sub: null };
+  if (!provider.expires_at) return { value: t("subscription.expiryParts.none"), sub: null };
 
   const days = provider.days_remaining;
-  const on = formatDate(provider.expires_at);
+  const on = fmt.formatDate(provider.expires_at);
   if (typeof days !== "number") return { value: on, sub: null };
-  if (days <= 0) return { value: "Today", sub: on };
-  return { value: `${days} day${days === 1 ? "" : "s"} left`, sub: on };
+  if (days <= 0) return { value: t("subscription.expiryParts.today"), sub: on };
+  return { value: t("subscription.expiryParts.daysLeft", { count: days }), sub: on };
 }
 
 // Connection usage as words. The meter below repeats this visually; the words
 // are what actually carry it.
-function connectionsText(provider) {
+function connectionsText(provider, t) {
   const { used, here, max } = connectionUsage(provider);
 
-  const total = max ? `${used} of ${max} connections in use` : `${used} connection${used === 1 ? "" : "s"} in use`;
-  return here !== null ? `${total} · ${here} here` : total;
+  const total = max
+    ? t("subscription.connections.ofMax", { used, count: max })
+    : t("subscription.connections.noMax", { count: used });
+  return here !== null ? t("subscription.connections.withHere", { total, here }) : total;
 }
 
 // Meter ramps. Each is one hue in three steps — track, and two fill shades far
@@ -112,6 +119,7 @@ const METER_RAMPS = {
 // connections against everything else on the account — because they measure the
 // same thing; the caption beneath names both, so hue is never the only channel.
 function ConnectionMeter({ provider }) {
+  const { t } = useTranslation();
   const { used, here: liveHere, max } = connectionUsage(provider);
   if (!max) return null;
 
@@ -133,7 +141,7 @@ function ConnectionMeter({ provider }) {
       aria-valuenow={used}
       aria-valuemin={0}
       aria-valuemax={max}
-      aria-label="Provider connections in use"
+      aria-label={t("subscription.connections.meter")}
     >
       {here > 0 && <span className={`${ramp.strong} rounded-full`} style={{ width: pct(here) }} />}
       {elsewhere > 0 && <span className={`${ramp.soft} rounded-full`} style={{ width: pct(elsewhere) }} />}
@@ -147,8 +155,8 @@ function Fact({ label, value, sub }) {
   return (
     <div className="min-w-0">
       <dt className="text-xs text-slate-400">{label}</dt>
-      <dd className="truncate font-medium text-slate-700 dark:text-slate-200">{value}</dd>
-      {sub && <dd className="truncate text-xs text-slate-400 dark:text-slate-500">{sub}</dd>}
+      <dd className="break-words font-medium text-slate-700 dark:text-slate-200">{value}</dd>
+      {sub && <dd className="break-words text-xs text-slate-400 dark:text-slate-500">{sub}</dd>}
     </div>
   );
 }
@@ -156,29 +164,35 @@ function Fact({ label, value, sub }) {
 // Compact block for the Overview page's instance cards: state, expiry, and how
 // much of the connection allowance is spoken for.
 export function SubscriptionSummary({ provider }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   if (!hasSubscription(provider)) return null;
-  const state = statusOf(provider);
+  const state = statusOf(provider, t);
 
   return (
     <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-          Subscription
+          {t("subscription.title")}
         </span>
         <div className="flex items-center gap-1.5">
-          {provider.is_trial && <Badge tone="slate">trial</Badge>}
+          {provider.is_trial && <Badge tone="slate">{t("subscription.trial")}</Badge>}
           <Badge tone={state.tone}>{state.label}</Badge>
         </div>
       </div>
 
-      <p className="mt-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">{expiryText(provider)}</p>
+      <p className="mt-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">{expiryText(provider, fmt, t)}</p>
 
       <ConnectionMeter provider={provider} />
       <p
         className="mt-1.5 text-xs text-slate-500 dark:text-slate-400"
-        title={provider.checked_at ? `Provider total read ${formatRelativeTime(provider.checked_at)}; "here" is live` : undefined}
+        title={
+          provider.checked_at
+            ? t("subscription.checkedTitle", { when: fmt.formatRelativeTime(provider.checked_at) })
+            : undefined
+        }
       >
-        {connectionsText(provider)}
+        {connectionsText(provider, t)}
       </p>
 
       {(state.note || provider.stale) && (
@@ -186,7 +200,10 @@ export function SubscriptionSummary({ provider }) {
           <IconAlert className="mt-0.5 h-3 w-3 shrink-0" />
           <span>
             {state.note ||
-              `Last read ${formatRelativeTime(provider.checked_at)}${provider.error ? ` — ${provider.error}` : ""}`}
+              t(provider.error ? "subscription.lastReadError" : "subscription.lastRead", {
+                when: fmt.formatRelativeTime(provider.checked_at),
+                error: provider.error,
+              })}
           </span>
         </p>
       )}
@@ -197,30 +214,32 @@ export function SubscriptionSummary({ provider }) {
 // Fuller block for the Instances page, which has the room for the details the
 // Overview card leaves out.
 export function SubscriptionDetail({ provider }) {
+  const { t } = useTranslation();
+  const fmt = useFormat();
   if (!hasSubscription(provider)) return null;
-  const state = statusOf(provider);
+  const state = statusOf(provider, t);
   const { used, here, max } = connectionUsage(provider);
 
   return (
     <div className="mt-4 rounded-xl border border-slate-200/70 p-3 dark:border-slate-800">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
-          Provider subscription
+          {t("subscription.providerTitle")}
         </span>
         <div className="flex items-center gap-1.5">
-          {provider.is_trial && <Badge tone="slate">trial</Badge>}
+          {provider.is_trial && <Badge tone="slate">{t("subscription.trial")}</Badge>}
           <Badge tone={state.tone}>{state.label}</Badge>
         </div>
       </div>
 
       <dl className="mt-3 grid grid-cols-3 gap-x-3 gap-y-2 text-sm">
-        <Fact label="Expires" {...expiryParts(provider)} />
+        <Fact label={t("subscription.facts.expires")} {...expiryParts(provider, fmt, t)} />
         <Fact
-          label="Connections"
-          value={max ? `${used} of ${max}` : String(used)}
-          sub={here !== null ? `${here} from this instance` : null}
+          label={t("subscription.facts.connections")}
+          value={max ? t("subscription.connections.usedOfMax", { used, max }) : String(used)}
+          sub={here !== null ? t("subscription.connections.fromInstance", { here }) : null}
         />
-        <Fact label="Checked" value={provider.checked_at ? formatRelativeTime(provider.checked_at) : "—"} />
+        <Fact label={t("subscription.facts.checked")} value={provider.checked_at ? fmt.formatRelativeTime(provider.checked_at) : "—"} />
       </dl>
 
       <ConnectionMeter provider={provider} />
@@ -233,7 +252,7 @@ export function SubscriptionDetail({ provider }) {
           <IconAlert className="mt-0.5 h-3 w-3 shrink-0" />
           <span>
             {state.note ||
-              `Showing the last successful read${provider.error ? ` — refresh failed: ${provider.error}` : ""}`}
+              t(provider.error ? "subscription.lastGoodError" : "subscription.lastGood", { error: provider.error })}
           </span>
         </p>
       )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { usePolling } from "../lib/usePolling.js";
 import { api } from "../lib/api.js";
 import { IconChevronDown } from "./Icons.jsx";
@@ -8,23 +9,24 @@ const EXPANDED_KEY = "layout.versionsExpanded";
 
 // How a row's version reads. Values that only say what the image is (rather
 // than what the software reports) are muted so a real version stands out.
-function versionText(row) {
-  if (row.status === "stopped") return { text: "stopped", muted: true };
-  if (!row.version) return { text: "unknown", muted: true };
-  if (row.source === "image-id") return { text: `image ${row.version}`, muted: true };
+function versionText(row, t) {
+  if (row.status === "stopped") return { text: t("versions.stopped"), muted: true };
+  if (!row.version) return { text: t("versions.unknown"), muted: true };
+  if (row.source === "image-id") return { text: t("versions.image", { version: row.version }), muted: true };
   return { text: row.version, muted: false };
 }
 
 function Row({ label, text, muted, running, latest }) {
+  const { t } = useTranslation();
   return (
     <li
-      title={latest ? `Update available: ${latest}` : undefined}
+      title={latest ? t("versions.updateAvailableVersion", { latest }) : undefined}
       className="flex items-center justify-between gap-2"
     >
       <span className="flex min-w-0 items-center gap-1.5">
         {running !== undefined && (
           <span
-            title={running ? "running" : "not running"}
+            title={running ? t("versions.running") : t("versions.notRunning")}
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${
               running ? "bg-accent-500" : "bg-slate-300 dark:bg-slate-600"
             }`}
@@ -52,6 +54,7 @@ function Row({ label, text, muted, running, latest }) {
 // Informational only: if a poll fails usePolling keeps the last data, and
 // with none there is simply nothing to show, never an error banner.
 export default function VersionBlock() {
+  const { t } = useTranslation();
   const { data, refresh } = usePolling(() => api.stackVersions(), REFRESH_MS);
   // Settings fires this after a manual update check so the hint shows at once.
   useEffect(() => {
@@ -86,17 +89,17 @@ export default function VersionBlock() {
           aria-expanded={expanded}
           className="flex shrink-0 items-center justify-between gap-2"
         >
-          <span className="truncate text-slate-600 dark:text-slate-400">Suite</span>
+          <span className="truncate text-slate-600 dark:text-slate-400">{t("versions.suite")}</span>
           <span className="flex shrink-0 items-center gap-1.5">
             <span
               className={`font-mono ${
                 data.suite.version ? "text-slate-800 dark:text-slate-200" : "text-slate-400 dark:text-slate-500"
               }`}
             >
-              {data.suite.version || "unknown"}
+              {data.suite.version || t("versions.unknown")}
             </span>
             {anyUpdate && (
-              <span title="Update available" className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-500" />
+              <span title={t("versions.updateAvailable")} className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-500" />
             )}
             <IconChevronDown
               className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform dark:text-slate-500 ${
@@ -109,14 +112,14 @@ export default function VersionBlock() {
           <ul className="mt-2 min-h-0 max-h-40 space-y-1 overflow-y-auto border-t border-slate-200 pt-2 dark:border-slate-700">
             {data.suite.latest && (
               <Row
-                label="Suite"
-                text={data.suite.version || "unknown"}
+                label={t("versions.suite")}
+                text={data.suite.version || t("versions.unknown")}
                 muted={!data.suite.version}
                 latest={data.suite.latest}
               />
             )}
             {(data.components ?? []).map((row) => {
-              const { text, muted } = versionText(row);
+              const { text, muted } = versionText(row, t);
               return (
                 <Row
                   key={`${row.kind}:${row.key}`}

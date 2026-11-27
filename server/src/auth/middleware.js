@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { sessionCookieName, resolveSession, safeEqual, csrfTokenFor } from "./sessions.js";
 import { countUsers } from "./users.js";
 import { verifyApiToken } from "./apiToken.js";
+import { SuiteError, sendError } from "../errors.js";
 
 export function parseCookies(header) {
   const out = {};
@@ -57,10 +58,10 @@ export function requireAuth(req, res, next) {
   // to choose between the setup form and the login form, and an undefined would
   // make "no admin yet" and "signed out" look the same on a 401.
   const setupRequired = countUsers() === 0;
-  return res.status(401).json({
-    error: setupRequired ? "Setup required" : "Authentication required",
-    setupRequired,
-  });
+  const err = setupRequired
+    ? new SuiteError("setup_required", "Setup required")
+    : new SuiteError("authentication_required", "Authentication required");
+  return sendError(res, 401, err, { setupRequired });
 }
 
 // Double-submit CSRF: SameSite=Lax already blocks cross-site POSTs from a
@@ -74,7 +75,7 @@ export function requireCsrf(req, res, next) {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
   const header = req.get("X-Suite-CSRF");
   if (req.sessionToken && safeEqual(header, csrfTokenFor(req.sessionToken))) return next();
-  return res.status(403).json({ error: "Invalid or missing CSRF token" });
+  return sendError(res, 403, new SuiteError("invalid_csrf", "Invalid or missing CSRF token"));
 }
 
 // Routes an API client may call with the API token instead of a session.
@@ -102,11 +103,11 @@ export function apiTokenAuth(req, res, next) {
     const token = header.replace(/^Bearer\s*/i, "").trim();
     if (!verifyApiToken(token)) {
       recordFailedLogin(req);
-      return res.status(401).json({ error: "Invalid API token" });
+      return sendError(res, 401, new SuiteError("invalid_api_token", "Invalid API token"));
     }
     const path = req.path.replace(/\/+$/, "");
     if (!API_TOKEN_ROUTES.includes(`${req.method} ${path}`)) {
-      return res.status(403).json({ error: "This route is not available with an API token" });
+      return sendError(res, 403, new SuiteError("api_token_route_forbidden", "This route is not available with an API token"));
     }
     req.apiToken = true;
     next();
@@ -151,9 +152,12 @@ export function throttleLogin(req, res, next) {
     const first = Math.max(perIp ? perIp.first : 0, global ? global.first : 0);
     const retryAfter = Math.max(1, Math.ceil((first + WINDOW_MS - now) / 1000));
     res.set("Retry-After", String(retryAfter));
-    return res.status(429).json({
-      error: `Too many sign-in attempts. Try again in ${Math.ceil(retryAfter / 60)} minute(s).`,
-    });
+    const minutes = Math.ceil(retryAfter / 60);
+    return sendError(
+      res,
+      429,
+      new SuiteError("too_many_attempts", `Too many sign-in attempts. Try again in ${minutes} minute(s).`, { count: minutes }),
+    );
   }
   next();
 }

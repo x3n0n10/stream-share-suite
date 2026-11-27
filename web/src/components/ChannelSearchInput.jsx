@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FIELD } from "./common.jsx";
 import { api } from "../lib/api.js";
 
@@ -37,6 +38,7 @@ export default function ChannelSearchInput({
   pickValue,
   onPick,
 }) {
+  const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState([]);
   const [pickedCaption, setPickedCaption] = useState("");
   const debounceTimer = useRef(null);
@@ -123,7 +125,7 @@ export default function ChannelSearchInput({
         )}
       </div>
       {pickedCaption && (
-        <span className="text-xs text-slate-500 dark:text-slate-400">Selected: {pickedCaption}</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{t("channelSearch.selected", { caption: pickedCaption })}</span>
       )}
     </div>
   );

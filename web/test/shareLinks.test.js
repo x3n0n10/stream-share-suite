@@ -3,6 +3,8 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { t } from "./helpers/t.js";
+import { formatWeekday } from "../src/lib/format.js";
 import {
   shareState,
   sortShares,
@@ -61,18 +63,18 @@ test("sortShares: active, then scheduled by start, then ended and revoked newest
   );
 });
 
-test("validateWindow rejects each bad window with its message", () => {
+test("validateWindow rejects each bad window with its code", () => {
   const now = oct(31, 13);
-  assert.equal(validateWindow(new Date("nope"), oct(31, 23), now), "Pick a start and an end time.");
-  assert.equal(validateWindow(oct(31, 20), new Date("nope"), now), "Pick a start and an end time.");
-  assert.equal(validateWindow(oct(31, 20), oct(31, 20), now), "The end must be after the start.");
-  assert.equal(validateWindow(oct(31, 20), oct(31, 19), now), "The end must be after the start.");
+  assert.equal(validateWindow(new Date("nope"), oct(31, 23), now), "pick");
+  assert.equal(validateWindow(oct(31, 20), new Date("nope"), now), "pick");
+  assert.equal(validateWindow(oct(31, 20), oct(31, 20), now), "order");
+  assert.equal(validateWindow(oct(31, 20), oct(31, 19), now), "order");
   const start = oct(31, 20);
   assert.equal(
     validateWindow(start, new Date(start.getTime() + MAX_WINDOW_MS + 1), now),
-    "A share link may last at most 24 hours."
+    "tooLong"
   );
-  assert.equal(validateWindow(oct(31, 10), oct(31, 12), now), "The window is already over.");
+  assert.equal(validateWindow(oct(31, 10), oct(31, 12), now), "over");
 });
 
 test("validateWindow accepts exactly 24 hours and an ordinary window", () => {
@@ -97,9 +99,11 @@ test("toDatetimeLocal formats local time for a datetime-local input", () => {
   assert.equal(toDatetimeLocal(oct(31, 9, 5)), "2026-10-31T09:05");
 });
 
+const weekday = (d) => formatWeekday(d, "en");
+
 test("formatWindow shows weekday and local times, naming the end day when it differs", () => {
-  assert.equal(formatWindow(oct(31, 20), oct(31, 23)), "Sat 20:00 to 23:00");
-  assert.equal(formatWindow(oct(31, 22), nov1(1)), "Sat 22:00 to Sun 01:00");
+  assert.equal(formatWindow(oct(31, 20), oct(31, 23), t, weekday), "Sat 20:00 to 23:00");
+  assert.equal(formatWindow(oct(31, 22), nov1(1), t, weekday), "Sat 22:00 to Sun 01:00");
 });
 
 test("failedPoll keeps the last good rows of the same instance and carries the error", () => {

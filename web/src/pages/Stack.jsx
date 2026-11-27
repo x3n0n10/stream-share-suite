@@ -1,18 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Layout from "../components/Layout.jsx";
 import { ErrorNote, RefreshButton } from "../components/common.jsx";
-import { api, ApiError } from "../lib/api.js";
+import { useTranslation } from "react-i18next";
+import { api } from "../lib/api.js";
+import { errorText } from "../lib/serverText.js";
 import { useJobPolling } from "../lib/useJobPolling.js";
 import PlanPanel from "./stack/PlanPanel.jsx";
 import InstancesTab from "./stack/InstancesTab.jsx";
 import ComponentsTab from "./stack/ComponentsTab.jsx";
 import ImportTab from "./stack/ImportTab.jsx";
 
-const TABS = [
-  { id: "instances", label: "Instances" },
-  { id: "components", label: "Components" },
-  { id: "import", label: "Import" },
-];
+const TABS = [{ id: "instances" }, { id: "components" }, { id: "import" }];
 
 // Draggable split between the tab content and the plan panel. Both sides
 // keep a 380px floor via CSS minmax — that holds even if a width restored
@@ -51,6 +49,7 @@ function ColumnResizer({ containerRef, onResize, onResizeEnd }) {
 }
 
 function TabBar({ tabs, activeTab, onChange, className = "" }) {
+  const { t } = useTranslation();
   return (
     <div className={`flex gap-1 border-b border-slate-200 dark:border-slate-800 ${className}`}>
       {tabs.map((tab) => (
@@ -63,9 +62,9 @@ function TabBar({ tabs, activeTab, onChange, className = "" }) {
               : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
           }`}
         >
-          {tab.label}
+          {t(`stack.tabs.${tab.id}`)}
           {tab.attention && (
-            <span className="relative flex h-2 w-2" aria-label="Pending changes">
+            <span className="relative flex h-2 w-2" aria-label={t("stack.pendingChanges")}>
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-500 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-500" />
             </span>
@@ -77,6 +76,7 @@ function TabBar({ tabs, activeTab, onChange, className = "" }) {
 }
 
 export default function Stack({ pollIntervalMs = 15000 }) {
+  const { t } = useTranslation();
   const [dockerReachable, setDockerReachable] = useState(null);
   const [components, setComponents] = useState([]);
   const [settings, setSettings] = useState(null);
@@ -99,7 +99,7 @@ export default function Stack({ pollIntervalMs = 15000 }) {
       setPlanError(null);
     } catch (err) {
       setPlan(null);
-      setPlanError(err instanceof ApiError ? err.message : String(err));
+      setPlanError(err);
     }
   }, []);
 
@@ -145,7 +145,11 @@ export default function Stack({ pollIntervalMs = 15000 }) {
       pollJob(jobId);
     } catch (err) {
       setBusy(false);
-      setJob({ status: "failed", error: err.message, log: [] });
+      setJob({
+        status: "failed",
+        failure: err, // rendered with errorText, so validation lists stay translatable
+        log: [],
+      });
     }
   }
 
@@ -172,8 +176,8 @@ export default function Stack({ pollIntervalMs = 15000 }) {
 
   if (dockerReachable === false) {
     return (
-      <Layout title="Stack" headerExtra={<RefreshButton onClick={reload} />}>
-        <ErrorNote message="Can't reach the Docker socket proxy. Set DOCKER_PROXY_URL, or check that the docker-socket-proxy service is running and reachable." />
+      <Layout title={t("nav.stack")} headerExtra={<RefreshButton onClick={reload} />}>
+        <ErrorNote message={t("stack.dockerUnreachable")} />
       </Layout>
     );
   }
@@ -183,13 +187,12 @@ export default function Stack({ pollIntervalMs = 15000 }) {
   // the dot calls attention to it until either it's applied or the tab is open.
   const planTab = {
     id: "plan",
-    label: "Plan",
     attention: !!plan && plan.summary.changes > 0 && activeTab !== "plan",
   };
   const mobileTabs = [...TABS, planTab];
 
   return (
-    <Layout title="Stack" headerExtra={<RefreshButton onClick={reload} />}>
+    <Layout title={t("nav.stack")} headerExtra={<RefreshButton onClick={reload} />}>
       <TabBar tabs={mobileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-4 lg:hidden" />
       <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} className="mb-4 hidden lg:flex" />
 
@@ -246,7 +249,7 @@ export default function Stack({ pollIntervalMs = 15000 }) {
         >
           <PlanPanel
             plan={plan}
-            planError={planError}
+            planError={planError && errorText(planError, t)}
             components={components}
             busy={busy}
             job={job}

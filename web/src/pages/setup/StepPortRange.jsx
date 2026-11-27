@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { Card, Button, ErrorNote } from "../../components/common.jsx";
+import { useTranslation } from "react-i18next";
+import { errorText } from "../../lib/serverText.js";
 import { api } from "../../lib/api.js";
 
 export default function StepPortRange({ onNext, onBack }) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -22,7 +25,7 @@ export default function StepPortRange({ onNext, onBack }) {
       await api.saveStackSettings({ instancePortStart: Number(draft) });
       onNext("instances");
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -30,15 +33,14 @@ export default function StepPortRange({ onNext, onBack }) {
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Instance port range</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.portRange.title")}</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Let's start with a port range. Each instance gets its own port, allocated from a band of 
-        20 starting here. Only worth changing if that range is already taken by something else on the host.
+        {t("setup.portRange.intro")}
       </p>
 
       <div className="mt-5">
         {settings === null ? (
-          <p className="text-sm text-slate-400">Loading…</p>
+          <p className="text-sm text-slate-400">{t("common.loading")}</p>
         ) : (
           <div className="flex items-center gap-2">
             <input
@@ -63,12 +65,12 @@ export default function StepPortRange({ onNext, onBack }) {
       <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
         {onBack && (
           <Button tone="ghost" onClick={onBack}>
-            Back
+            {t("common.back")}
           </Button>
         )}
         <div className="ml-auto">
           <Button tone="accent" onClick={save} loading={saving} disabled={settings === null}>
-            Continue
+            {t("common.continue")}
           </Button>
         </div>
       </div>

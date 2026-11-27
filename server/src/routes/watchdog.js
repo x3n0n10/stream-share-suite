@@ -21,6 +21,7 @@ import {
   parseCheckTimes,
 } from "../watchdog/scheduler.js";
 import { getJob } from "../reconcile/jobs.js";
+import { SuiteError, UNKNOWN_JOB, sendError } from "../errors.js";
 
 const MAX_RECONNECTS_CAP = 20;
 
@@ -47,9 +48,11 @@ export function createWatchdogRouter() {
     if (req.body?.checkTimes !== undefined) {
       const trimmed = String(req.body.checkTimes).trim();
       if (!trimmed || parseCheckTimes(trimmed).length === 0) {
-        return res.status(400).json({
-          error: "Check times must be a comma-separated list of HH:MM times, e.g. 04:00,16:00.",
-        });
+        return sendError(
+          res,
+          400,
+          new SuiteError("check_times_invalid", "Check times must be a comma-separated list of HH:MM times, e.g. 04:00,16:00."),
+        );
       }
       setSetting(WATCHDOG_CHECK_TIMES_SETTING, trimmed);
     }
@@ -57,9 +60,13 @@ export function createWatchdogRouter() {
     if (req.body?.maxReconnects !== undefined) {
       const value = Number(req.body.maxReconnects);
       if (!Number.isInteger(value) || value < 1 || value > MAX_RECONNECTS_CAP) {
-        return res.status(400).json({
-          error: `Max reconnects must be a whole number between 1 and ${MAX_RECONNECTS_CAP}.`,
-        });
+        return sendError(
+          res,
+          400,
+          new SuiteError("max_reconnects_invalid", `Max reconnects must be a whole number between 1 and ${MAX_RECONNECTS_CAP}.`, {
+            max: MAX_RECONNECTS_CAP,
+          }),
+        );
       }
       setSetting(WATCHDOG_MAX_RECONNECTS_SETTING, value);
     }
@@ -77,7 +84,7 @@ export function createWatchdogRouter() {
 
   router.get("/jobs/:jobId", (req, res) => {
     const job = getJob(req.params.jobId);
-    if (!job) return res.status(404).json({ error: "Unknown job" });
+    if (!job) return sendError(res, 404, UNKNOWN_JOB);
     res.json(job);
   });
 

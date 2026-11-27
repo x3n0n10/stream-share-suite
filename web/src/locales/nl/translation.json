@@ -1,0 +1,1213 @@
+{
+  "common": {
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "failedOn": "Mislukt op {{list}}",
+    "updated": "Bijgewerkt {{when}}",
+    "loading": "Laden…",
+    "refresh": "Vernieuwen",
+    "on": "Aan",
+    "off": "Uit",
+    "add": "Toevoegen",
+    "remove": "Verwijderen",
+    "removeItem": "{{name}} verwijderen",
+    "secretSet": "Ingesteld. Laat leeg om het te behouden.",
+    "secretNotSet": "Niet ingesteld.",
+    "unchanged": "••••••••  (ongewijzigd)",
+    "tech": {
+      "audio": "Audio: {{list}}",
+      "subs": "Ondertitels: {{list}}",
+      "subsCount": "Ondertitels: {{count}}"
+    },
+    "hours": {
+      "last1": "Laatste uur",
+      "last24": "Laatste 24 u",
+      "last168": "Laatste 7 dagen",
+      "last720": "Laatste 30 dagen",
+      "all": "Alle tijd"
+    },
+    "back": "Terug",
+    "continue": "Doorgaan",
+    "close": "Sluiten",
+    "edit": "Bewerken",
+    "refreshFailed": "Vernieuwen mislukt: {{detail}}",
+    "online": "online",
+    "offline": "offline",
+    "unreachable": "Onbereikbaar",
+    "instance": "Instance",
+    "type": "Type",
+    "title": "Titel",
+    "user": "Gebruiker",
+    "since": "Sinds",
+    "viewers": "Kijkers",
+    "uptime": "Uptime",
+    "duration": "Duur",
+    "when": "Wanneer",
+    "updatedCol": "Bijgewerkt",
+    "addAliasFor": "Alias toevoegen voor {{ip}}",
+    "searchFailed": "Zoeken mislukt: {{detail}}",
+    "streamType": {
+      "live": "Live",
+      "movie": "Film",
+      "series": "Serie",
+      "vod": "VOD"
+    },
+    "jobStatus": {
+      "running": "actief",
+      "success": "geslaagd",
+      "failed": "mislukt"
+    },
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd"
+  },
+  "language": {
+    "label": "Taal"
+  },
+  "errors": {
+    "internal_error": "Interne serverfout",
+    "setup_required": "Installatie vereist",
+    "authentication_required": "Authenticatie vereist",
+    "invalid_csrf": "Ongeldig of ontbrekend CSRF-token",
+    "invalid_api_token": "Ongeldig API-token",
+    "api_token_route_forbidden": "Deze route is niet beschikbaar met een API-token",
+    "too_many_attempts_one": "Te veel inlogpogingen. Probeer het over {{count}} minuut opnieuw.",
+    "too_many_attempts_other": "Te veel inlogpogingen. Probeer het over {{count}} minuten opnieuw.",
+    "password_too_short": "Het wachtwoord moet minstens {{min}} tekens hebben.",
+    "password_too_long": "Het wachtwoord mag hooguit {{max}} tekens hebben.",
+    "setup_complete": "De installatie is al voltooid.",
+    "username_too_short": "De gebruikersnaam moet minstens {{min}} tekens hebben.",
+    "login_fields_required": "Gebruikersnaam en wachtwoord zijn vereist.",
+    "bad_credentials": "Onjuiste gebruikersnaam of onjuist wachtwoord.",
+    "current_password_incorrect": "Het huidige wachtwoord is onjuist.",
+    "backup_failed": "Back-up mislukt: {{detail}}",
+    "backup_download_failed": "Back-up downloaden mislukt",
+    "no_file_uploaded": "Geen bestand geüpload.",
+    "not_sqlite": "Dat lijkt geen SQLite-databasebestand.",
+    "restore_failed": "Herstellen mislukt: {{detail}}",
+    "check_times_invalid": "Controletijden moeten een kommagescheiden lijst van HH:MM-tijden zijn, bijv. 04:00,16:00.",
+    "max_reconnects_invalid": "Max. herverbindingen moet een geheel getal tussen 1 en {{max}} zijn.",
+    "unknown_job": "Onbekende taak",
+    "unknown_instance": "Onbekende instance",
+    "gluetun_not_configured": "Gluetun is niet geconfigureerd (stel het in bij Instellingen)",
+    "stream_id_required": "streamId is vereist",
+    "ends_at_required": "endsAt is vereist",
+    "ip_and_alias_required": "ipAddress en alias zijn vereist",
+    "ip_required": "ipAddress is vereist",
+    "shares_unsupported": "Deze instance ondersteunt geen deellinks. Werk hem bij naar een nieuwere image.",
+    "name_required": "Naam is vereist.",
+    "name_too_long": "De naam mag hooguit {{max}} tekens hebben.",
+    "title_required": "Titel is vereist.",
+    "title_too_long": "De titel mag hooguit {{max}} tekens hebben.",
+    "url_required": "URL is vereist.",
+    "url_not_absolute": "De URL moet absoluut zijn, bijv. http://example.com:8080",
+    "url_bad_scheme": "De URL moet beginnen met http:// of https://",
+    "api_key_required": "Een API-sleutel is vereist. Gebruik de INTERNAL_API_KEY van de instance.",
+    "order_not_array": "order moet een array van id's zijn",
+    "url_or_id_required": "url of id is vereist",
+    "unknown_kind": "Onbekend componenttype: {{kind}}",
+    "apply_in_progress": "Er wordt nog een andere wijziging toegepast. Wacht tot die klaar is.",
+    "versions_failed": "Kon versies niet lezen: {{detail}}",
+    "update_checks_off": "Automatische updatecontroles staan uit. Zet ze aan en sla eerst op.",
+    "port_start_invalid": "Het begin van het instancepoortbereik moet een geheel getal tussen 1 en {{max}} zijn.",
+    "instance_edit_route": "Bewerk een instance via /api/stack/instances/:key.",
+    "unknown_history_entry": "Onbekend geschiedenisitem",
+    "kind_not_active": "{{kind}} maakt op dit moment geen deel uit van de stack",
+    "unknown_instance_key": "Onbekende instance: {{key}}",
+    "xtream_only": "Alleen een Xtream-instance heeft providerinloggegevens om te gebruiken.",
+    "no_database_host": "Er is nog geen databasehost geconfigureerd.",
+    "container_and_kind_required": "containerId en kind zijn vereist",
+    "container_id_required": "containerId is vereist",
+    "no_postgres_server": "Kan de database niet verwijderen: er is geen PostgreSQL-server geconfigureerd.",
+    "remove_other_suite": "Weiger {{containerId}} te verwijderen: hij hoort bij een andere Suite ({{suite}}).",
+    "gluetun_already_configured": "gluetun is al geconfigureerd. Importeer opnieuw met overschrijven om het te vervangen.",
+    "postgres_already_configured": "PostgreSQL is al geconfigureerd. Importeer opnieuw met overschrijven om het te vervangen.",
+    "already_imported": "Deze container is al geïmporteerd als de instantie \"{{key}}\".",
+    "port_in_use": "Poort {{port}} wordt al gebruikt door {{key}} — los dat eerst op.",
+    "container_not_found": "Geen container gevonden voor {{containerId}}.",
+    "container_already_managed": "Deze container wordt al door de Suite beheerd.",
+    "unknown_import_kind": "Onbekend importtype: {{kind}}",
+    "no_ports_left": "Er zijn geen poorten meer over in de toewijzingsband. Maak er een vrij, of stel de poort van deze instantie handmatig in.",
+    "no_postgres_configured": "Er is geen PostgreSQL-server geconfigureerd, dus deze instantie kan haar gegevens nergens opslaan. Configureer eerst het databasecomponent.",
+    "port_range_too_small_one": "{{count}} instantie valt buiten het nieuwe bereik en daar zijn niet genoeg vrije plekken ({{free}} beschikbaar) — vergroot het bereik of verwijder eerst instanties.",
+    "port_range_too_small_other": "{{count}} instanties vallen buiten het nieuwe bereik en daar zijn niet genoeg vrije plekken ({{free}} beschikbaar) — vergroot het bereik of verwijder eerst instanties.",
+    "postgres_wait_timeout": "PostgreSQL op {{describe}} accepteerde binnen {{seconds}} s geen verbindingen: {{message}}",
+    "http_failed": "Verzoek naar {{path}} mislukt: HTTP {{status}}"
+  },
+  "validation": {
+    "required": "{{field}} is vereist.",
+    "not_one_of": "{{field}} moet een van deze zijn: {{options}}.",
+    "invalid": "{{field}} is ongeldig.",
+    "invalid_json": "{{field}} moet geldige JSON zijn.",
+    "port_in_use": "Poort {{port}} wordt al gebruikt door {{instance}}."
+  },
+  "log": {
+    "error": "Fout: {{message}}",
+    "plan_action": "Plan: {{action}}.",
+    "cache_folder_owned": "De nieuwe cachemap {{path}} aan {{owner}} gegeven.",
+    "cache_folder_failed": "Waarschuwing: kon de cachemap {{path}} niet voorbereiden: {{message}}",
+    "waiting_postgres": "Wachten tot PostgreSQL verbindingen accepteert...",
+    "creating_role": "Databaserol {{user}} aanmaken...",
+    "role_exists": "Rol {{user}} bestaat al — het wachtwoord wordt bijgewerkt naar het opgeslagen wachtwoord.",
+    "creating_database": "Database {{database}} aanmaken...",
+    "database_exists": "Database {{database}} bestaat al — wordt precies zo gelaten.",
+    "dropping_database": "Database {{database}} verwijderen...",
+    "dropping_role": "Rol {{user}} verwijderen...",
+    "done": "Klaar.",
+    "stopping": "{{name}} stoppen...",
+    "removing": "{{name}} verwijderen...",
+    "other_suite_running": "{{name}} hoort bij een andere Suite — blijft draaien.",
+    "unmanaged_running": "{{name}} is niet door de Suite aangemaakt — blijft draaien.",
+    "keeping_database": "Database {{database}} blijft behouden. Verwijder hem zelf als je hem weg wilt hebben.",
+    "removed_from_stack": "{{name}} uit de stack verwijderd.",
+    "instance_status": "{{name}}: {{status}}",
+    "instance_status_detail": "{{name}}: {{status}} ({{detail}})",
+    "instance_unreachable": "{{name}}: niet bereikbaar ({{message}})",
+    "exit_ip": "Uitgangs-IP is nu {{address}}.",
+    "exit_ip_country": "Uitgangs-IP is nu {{address}} ({{country}}).",
+    "no_health_checks": "Geen enkele instance heeft gezondheidscontrole ingeschakeld — niets om te bewaken.",
+    "gluetun_not_configured": "Gluetun is niet geconfigureerd — kan niets doen tegen een geblokkeerde provider.",
+    "all_reachable": "De provider van elke bewaakte instance lijkt bereikbaar — niets te doen.",
+    "blocked_reconnecting_one": "Geblokkeerd: {{names}}. Opnieuw verbinden (maximaal {{count}} poging).",
+    "blocked_reconnecting_other": "Geblokkeerd: {{names}}. Opnieuw verbinden (maximaal {{count}} pogingen).",
+    "reconnect_attempt": "Herverbindingspoging {{attempt}}/{{max}}...",
+    "reconnect_failed": "Herverbinden mislukt: {{message}}",
+    "recovered_one": "Hersteld na {{count}} herverbinding.",
+    "recovered_other": "Hersteld na {{count}} herverbindingen.",
+    "still_blocked": "Nog steeds geblokkeerd: {{names}}.",
+    "gave_up_one": "Opgegeven na {{count}} herverbinding; nog steeds geblokkeerd: {{names}}.",
+    "gave_up_other": "Opgegeven na {{count}} herverbindingen; nog steeds geblokkeerd: {{names}}.",
+    "skipped_incomplete": "{{label}} is niet volledig geconfigureerd — overgeslagen.",
+    "orphan_left_alone": "{{name}} is verweesd. Verwijderen is een aparte actie — blijft ongemoeid.",
+    "disabled_left_alone": "{{name}} hoort bij een uitgeschakeld component en wordt niet door de Suite beheerd — wordt met rust gelaten.",
+    "already_matches": "{{name}} komt al overeen met de gewenste configuratie.",
+    "adopting_existing": "Een bestaande container met de naam \"{{name}}\" gevonden die deze Suite niet heeft aangemaakt — wordt overgenomen zonder opnieuw aan te maken.",
+    "adopt_stays": "Hij blijft precies zoals hij is totdat je de Suite expliciet vraagt hem over te nemen.",
+    "adopt_warning": "Waarschuwing: {{warning}}",
+    "pulling": "{{image}} ophalen...",
+    "taking_over": "\"{{name}}\" overnemen: de onbeheerde container wordt gestopt en verwijderd.",
+    "recreating_cascaded": "\"{{name}}\" opnieuw aanmaken — {{host}} is vervangen en nam zijn netwerknaamruimte mee.",
+    "recreating_stopped": "\"{{name}}\" opnieuw aanmaken — hij is buiten de Suite om gestopt.",
+    "recreating_pulled": "\"{{name}}\" opnieuw aanmaken — er is een nieuwere image opgehaald.",
+    "recreating_changed": "\"{{name}}\" opnieuw aanmaken — configuratie gewijzigd ({{from}} -> {{to}}).",
+    "stopping_current": "De huidige container stoppen...",
+    "removing_it": "Verwijderen...",
+    "creating": "\"{{name}}\" aanmaken...",
+    "joining_network": "Aansluiten op netwerk \"{{network}}\"...",
+    "starting": "\"{{name}}\" starten...",
+    "update_not_applicable": "{{label}}: {{reason}} — een image ophalen is hier niet van toepassing.",
+    "image_pulled": "Er is een nieuwere image opgehaald voor {{image}}.",
+    "image_up_to_date": "{{image}} is al up-to-date.",
+    "nothing_to_apply": "Niets toe te passen — de stack komt al overeen met zijn configuratie.",
+    "gluetun_stopping_first": "Gluetun is net uitgeschakeld maar draait nog en houdt de poort van elke instance vast — wordt eerst gestopt.",
+    "instance_stopping_for_port": "{{label}} draait nog en houdt zijn eigen poort vast — wordt gestopt voordat {{gluetun}} terugkomt.",
+    "step_progress": "[{{done}}/{{total}}] {{label}}",
+    "applied_changes_one": "{{count}} wijziging toegepast.",
+    "applied_changes_other": "{{count}} wijzigingen toegepast."
+  },
+  "plan": {
+    "reason": {
+      "not_created_yet": "Er bestaat nog geen container met de naam {{name}}",
+      "running_before_suite": "Draait sinds vóór de Suite — wordt zonder overname nooit aangeraakt",
+      "other_suite": "Aangemaakt door een andere Suite ({{suite}}) — wordt zonder overname nooit aangeraakt",
+      "stopped_outside": "Buiten de Suite om gestopt — wordt weer gestart",
+      "matches_config": "Komt overeen met de opgeslagen configuratie",
+      "config_changed": "De opgeslagen configuratie is gewijzigd",
+      "not_in_stack": "De Suite heeft dit aangemaakt, maar het maakt geen deel meer uit van de stack",
+      "switched_off_running": "Uitgeschakeld, maar deze container draait nog. De Suite heeft hem niet aangemaakt en laat hem met rust.",
+      "not_configured": "Nog niet geconfigureerd — {{message}}",
+      "shares_namespace": "Deelt de netwerknaamruimte van {{host}}",
+      "newer_image_pulled": "Er is een nieuwere image opgehaald"
+    },
+    "warning": {
+      "other_suite_prefix": "Deze container hoort bij een andere Suite op deze host. Geef elke Suite een eigen SUITE_CONTAINER_PREFIX (en zorg dat geen containerName-override naar dezelfde naam wijst) zodat hun containernamen niet botsen.",
+      "host_replaced": "{{host}} wordt vervangen, waardoor deze container wordt losgekoppeld. De Suite raakt hem niet aan — herstart of neem hem daarna zelf over."
+    }
+  },
+  "schema": {
+    "gluetun": {
+      "label": "Gluetun (VPN)",
+      "groups": {
+        "vpn": "VPN",
+        "serverSelection": "Serverselectie",
+        "advanced": "Geavanceerd"
+      },
+      "fields": {
+        "vpnServiceProvider": {
+          "label": "VPN-provider",
+          "help": "De identifier van gluetun voor je VPN-dienst. Staat hij er niet bij? Typ hem toch — gluetun herkent meer providers dan hier staan, en Extra omgevingsvariabelen (hieronder) dekt alles wat het formulier nog niet kent."
+        },
+        "vpnType": {
+          "label": "VPN-type",
+          "options": {
+            "wireguard": "WireGuard",
+            "openvpn": "OpenVPN"
+          }
+        },
+        "wireguardPrivateKey": {
+          "label": "WireGuard-privésleutel"
+        },
+        "openvpnUser": {
+          "label": "OpenVPN-gebruikersnaam"
+        },
+        "openvpnPassword": {
+          "label": "OpenVPN-wachtwoord"
+        },
+        "wireguardAddresses": {
+          "label": "WireGuard-interfaceadres",
+          "help": "Vereist voor Mullvad: het CIDR-adres uit de eigen configuratiegenerator van Mullvad — hetzelfde voor elke Mullvad-server en gekoppeld aan je privésleutel. De meeste andere WireGuard-providers leiden dit zelf af en hebben dit niet nodig."
+        },
+        "serverCountries": {
+          "label": "Serverlanden",
+          "help": "bijv. Nederland. Laat leeg om de provider te laten kiezen."
+        },
+        "serverCategories": {
+          "label": "Servercategorieën",
+          "help": "bijv. P2P. Providerspecifiek — laat leeg als jouw provider geen categorieën gebruikt."
+        },
+        "serverHostnames": {
+          "label": "Voorkeurshostnamen van servers",
+          "help": "Dit is de lijst waar een VPN-healer in een latere fase doorheen zou lopen."
+        },
+        "serverRegions": {
+          "label": "Serverregio's",
+          "help": "Private Internet Access identificeert servers op regio in plaats van land, bijv. us_east. Laat leeg om PIA te laten kiezen."
+        },
+        "blockMalicious": {
+          "label": "Schadelijke domeinen blokkeren",
+          "options": {
+            "on": "Aan",
+            "off": "Uit"
+          }
+        },
+        "image": {
+          "label": "Image",
+          "help": "Elke tag op qmcgaw/gluetun. Gebruik \"Op updates controleren\" op deze kaart om hem op te halen en alleen opnieuw aan te maken als hij echt gewijzigd is."
+        },
+        "containerName": {
+          "label": "Containernaam",
+          "help": "Standaard het containervoorvoegsel van de Suite gevolgd door gluetun (streamshare-suite-gluetun tenzij overschreven). Verwijs naar een container die je al draait en de Suite neemt die over in plaats van een tweede aan te maken.",
+          "patternMessage": "Gebruik alleen letters, cijfers, \"_\", \".\" en \"-\", beginnend met een letter of cijfer."
+        },
+        "networks": {
+          "label": "Docker-netwerken om aan deel te nemen",
+          "help": "Namen van bestaande Docker-netwerken, bijv. vpnnet, ssbackend. Het eerste wordt het primaire netwerk van de container. Standaard het streamshare-netwerk dat het eigen compose-bestand van de Suite al declareert — wijzig dit alleen om ook aan te sluiten op een eigen stack."
+        },
+        "extraEnv": {
+          "label": "Extra omgevingsvariabelen",
+          "help": "Eén KEY=VALUE per regel, rechtstreeks aan de container doorgegeven. Voor een provider waarvan de velden hierboven nog niet zijn gemodelleerd — niet gevalideerd, en een genoemd veld hierboven wint altijd als het dezelfde sleutel instelt."
+        }
+      }
+    },
+    "postgres": {
+      "label": "PostgreSQL",
+      "groups": {
+        "database": "Database",
+        "credentials": "Inloggegevens",
+        "advanced": "Geavanceerd"
+      },
+      "fields": {
+        "mode": {
+          "label": "Waar het draait",
+          "help": "Laat de Suite een PostgreSQL-container draaien, of verwijs naar een server die je al hebt.",
+          "options": {
+            "managed": "Beheerd door de Suite",
+            "external": "Externe server"
+          }
+        },
+        "host": {
+          "label": "Host",
+          "help": "Hostnaam of adres waarop de instances (en de Suite) de server bereiken. De poort is standaard 5432 en wordt hieronder bij Geavanceerd ingesteld."
+        },
+        "adminUser": {
+          "label": "Beheerdersgebruikersnaam",
+          "help": "Moet CREATE DATABASE en CREATE ROLE kunnen uitvoeren. Voor een beheerde server is dit de superuser waarmee hij wordt aangemaakt."
+        },
+        "adminPassword": {
+          "label": "Beheerderswachtwoord",
+          "help": "Vereist voor een server die de Suite draait — de postgres-image start niet zonder. Optioneel voor een externe server met trust- of peer-authenticatie."
+        },
+        "containerName": {
+          "label": "Containernaam",
+          "help": "Standaard het containervoorvoegsel van de Suite gevolgd door postgres (streamshare-suite-postgres tenzij overschreven). Verwijs naar een container die je al draait en de Suite neemt die over in plaats van een tweede aan te maken.",
+          "patternMessage": "Gebruik alleen letters, cijfers, \"_\", \".\" en \"-\", beginnend met een letter of cijfer."
+        },
+        "image": {
+          "label": "Image",
+          "help": "Elke postgres-tag. Wijzigen maakt de container opnieuw aan; de datamap wordt niet gemigreerd, dus ga hiermee niet over een major-versie heen."
+        },
+        "networks": {
+          "label": "Docker-netwerken om aan deel te nemen",
+          "help": "Moet het netwerk bevatten waarover je instances de database bereiken. Standaard het streamshare-netwerk dat het eigen compose-bestand van de Suite al declareert — wijzig dit alleen als je instances de database via een eigen stack moeten bereiken."
+        },
+        "port": {
+          "label": "Poort"
+        }
+      }
+    },
+    "instance": {
+      "label": "StreamShare-instance",
+      "groups": {
+        "instance": "Instance",
+        "provider": "Provider",
+        "access": "Toegang",
+        "addressing": "Adressering",
+        "discord": "Discord",
+        "caching": "Caching",
+        "nowPlaying": "Nu aan het afspelen",
+        "healthCheck": "Statuscontrole",
+        "errorSlates": "Foutschermen",
+        "container": "Container",
+        "failover": "Failover"
+      },
+      "fields": {
+        "displayName": {
+          "label": "Naam",
+          "help": "Hoe deze provider in het dashboard verschijnt, bijv. \"Provider 1\"."
+        },
+        "providerType": {
+          "label": "Afspeellijstbron",
+          "help": "Xtream ontgrendelt VOD, series, EPG en abonnementsstatus. Kies alleen M3U als je provider geen Xtream-API biedt.",
+          "options": {
+            "xtream": "Xtream-API",
+            "m3u": "M3U-afspeellijst"
+          }
+        },
+        "xtreamBaseUrl": {
+          "label": "Xtream-basis-URL",
+          "help": "Het portaaladres en de poort van je provider, bijv. http://provider.example:8080"
+        },
+        "xtreamUser": {
+          "label": "Xtream-gebruikersnaam"
+        },
+        "xtreamPassword": {
+          "label": "Xtream-wachtwoord"
+        },
+        "m3uUrl": {
+          "label": "M3U-URL",
+          "help": "De URL van de M3U-afspeellijst van de provider."
+        },
+        "authMode": {
+          "label": "Hoe gebruikers inloggen",
+          "options": {
+            "basic": "Gebruikersnaam & wachtwoord",
+            "ldap": "LDAP"
+          }
+        },
+        "authUser": {
+          "label": "Gebruikersnaam"
+        },
+        "authPassword": {
+          "label": "Wachtwoord"
+        },
+        "ldapServer": {
+          "label": "LDAP-server",
+          "help": "bijv. ldap://ldap.example:389"
+        },
+        "ldapBaseDn": {
+          "label": "Base DN"
+        },
+        "ldapBindDn": {
+          "label": "Bind DN"
+        },
+        "ldapBindPassword": {
+          "label": "Bind-wachtwoord"
+        },
+        "ldapRequiredGroup": {
+          "label": "Vereiste groep",
+          "help": "Alleen leden van deze groep mogen inloggen."
+        },
+        "publicBaseUrl": {
+          "label": "Publieke basis-URL",
+          "help": "Het adres waarop je spelers deze instance bereiken, bijv. https://tv.example.com/provider-1. Laat leeg als hij niet extern gepubliceerd is."
+        },
+        "timezone": {
+          "label": "Tijdzone",
+          "help": "Moet overeenkomen met de tijdzone van je spelers — catchup hangt hiervan af."
+        },
+        "discordEnabled": {
+          "label": "Discord-bot inschakelen",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
+        },
+        "discordBotToken": {
+          "label": "Bot-token"
+        },
+        "discordAdminRoleId": {
+          "label": "Beheerdersrol-ID",
+          "help": "Optioneel. Een Discord-rol-ID die beheerdersopdrachten voor de bot krijgt."
+        },
+        "vodCacheEnabled": {
+          "label": "VOD lokaal cachen",
+          "help": "Slaat de VOD-streams tijdelijk op de Docker-host op voor snellere en ononderbroken toegang.",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
+        },
+        "catchupEnabled": {
+          "label": "Live-kanalen bufferen voor catchup",
+          "help": "Voegt catchup (pauzeren en terugspoelen) toe aan elk kanaal dat de provider dit niet al biedt. Begint met bufferen zodra een kanaal voor het eerst wordt bekeken en bewaart de laatste paar uur ervan.",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
+        },
+        "catchupDurationHours": {
+          "label": "Uren catchup om te bewaren"
+        },
+        "catalogStorage": {
+          "label": "Providercatalogus bewaren in",
+          "help": "Geheugen is het snelst, maar het RAM groeit mee met de catalogus van de provider (meer dan 700 MB voor een zeer grote). Schijf gebruikt veel minder RAM (ongeveer 90 MB) en heeft ongeveer 2-3 keer de omvang van de catalogus nodig in de cachemap, met iets tragere zoekopdrachten.",
+          "options": {
+            "memory": "Geheugen",
+            "disk": "Schijf"
+          }
+        },
+        "cachePath": {
+          "label": "Cachelocatie op de host",
+          "help": "Waar de VOD-, catchup- en schijfcatalogus-cache van deze instance op de Docker-host staat. Laat leeg om een map in de datamap van de Suite te gebruiken, die de Suite voor je aanmaakt. Een cache kan tientallen gigabytes groeien, dus we raden een eigen pad aan op een schijf bedoeld voor caching, met zoveel vrije ruimte. Bestaat de map nog niet, dan maakt de Suite hem aan met PUID/PGID uit het compose-bestand van de Suite als eigenaar. Een bestaande map met bestanden erin, of met een andere eigenaar dan root, behoudt zijn eigenaar en moet dus beschrijfbaar zijn voor die gebruiker."
+        },
+        "streamTechProbeEnabled": {
+          "label": "Streamdetails tonen",
+          "help": "Toont de video-, audio- en ondertitelsporen van elke stream onder Nu aan het afspelen in het Overzicht. Gebruikt geen extra providerverbinding.",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
+        },
+        "healthCheckEnabled": {
+          "label": "De provider van deze instance bewaken",
+          "help": "Laat de VPN-watchdog (zie de VPN-pagina) de tunnel opnieuw verbinden wanneer de provider van deze instance het huidige uitgangs-IP blokkeert.",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
+        },
+        "healthCheckStreamId": {
+          "label": "Test-kanaal-ID",
+          "help": "Een live-kanaal-ID van je provider (zoals in een stream-URL) dat de instance periodiek opvraagt om te bepalen of de provider dit uitgangs-IP blokkeert. Typ een kanaalnaam om te zoeken, of voer de ID direct in."
+        },
+        "healthCheckBlockedCodes": {
+          "label": "Statuscodes die een blokkade aangeven",
+          "help": "HTTP-statuscodes die je provider teruggeeft wanneer hij dit uitgangs-IP blokkeert. Standaard 456 (de gangbare Xtream-conventie) als je dit leeg laat."
+        },
+        "errorSlateEnabled": {
+          "label": "Foutschermen tonen",
+          "help": "Streamt een synthetisch foutscherm naar kijkers in plaats van meteen te falen wanneer de upstream-provider een fout geeft.",
+          "options": {
+            "true": "Aan",
+            "false": "Uit"
+          }
+        },
+        "errorSlateMessages": {
+          "label": "Eigen berichten",
+          "help": "Overschrijf het standaardbericht voor een numerieke HTTP-statuscode, of voor een fout op verbindingsniveau zonder eigen statuscode: UNREACHABLE, TIMEOUT, DNS of TLS; of NO_RECORDING voor catchup zonder opname op het gevraagde tijdstip, of IN_USE wanneer alle verbindingen door andere kijkers bezet zijn. Laat een code weg om de standaard te behouden."
+        },
+        "errorSlateRetryMaxMinutes": {
+          "label": "Opnieuw proberen gedurende (minuten)",
+          "help": "Hoe lang achter het scherm de upstream-provider opnieuw wordt geprobeerd voordat dat verzoek wordt opgegeven."
+        },
+        "image": {
+          "label": "Image",
+          "help": "Gebruik \"Op updates controleren\" op deze instance om deze tag op te halen en alleen opnieuw aan te maken als hij echt gewijzigd is."
+        },
+        "containerName": {
+          "label": "Containernaam",
+          "help": "Standaard het containervoorvoegsel van de Suite gevolgd door de slug van deze instance — zie het voorbeeld boven de knop Aanmaken. Verwijs naar een container die je al draait en de Suite neemt die over in plaats van een tweede aan te maken.",
+          "patternMessage": "Gebruik alleen letters, cijfers, \"_\", \".\" en \"-\", beginnend met een letter of cijfer."
+        },
+        "port": {
+          "label": "Poort",
+          "help": "Automatisch toegewezen uit het instancepoortbereik dat bij Stack is ingesteld. Wijzig dit alleen als iets anders op deze host de toegewezen poort al gebruikt."
+        },
+        "fallbacks": {
+          "label": "Fallback-instances",
+          "help": "Wanneer een live-kanaal niet kan starten op deze instance (zijn provider faalt, of al zijn verbindingen zijn in gebruik door andere kijkers), probeer dan deze instances op volgorde. Elk levert het kanaal alleen zolang het een vrije providerverbinding van zichzelf heeft."
+        },
+        "extraEnv": {
+          "label": "Extra omgevingsvariabelen",
+          "help": "Eén KEY=VALUE per regel, rechtstreeks aan de container doorgegeven — voor elke stream-share-instelling die hierboven niet is gemodelleerd. Niet gevalideerd, en een veld hierboven wint altijd als het dezelfde sleutel instelt."
+        }
+      }
+    },
+    "caddy": {
+      "label": "Caddy (reverse proxy)",
+      "groups": {
+        "https": "HTTPS",
+        "dnsChallenge": "DNS-challenge",
+        "dashboard": "Dashboard",
+        "container": "Container"
+      },
+      "fields": {
+        "tlsMode": {
+          "label": "HTTPS",
+          "help": "\"Zelfondertekend\" geeft een certificaat uit via de eigen interne CA van Caddy — browsers waarschuwen eenmalig, prima op een privénetwerk. \"Automatisch (ACME)\" haalt per hostnaam een echt, vertrouwd certificaat op, maar vereist dat poort 80 en 443 vanaf internet bereikbaar zijn en de DNS van elke hostnaam al hierheen wijst. \"Automatisch (DNS-challenge)\" haalt hetzelfde soort certificaat op door domeineigendom te bewijzen via de API van je DNS-provider, dus er zijn geen inkomende poorten nodig. Caddy voegt de plug-in van je provider zelf toe bij het starten.",
+          "options": {
+            "internal": "Zelfondertekend",
+            "acme": "Automatisch (ACME)",
+            "dns": "Automatisch (DNS-challenge)"
+          }
+        },
+        "acmeEmail": {
+          "label": "ACME-contact-e-mail",
+          "help": "Alleen naar je certificeringsinstantie gestuurd voor verloopmeldingen — nergens gepubliceerd.",
+          "patternMessage": "Voer een gewoon e-mailadres in."
+        },
+        "dnsModule": {
+          "label": "Caddy-module",
+          "help": "Het Go-pakket van de Caddy-plug-in van je provider, vastgezet op een exacte versie — bijv. github.com/caddy-dns/hetzner@v2.0.1 of github.com/caddy-dns/cloudflare@v0.2.4. Zonder vastgezette versie kan de add-package van Caddy de onuitgebrachte branch van de module bouwen in plaats van de nieuwste release. Zie caddyserver.com/download voor de volledige lijst met pakketten."
+        },
+        "dnsDirective": {
+          "label": "Directive",
+          "help": "Alles na `dns` in het tls-blok van de site, bijv. `hetzner {env.HETZNER_API_TOKEN}` of `cloudflare {env.CLOUDFLARE_API_TOKEN}`. Verwijs naar inloggegevens als {env.NAME} — hieronder verschijnt voor elk een bijpassend vak om in te vullen."
+        },
+        "dnsEnv": {
+          "label": "Omgevingsvariabelen van de provider",
+          "help": "Automatisch ingevuld op basis van de {env.NAME}-namen in Directive, hierboven. Alleen-schrijven opgeslagen en doorgegeven aan de omgeving van de Caddy-container; nooit in de Caddyfile geschreven."
+        },
+        "dnsPropagationDelay": {
+          "label": "Propagatievertraging",
+          "help": "Optioneel. Hoe lang te wachten na het aanmaken van het DNS-record voordat de CA wordt gevraagd het te controleren, bijv. 30s. Trage DNS-providers hebben dit soms nodig. Laat leeg voor de standaard van Caddy."
+        },
+        "dashboardUrl": {
+          "label": "Publieke URL van het dashboard",
+          "help": "Optioneel. Het adres waarop dit dashboard van buitenaf bereikt wordt, bijv. https://suite.example.com. Alleen de hostnaam (en eventueel de poort) wordt gebruikt — geef het een eigen hostnaam in plaats van een pad. Laat leeg om het dashboard niet te publiceren. De Suite moet in een Docker-netwerk zitten waar Caddy aan deelneemt (het standaard streamshare-netwerk dekt dit). Publiceren zet de inlogpagina op internet: die heeft een echte login, CSRF-bescherming en een begrensde inlogpoging, maar die blootstelling is dan van jou."
+        },
+        "networks": {
+          "label": "Docker-netwerken om aan deel te nemen",
+          "help": "Moet elk netwerk bevatten waarop gluetun en je instances bereikbaar zijn. Standaard het streamshare-netwerk dat het eigen compose-bestand van de Suite al declareert."
+        },
+        "httpPort": {
+          "label": "HTTP-poort",
+          "help": "De hostpoort waarop Caddy gewoon HTTP beantwoordt (en vanwaar hij doorverwijst naar HTTPS in ACME-modus)."
+        },
+        "httpsPort": {
+          "label": "HTTPS-poort"
+        },
+        "image": {
+          "label": "Image",
+          "help": "Elke Caddy 2-tag. In DNS-challenge-modus voegt Caddy de plug-in van je provider zelf toe bij het starten (een image die hem al bevat slaat de download over); de image mag dan geen eigen ENTRYPOINT instellen."
+        },
+        "containerName": {
+          "label": "Containernaam",
+          "help": "Standaard het containervoorvoegsel van de Suite gevolgd door caddy (streamshare-suite-caddy tenzij overschreven). Verwijs naar een container die je al draait en de Suite neemt die over in plaats van een tweede aan te maken.",
+          "patternMessage": "Gebruik alleen letters, cijfers, \"_\", \".\" en \"-\", beginnend met een letter of cijfer."
+        },
+        "extraCaddyfile": {
+          "label": "Extra Caddyfile",
+          "help": "Ruwe Caddyfile-tekst die na elk gegenereerd siteblok wordt toegevoegd — voor alles wat de Suite niet voor je rendert, zoals een route naar iets dat hij niet beheert. In JSON-formaat."
+        }
+      }
+    }
+  },
+  "catalog": {
+    "gluetun": {
+      "label": "Gluetun (VPN)",
+      "description": "De VPN-tunnel. Indien ingeschakeld delen alle StreamShare-instances zijn netwerknaamruimte en worden ze erdoorheen gepubliceerd, dus als je hem vervangt, gaan ze kort mee. Indien uitgeschakeld krijgt elke container een eigen netwerk en publiceert zijn eigen poort."
+    },
+    "postgres": {
+      "label": "PostgreSQL",
+      "description": "Waar elke instance zijn geschiedenis, VOD-index en aliassen bewaart. Elke instance krijgt een eigen database in plaats van er een te delen."
+    },
+    "instance": {
+      "label": "StreamShare-instance",
+      "description": "Eén IPTV-provider, gedeeld met je gebruikers."
+    },
+    "caddy": {
+      "label": "Caddy (reverse proxy)",
+      "description": "Publiceert elke instance met een publieke basis-URL onder een echte hostnaam, met HTTPS automatisch geregeld."
+    }
+  },
+  "nav": {
+    "overview": "Overzicht",
+    "users": "Gebruikers",
+    "history": "Geschiedenis",
+    "leaderboard": "Ranglijst",
+    "instances": "Instances",
+    "vod": "VOD zoeken",
+    "shares": "Deellinks",
+    "aliases": "Aliassen",
+    "vpn": "VPN",
+    "setup": "Installatiewizard",
+    "stack": "Stack",
+    "settings": "Instellingen",
+    "activeStreams": "actieve streams",
+    "signOut": "Uitloggen",
+    "signOutTitle": "Uitloggen?",
+    "signOutBody": "Je moet opnieuw inloggen om weer binnen te komen.",
+    "expandSidebar": "Zijbalk uitklappen",
+    "collapseSidebar": "Zijbalk inklappen",
+    "collapse": "Inklappen",
+    "toggleTheme": "Thema wisselen"
+  },
+  "signIn": {
+    "createTitle": "Maak je beheerdersaccount aan",
+    "signInTitle": "Inloggen",
+    "createIntro": "Dit is het enige account. Niets anders werkt totdat het bestaat.",
+    "signInIntro": "Voer je inloggegevens in om door te gaan.",
+    "username": "Gebruikersnaam",
+    "password": "Wachtwoord",
+    "passwordHint": "Minstens 12 tekens. Er is geen herstel — bewaar het ergens veilig.",
+    "confirmPassword": "Bevestig wachtwoord",
+    "mismatch": "De twee wachtwoorden komen niet overeen.",
+    "createAccount": "Account aanmaken"
+  },
+  "schemaForm": {
+    "advanced": "Geavanceerd"
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "providerTitle": "Providerabonnement",
+    "trial": "proefperiode",
+    "status": {
+      "rejected": "Geweigerd",
+      "expired": "Verlopen",
+      "inactive": "Inactief",
+      "active": "Actief"
+    },
+    "rejectedNote": "De provider weigert de inloggegevens van deze instance",
+    "expiry": {
+      "expired": "Verlopen",
+      "expiredAgo": "Verlopen {{when}}",
+      "none": "Geen vervaldatum",
+      "on": "Verloopt {{date}}",
+      "today": "Verloopt vandaag ({{date}})",
+      "daysLeft_one": "Nog {{count}} dag ({{date}})",
+      "daysLeft_other": "Nog {{count}} dagen ({{date}})"
+    },
+    "expiryParts": {
+      "none": "Verloopt niet",
+      "today": "Vandaag",
+      "daysLeft_one": "Nog {{count}} dag",
+      "daysLeft_other": "Nog {{count}} dagen"
+    },
+    "connections": {
+      "ofMax_one": "{{used}} van {{count}} verbinding in gebruik",
+      "ofMax_other": "{{used}} van {{count}} verbindingen in gebruik",
+      "noMax_one": "{{count}} verbinding in gebruik",
+      "noMax_other": "{{count}} verbindingen in gebruik",
+      "withHere": "{{total}} · {{here}} hier",
+      "meter": "Providerverbindingen in gebruik",
+      "usedOfMax": "{{used}} van {{max}}",
+      "fromInstance": "{{here}} van deze instance"
+    },
+    "checkedTitle": "Providertotaal gelezen {{when}}; \"hier\" is live",
+    "lastRead": "Laatst gelezen {{when}}",
+    "lastReadError": "Laatst gelezen {{when}} — {{error}}",
+    "lastGood": "Laatste geslaagde uitlezing getoond",
+    "lastGoodError": "Laatste geslaagde uitlezing getoond — vernieuwen mislukt: {{error}}",
+    "facts": {
+      "expires": "Verloopt",
+      "connections": "Verbindingen",
+      "checked": "Gecontroleerd"
+    }
+  },
+  "channelSearch": {
+    "selected": "Geselecteerd: {{caption}}"
+  },
+  "directiveEnv": {
+    "hint": "Verwijs hierboven in Directive naar een inlogwaarde als {{ref}} om hier een vak ervoor te krijgen."
+  },
+  "errorSlates": {
+    "empty": "Geen overschrijvingen — elke code toont zijn standaardbericht.",
+    "code": "Code",
+    "codePlaceholder": "404, UNREACHABLE",
+    "meaning": "Betekenis (optioneel)",
+    "meaningPlaceholder": "Kanaalprobleem",
+    "message": "Bericht dat kijkers zien",
+    "messagePlaceholder": "Dit kanaal bestaat niet meer.",
+    "addEntry": "+ Item toevoegen"
+  },
+  "fallbacks": {
+    "group": "Fallback-instances",
+    "removed": "{{key}} (verwijderd)",
+    "moveUp": "{{name}} omhoog",
+    "moveDown": "{{name}} omlaag",
+    "loadFailed": "Kon instances niet laden",
+    "loadFailedDetail": "Kon instances niet laden: {{detail}}",
+    "addLabel": "Fallback-instance toevoegen",
+    "add": "Fallback toevoegen…",
+    "none": "Geen instance om toe te voegen",
+    "noneYet": "Nog geen instance om toe te voegen",
+    "reason": {
+      "notRunning": "draait nog niet",
+      "needsNewer": "vereist een nieuwere StreamShare-versie"
+    },
+    "note": {
+      "liveChannel": "{{channel}} van {{via}} getoond in plaats daarvan",
+      "liveConnection": "Verbinding van {{via}} gebruikt",
+      "pastChannel": "{{channel}} van {{via}} gebruikt",
+      "pastConnection": "Verbinding van {{via}} gebruikt"
+    }
+  },
+  "list": {
+    "addTime": "+ Tijd toevoegen",
+    "addPlaceholder": "Toevoegen…"
+  },
+  "providerCombobox": {
+    "placeholder": "Begin met typen om te zoeken…"
+  },
+  "providerCredentials": {
+    "button": "Providergegevens gebruiken",
+    "needXtream": "Voer eerst de Xtream-gebruikersnaam en het wachtwoord in",
+    "confirmTitle": "Providergegevens gebruiken?",
+    "confirmBody": "Stelt de login van deze instance meteen in op dezelfde gebruikersnaam en hetzelfde wachtwoord als het Xtream-provideraccount, je hoeft daarna niet op Opslaan te drukken. Een eigen gebruikersnaam/wachtwoord werkt direct niet meer."
+  },
+  "versions": {
+    "stopped": "gestopt",
+    "unknown": "onbekend",
+    "image": "image {{version}}",
+    "running": "actief",
+    "notRunning": "niet actief",
+    "updateAvailable": "Update beschikbaar",
+    "updateAvailableVersion": "Update beschikbaar: {{latest}}",
+    "suite": "Suite"
+  },
+  "setup": {
+    "steps": {
+      "portRange": "Poortbereik",
+      "instances": "Instances",
+      "features": "Functies",
+      "database": "Database",
+      "access": "Externe toegang",
+      "vpn": "VPN",
+      "health": "Gezondheid",
+      "done": "Klaar"
+    },
+    "title": "Installatiewizard",
+    "welcome": {
+      "highlights": {
+        "instances": "Voeg je IPTV-provider(s) toe als instances — elke krijgt een eigen container, database en API-sleutel, voor je ingesteld.",
+        "caching": "Zet VOD-caching en catchup-buffering aan, per instance.",
+        "external": "Maak een instance van buiten je netwerk bereikbaar, met automatisch geregelde HTTPS als je dat wilt.",
+        "vpn": "Stuur alles via een VPN, gedeeld door elke instance.",
+        "health": "Houd de gezondheid van instances in de gaten en laat de VPN zichzelf opnieuw verbinden wanneer een provider hem blokkeert."
+      },
+      "title": "Welkom",
+      "intro": "In een paar korte stappen is StreamShare Suite volledig geconfigureerd. Beantwoord wat je weet; alles wat je leeg laat krijgt een verstandige standaardwaarde, en alles hier kun je later nog wijzigen via Instellingen of de Stack-pagina. Geen zorgen, er wordt niets gewijzigd of aangemaakt totdat je aan het einde van de installatie op \"Toepassen\" klikt op de Stack-pagina.",
+      "start": "Aan de slag!"
+    },
+    "done": {
+      "title": "Alles staat klaar!",
+      "body": "Geen zorgen, er wordt nog niets daadwerkelijk toegepast. Bekijk de installatie in het stackplan en klik op toepassen als je tevreden bent. Je kunt altijd alles aanpassen via de Stack-pagina of de wizard gewoon opnieuw doorlopen.",
+      "review": "Het stackplan bekijken"
+    },
+    "database": {
+      "intro": "Waar elke instance dingen bewaart zoals zijn geschiedenis, VOD-index en aliassen. Elke instance krijgt een eigen database, automatisch aangemaakt."
+    },
+    "portRange": {
+      "title": "Poortbereik van instances",
+      "intro": "We beginnen met een poortbereik. Elke instance krijgt een eigen poort, toegewezen uit een reeks van 20 vanaf hier. Alleen de moeite waard om te wijzigen als dat bereik al door iets anders op de host wordt gebruikt."
+    },
+    "vpn": {
+      "title": "Verkeer via een VPN sturen?",
+      "intro": "Aanbevolen als je provider de toegang beperkt op locatie of IP. StreamShare Suite zet een Gluetun-instance voor je op. Elke instance deelt deze tunnel. Je hebt waarschijnlijk een account bij een ondersteunde VPN-provider nodig. Lees er alles over <wiki>hier</wiki>.",
+      "use": "Een VPN gebruiken",
+      "gluetunHelp": "De tunnel waar het verkeer van elke instance doorheen gaat."
+    },
+    "features": {
+      "intro": "Speciale functies van StreamShare. Hier stel je zaken in als caching en buffering. De map hieronder is waar een instance zijn tijdelijke bestanden bewaart: VOD-cache en catchup-buffers.",
+      "helper": "<i>Hulp</i>: je kunt hier een bovenliggende map op de Docker-host invoeren, die dan wordt gebruikt als bovenliggende map voor de instances hieronder. Alleen instances die nog geen bestandspad hebben ingesteld worden beïnvloed. Submappen worden automatisch toegevoegd.",
+      "pathNote": "Laat de paden hieronder leeg om elke cache in de eigen datamap van de Suite te houden. Caches kunnen tientallen gigabytes groeien, dus we raden een absoluut pad aan op een schijf bedoeld voor caching met zoveel vrije ruimte. Bestaat de map nog niet, dan maakt de Suite hem aan voor de PUID/PGID waaronder de Suite draait. Een bestaande map behoudt zijn eigenaar en moet dus beschrijfbaar zijn voor die gebruiker.",
+      "vodCache": "VOD lokaal cachen",
+      "catchup": "Live-kanalen bufferen voor catchup",
+      "catchupHours": "Uren catchup om te bewaren",
+      "cachePath": "Locatie van tijdelijke bestanden op deze host",
+      "cachePathPlaceholder": "Leeg: de datamap van de Suite"
+    },
+    "health": {
+      "intro": "Optioneel. Laat de VPN-watchdog de tunnel opnieuw verbinden wanneer een provider het huidige uitgangs-IP blokkeert — kies welke instances meetellen.",
+      "probeTitle": "Testkanaal per instance",
+      "probeHelp": "Om de gezondheidscontrole te laten werken, moet je voor elke instance een testkanaal opgeven. Dit kanaal wordt synthetisch \"bekeken\" om te zien of het bereikbaar is. Typ een kanaalnaam om te zoeken en kies een resultaat, of voer direct een stream-ID in als je die al weet.",
+      "streamId": "{{name}} — Stream-ID",
+      "checkTimes": "Controletijden (lokaal) — meestal is twee keer per dag genoeg. Kies tijden die meestal buiten je eigen kijkuren vallen, zodat de gezondheidscontrole je kijken niet verstoort.",
+      "checkTimesLabel": "Controletijden",
+      "skip": "Overslaan"
+    },
+    "access": {
+      "intro": "Helemaal optioneel. Laat je de instances van buiten je lokale netwerk bereiken. Jij bent verantwoordelijk voor het DNS-/routeringsgedeelte — dit vertelt elke instance alleen wat zijn eigen extern bereikbare adres is.",
+      "discordEnable": "Discord-bot inschakelen",
+      "discordNeedsUrl": "(heeft eerst een publieke basis-URL nodig)",
+      "tokenSet": "Er is een token ingesteld. Laat leeg om het te behouden, of typ een nieuw om het te vervangen.",
+      "tokenRequired": "Vereist om Discord in te schakelen.",
+      "adminRole": "Beheerdersrol-ID (optioneel)",
+      "caddyTitle": "Deze URL's vanaf je lokale netwerk bereiken?",
+      "caddyHelp": "Hier is Caddy voor. Het stuurt de URL die je hierboven invoert door naar de juiste instance en poort. Let op: jij moet zelf de DNS van die URL naar deze host laten wijzen; hiervoor heb je hoogstwaarschijnlijk een eigen DNS-server nodig (zoals AdGuard Home of Pi-hole).",
+      "caddyPublish": "Instances publiceren via Caddy"
+    },
+    "instances": {
+      "accessModes": {
+        "provider": {
+          "label": "Mijn providergegevens gebruiken",
+          "help": "Simpelste optie — iedereen logt in met dezelfde Xtream-gebruikersnaam en -wachtwoord die hierboven zijn ingevoerd."
+        },
+        "custom": {
+          "label": "Eigen inloggegevens instellen",
+          "help": "Een aparte gebruikersnaam en wachtwoord, los van die van je provider, om te verbinden zonder de echte uit te delen."
+        },
+        "ldap": {
+          "label": "LDAP gebruiken",
+          "help": "Log in via een bestaande directoryserver — om per gebruiker toegang te geven."
+        }
+      },
+      "providerTypes": {
+        "xtream": {
+          "help": "Ontgrendelt VOD, series, EPG en abonnementsstatus. Gebruik dit als je provider een Xtream-API biedt — de meeste doen dat."
+        },
+        "m3u": {
+          "help": "Alleen een afspeellijstlink, geen Xtream-API. Live-kanalen werken; geen VOD/series/EPG of abonnementsstatus."
+        }
+      },
+      "recommendedOption": "{{label}} (aanbevolen)",
+      "title": "Je instances",
+      "intro": "Nu zetten we een StreamShare-instance op, één per IPTV-provider. Minstens één is vereist. Om een instance te verwijderen, gebruik je de Stack-pagina — dat kan hier niet, om redenen.",
+      "containerName": "Containernaam: {{name}}",
+      "port": "Poort: {{port}}",
+      "saveChanges": "Wijzigingen opslaan",
+      "addAnother": "+ Nog een instance toevoegen",
+      "fields": {
+        "m3uUrl": "URL van M3U-afspeellijst"
+      },
+      "hints": {
+        "xtreamBaseUrl": "bijv. http://provider.example:8080",
+        "m3uUrl": "bijv. http://provider.example/get.php?username=u&password=p&type=m3u_plus&output=m3u8"
+      },
+      "signIn": "Hoe gebruikers inloggen",
+      "add": "Instance toevoegen",
+      "addOne": "Voeg minstens één instance toe om door te gaan",
+      "continueWith_one": "Doorgaan met {{count}} instance",
+      "continueWith_other": "Doorgaan met {{count}} instances"
+    }
+  },
+  "stack": {
+    "tabs": {
+      "instances": "Instances",
+      "components": "Componenten",
+      "import": "Importeren",
+      "plan": "Plan"
+    },
+    "pendingChanges": "Openstaande wijzigingen",
+    "dockerUnreachable": "Kan de Docker-socketproxy niet bereiken. Stel DOCKER_PROXY_URL in, of controleer of de docker-socket-proxy-service draait en bereikbaar is.",
+    "card": {
+      "notInStack": "Niet in de stack",
+      "checkUpdates": "Op updates controleren",
+      "checkUpdatesTitle": "Controleer en haal de nieuwste versie van de ingestelde image-tag van {{name}} op en maak opnieuw aan als hij echt gewijzigd is",
+      "saveConfiguration": "Configuratie opslaan",
+      "takeoverNote": "Er draait al een container met deze naam zonder de labels van de Suite. Hij blijft onaangeroerd tenzij je hem vervangt door een beheerde.",
+      "takeover": "Toch overnemen"
+    },
+    "caddy": {
+      "suiteContainerName": "Containernaam van de Suite",
+      "suiteContainerHint": "Automatisch gedetecteerd. Caddy bereikt het dashboard onder deze naam."
+    },
+    "history": {
+      "show": "Geschiedenis",
+      "hide": "Geschiedenis verbergen",
+      "empty": "Nog geen eerdere versies opgeslagen.",
+      "restore": "Herstellen",
+      "confirmTitle": "Deze versie herstellen?",
+      "confirmBody": "Dit vervangt de momenteel opgeslagen configuratie door deze eerdere. Er wordt niets op Docker toegepast totdat je Toepassen kiest."
+    },
+    "import": {
+      "title": "Importeren uit draaiende containers",
+      "intro": "Zoekt gluetun-, PostgreSQL- en StreamShare-containers die al buiten de Suite draaien en leest hun echte configuratie in, in plaats van die met de hand over te typen. De containers zelf worden nooit aangeraakt.",
+      "scan": "Zoeken naar bestaande containers",
+      "scanAgain": "Opnieuw zoeken",
+      "none": "Niets gevonden dat nog geen deel van de stack is.",
+      "import": "Importeren"
+    },
+    "connect": {
+      "title": "Richt je IPTV-client hierop",
+      "body": "De interne URL werkt alleen vanaf deze host of als je toegang hebt tot je lokale netwerk. De publieke URL gebruik je op je mobiele apparaten om elders verbinding te kunnen maken. Als je Caddy hebt ingesteld, kun je de publieke URL ook binnen je lokale netwerk gebruiken.",
+      "internal": "Intern:",
+      "internalAddress": "<IP-adres of hostnaam van je Docker-host>:{{port}}",
+      "public": "Publiek:"
+    },
+    "instances": {
+      "title": "Instances",
+      "subtitle": "Maak er één per IPTV-provider. Poorten worden toegewezen uit {{first}}–{{last}}.",
+      "add": "Instance toevoegen",
+      "empty": "Nog geen instances. Als je er een toevoegt, worden zijn container en database automagisch aangemaakt.",
+      "containerName": "Containernaam: {{name}}",
+      "port": "Poort: {{port}}",
+      "checkUpdatesTitle": "Controleer en haal de nieuwste versie van de ingestelde image-tag van deze instance op en maak opnieuw aan als hij echt gewijzigd is",
+      "saveChanges": "Wijzigingen opslaan",
+      "create": "Instance aanmaken",
+      "portRange": {
+        "title": "Poortbereik van instances",
+        "description": "Instances krijgen {{size}} poorten toegewezen vanaf hier (nu {{start}}–{{end}}). Instances die al binnen het bereik vallen houden hun poort; instances buiten het nieuwe bereik verhuizen naar een vrije poort daarin."
+      },
+      "removeDialog": {
+        "title": "{{name}} verwijderen?",
+        "body": "Dit haalt hem uit de stack. Zijn container blijft draaien totdat je het plan toepast, waarna je de optie krijgt hem te verwijderen.",
+        "dropDatabase": "Verwijder ook <code>{{database}}</code> en zijn rol. <warn>Dit wist de kijkgeschiedenis permanent.</warn> Laat dit uitgevinkt om de gegevens te behouden.",
+        "typeToConfirm": "Typ <strong>{{name}}</strong> om te bevestigen",
+        "confirmDrop": "Verwijderen en database wissen"
+      }
+    },
+    "plan": {
+      "title": "Stackplan",
+      "nothingToApply": "Niets toe te passen",
+      "apply_one": "{{count}} wijziging toepassen",
+      "apply_other": "{{count}} wijzigingen toepassen",
+      "emptySwitchedOff_one": "Op dit moment niets in de stack — {{list}} staat uit. Zet de VPN weer aan onder het tabblad Componenten om hem weer te beheren.",
+      "emptySwitchedOff_other": "Op dit moment niets in de stack — {{list}} staan uit. Zet de VPN weer aan onder het tabblad Componenten om hem weer te beheren.",
+      "emptyFresh": "Nog niets in de stack. Configureer een component onder het tabblad Componenten om te beginnen, of doorloop de <setup>installatiewizard</setup> voor een stapsgewijze rondleiding.",
+      "summary": {
+        "changes_one": "{{count}} wijziging",
+        "changes_other": "{{count}} wijzigingen",
+        "restarts_one": "{{count}} container herstart",
+        "restarts_other": "{{count}} containers herstarten",
+        "orphans": "{{count}} verweesd",
+        "disabled": "{{count}} uitgeschakeld",
+        "incomplete": "{{count}} niet geconfigureerd",
+        "nothing": "Niets te beheren",
+        "matches": "Alles komt overeen met zijn configuratie"
+      },
+      "action": {
+        "create": "Aanmaken",
+        "recreate": "Opnieuw aanmaken",
+        "adopt": "Overgenomen",
+        "noop": "Geen wijziging",
+        "orphaned": "Verweesd",
+        "disabled": "Uitgeschakeld",
+        "incomplete": "Niet geconfigureerd"
+      },
+      "runtime": {
+        "running": "Actief",
+        "restarting": "Herstart",
+        "paused": "Gepauzeerd",
+        "exited": "Gestopt",
+        "dead": "Dood",
+        "created": "Aangemaakt"
+      },
+      "health": {
+        "healthy": "Gezond",
+        "unhealthy": "Ongezond",
+        "starting": "Starten"
+      },
+      "removeTitle": "Deze container verwijderen?",
+      "removeBody": "{{name}} is door de Suite aangemaakt maar maakt geen deel meer uit van je stack. Verwijderen stopt en wist de container."
+    }
+  },
+  "overview": {
+    "nowPlaying": "Nu aan het afspelen",
+    "nothingPlaying": "Er wordt niets afgespeeld",
+    "nothingPlayingHint": "Actieve streams van alle instances verschijnen hier.",
+    "streams": "Streams"
+  },
+  "instances": {
+    "started": "Gestart",
+    "database": "Database",
+    "connected": "verbonden",
+    "discord": "Discord",
+    "vodCache": "VOD-cache",
+    "catchup": "Catchup",
+    "none": "Geen instances geconfigureerd. Stel INSTANCE_1_NAME / INSTANCE_1_URL / INSTANCE_1_API_KEY (en _2_, _3_, …) in in de omgeving van het dashboard."
+  },
+  "aliases": {
+    "intro": "Geef een herkenbare naam aan kijkers die op IP-adres verschijnen (bijv. wanneer LDAP bij een instance is uitgeschakeld). Een alias betekent overal hetzelfde, maar elke instance bewaart zijn eigen kopie — standaard slaat dit hem op bij alle instances tegelijk, en het onderliggende IP-adres is nog steeds wat daadwerkelijk wordt gebruikt om de kijker te identificeren.",
+    "addTitle": "Alias toevoegen",
+    "prefill": "Alias toevoegen voor {{ip}} — kies hieronder een naam.",
+    "ipAddress": "IP-adres",
+    "alias": "Alias",
+    "aliasPlaceholder": "Tv in de woonkamer",
+    "save": "Alias opslaan",
+    "applyAll_one": "Toepassen op alle {{count}} instance",
+    "applyAll_other": "Toepassen op alle {{count}} instances",
+    "searchPlaceholder": "Zoek IP, alias of instance…",
+    "mixed": "Verschilt per instance",
+    "instanceCount_one": "{{count}} instance",
+    "instanceCount_other": "{{count}} instances",
+    "removeEverywhere": "Alias voor {{ip}} overal verwijderen",
+    "removeOn": "Alias voor {{ip}} op {{instance}} verwijderen",
+    "savedPartial_one": "Opgeslagen op {{saved}}/{{count}} instance. {{failures}}",
+    "savedPartial_other": "Opgeslagen op {{saved}}/{{count}} instances. {{failures}}",
+    "empty": "Geen aliassen geconfigureerd",
+    "emptyHint": "Voeg er hierboven een toe om een herkenbare naam te geven aan een kijker die nu op IP-adres verschijnt."
+  },
+  "history": {
+    "date": "Datum",
+    "relative": "Relatief",
+    "searchPlaceholder": "Zoek gebruiker, titel, instance…",
+    "empty": "Geen kijkgeschiedenis",
+    "emptyHint": "Probeer een ruimer tijdbereik, of kom terug zodra iemand begint te kijken."
+  },
+  "leaderboard": {
+    "summed": " · opgeteld over alle instances",
+    "topTitles": "Toptitels",
+    "topViewers": "Topkijkers",
+    "noData": "Nog geen kijkgegevens",
+    "views_one": "{{formatted}} weergave",
+    "views_other": "{{formatted}} weergaven",
+    "sessions_one": "{{formatted}} sessie",
+    "sessions_other": "{{formatted}} sessies"
+  },
+  "users": {
+    "searchPlaceholder": "Zoek gebruiker of instance…",
+    "status": "Status",
+    "currentStream": "Huidige stream",
+    "ip": "IP",
+    "watching": "kijkt",
+    "idle": "inactief",
+    "empty": "Geen bekende sessies",
+    "emptyHint": "Gebruikers verschijnen hier zodra ze verbinding maken met een stream-share-instance."
+  },
+  "vod": {
+    "shareLinksHint": "Een live-kanaallink voor een tijdvenster nodig? Gebruik <link>Deellinks</link>.",
+    "searchPlaceholder": "Zoek films en series in alle instances…",
+    "search": "Zoeken",
+    "copyUrl": "URL kopiëren",
+    "download": "Downloaden",
+    "initialTitle": "Zoek een film of serie",
+    "initialHint": "Resultaten worden live opgehaald uit elke instance met een Xtream-provider — hier wordt niets geïndexeerd of opgeslagen.",
+    "searching": "Zoeken…",
+    "noResults": "Geen resultaten voor \"{{query}}\"",
+    "noResultsHint": "Probeer een andere titel of spelling.",
+    "episodeCount_one": "{{count}} aflevering",
+    "episodeCount_other": "{{count}} afleveringen",
+    "hideEpisodes": "Afleveringen verbergen",
+    "showEpisodes": "Afleveringen tonen"
+  },
+  "settings": {
+    "generalSaved": "Algemene instellingen opgeslagen.",
+    "general": {
+      "title": "Algemeen",
+      "description": "Geldt voor elke pagina.",
+      "siteTitle": "Titel",
+      "siteTitleHint": "Getoond in de zijbalk en het browsertabblad.",
+      "poll": "Pollinginterval (ms)",
+      "pollHint": "Hoe vaak de browser opnieuw pollt. Minimaal 5000.",
+      "timeout": "Time-out van instance (ms)",
+      "timeoutHint": "Hoe lang er op één instance wordt gewacht voordat hij wordt opgegeven.",
+      "autoCheck": "Automatisch op updates controleren",
+      "autoCheckHint": "Eén keer per dag vraagt de Suite aan GitHub de nieuwste release van zichzelf, StreamShare, gluetun en Caddy. Er wordt niets gedownload of gewijzigd.",
+      "checkNow": "Nu controleren",
+      "lastChecked": "Laatst gecontroleerd {{when}}",
+      "notChecked": "Nog niet gecontroleerd",
+      "checksFailed": "Sommige controles zijn mislukt. De Suite probeert het binnen een uur opnieuw."
+    },
+    "backup": {
+      "title": "Back-up & herstel",
+      "description": "Alle inloggegevens, instancedefinities en componentinstellingen staan in één bestand. Download het vóór een riskante wijziging.",
+      "download": "Back-up downloaden",
+      "restoreLabel": "Herstellen vanuit een back-upbestand",
+      "restoreHint": "Vervangt alles wat nu is opgeslagen — elke inloggegeven en instelling — door wat in het bestand staat. Logt iedereen uit.",
+      "restore": "Herstellen vanuit back-up",
+      "restored": "Hersteld. Laad de pagina opnieuw — je moet opnieuw inloggen als deze back-up van vóór je sessie is.",
+      "confirmTitle": "Herstellen vanuit deze back-up?",
+      "confirmBody": "Dit vervangt elke inloggegeven, instancedefinitie en componentinstelling die nu is opgeslagen door wat in het bestand staat, en logt iedereen uit. Dit kan hier niet ongedaan worden gemaakt — zorg eerst voor een actuele back-up als je wilt behouden wat er nu is.",
+      "confirm": "Herstellen"
+    },
+    "password": {
+      "title": "Wachtwoord wijzigen",
+      "description": "Wijzigen logt alle andere sessies uit en trekt het API-token in.",
+      "submit": "Wachtwoord wijzigen",
+      "current": "Huidig wachtwoord",
+      "new": "Nieuw wachtwoord",
+      "newHint": "Minstens 12 tekens.",
+      "changed": "Wachtwoord gewijzigd."
+    },
+    "api": {
+      "title": "API-toegang",
+      "description": "Laat scripts en andere tools met StreamShare Suite communiceren. Stuur het token mee als Authorization: Bearer-header.",
+      "regenerate": "Token opnieuw genereren",
+      "generate": "Token genereren",
+      "revoke": "Intrekken",
+      "exists": "Er bestaat een token, aangemaakt {{when}}.",
+      "none": "Nog geen token.",
+      "newToken": "Je nieuwe token",
+      "newTokenHint": "Kopieer het nu. Het wordt niet opnieuw getoond.",
+      "revokeTitle": "Het API-token intrekken?",
+      "replaceTitle": "Het API-token vervangen?",
+      "confirmBody": "Alles wat nog het huidige token gebruikt, werkt direct niet meer."
+    }
+  },
+  "vpn": {
+    "notConfigured": "Gluetun is niet geconfigureerd",
+    "notConfiguredHint": "Stel GLUETUN_URL (bijv. http://gluetun:8000) — en GLUETUN_API_KEY als je controleserver er een vereist — in in de omgeving van het dashboard om deze pagina in te schakelen.",
+    "connection": "Verbinding",
+    "status": {
+      "connected": "Verbonden",
+      "disconnected": "Verbinding verbroken",
+      "unknown": "Onbekend"
+    },
+    "reconnecting": "Opnieuw verbinden…",
+    "waitingForIp": "Wachten op uitgangs-IP…",
+    "start": "Starten",
+    "stop": "Stoppen",
+    "reconnect": "Opnieuw verbinden",
+    "reconnectNote": "Opnieuw verbinden stopt de tunnel, wacht op bevestiging, start hem weer en wacht op een nieuw uitgangs-IP — het dashboard ververst elke seconde zolang dit bezig is, en blijft dat daarna doen totdat de kaart Uitgangs-IP echt een waarde heeft.",
+    "exitIp": "Uitgangs-IP",
+    "locationUnavailable": "Locatie niet beschikbaar",
+    "unavailable": "Niet beschikbaar",
+    "showRaw": "Ruwe gluetun-respons tonen",
+    "hideRaw": "Ruwe gluetun-respons verbergen",
+    "stopTitle": "De VPN-verbinding stoppen?",
+    "stopBody": "Dit verbreekt gluetun. Al het verkeer dat erdoorheen loopt (bijv. de uitgaande verbinding van je stream-share-instance) wordt onderbroken of blootgesteld totdat hij weer is gestart.",
+    "stopConfirm": "VPN stoppen",
+    "reconnectTitle": "De VPN opnieuw verbinden?",
+    "reconnectBody": "Dit stopt en herstart de tunnel, hetzelfde als Stoppen gevolgd door Starten. Al het verkeer dat erdoorheen loopt wordt onderbroken totdat hij weer actief is, wat even kan duren afhankelijk van je provider.",
+    "watchdog": {
+      "title": "VPN-watchdog",
+      "description": "Test elke instance met ingeschakelde gezondheidscontrole volgens een schema en verbindt de tunnel opnieuw wanneer er een meldt dat zijn provider het huidige uitgangs-IP blokkeert.",
+      "checkTimes": "Controletijden (lokaal)",
+      "checkTimesLabel": "Controletijden",
+      "noTimes": "Minstens één tijd is vereist.",
+      "maxReconnects": "Max. herverbindingspogingen",
+      "runNow": "Nu uitvoeren"
+    }
+  },
+  "shareLinks": {
+    "vodHint": "Een film- of afleveringslink nodig? Gebruik <link>VOD zoeken</link>.",
+    "newLink": "+ Nieuwe link",
+    "noPublicUrl": "De Suite kent het publieke adres van deze instance niet en kan dus geen kopieerbare links maken. Stel de publieke basis-URL in op de instance (Stack-pagina) om Kopiëren in te schakelen.",
+    "unsupported": "Deze instance ondersteunt geen deellinks",
+    "unsupportedHint": "Werk hem bij naar een nieuwere image en laad opnieuw.",
+    "empty": "Nog geen deellinks",
+    "emptyHint": "Maak er een voor een gast om een tijdje naar een kanaal te kijken.",
+    "channel": "Kanaal",
+    "for": "Voor",
+    "window": "Venster",
+    "state": "Status",
+    "stateName": {
+      "active": "actief",
+      "scheduled": "gepland",
+      "ended": "beëindigd",
+      "revoked": "ingetrokken"
+    },
+    "playlist": "Afspeellijst",
+    "stream": "Stream",
+    "revoke": "Intrekken",
+    "revokeTitle": "Deze link intrekken?",
+    "revokeBody": "{{title}} werkt direct niet meer.",
+    "revokeBodyGuest": "{{title}} voor {{guest}} werkt direct niet meer.",
+    "windowRange": "{{start}} tot {{end}}",
+    "windowProblem": {
+      "pick": "Kies een begin- en eindtijd.",
+      "order": "Het einde moet na het begin liggen.",
+      "tooLong": "Een deellink mag maximaal 24 uur duren.",
+      "over": "Het venster is al voorbij."
+    },
+    "dialog": {
+      "created": "Link aangemaakt",
+      "createdBody": "{{title}} op {{instance}}. Deel een van deze met je gast.",
+      "playlistLink": "Afspeellijstlink",
+      "playlistHint": "voor VLC en IPTV-apps",
+      "streamLink": "Streamlink",
+      "streamHint": "direct",
+      "pathsOnly": "De Suite kent het publieke adres van deze instance niet, dus dit zijn alleen paden. Voeg je publieke adres ervoor toe.",
+      "newTitle": "Nieuwe deellink op {{instance}}",
+      "channel": "Kanaal",
+      "channelPlaceholder": "Zoek kanalen, bijv. eurosport",
+      "guest": "Gast (optioneel label)",
+      "guestPlaceholder": "bijv. Oom Bert",
+      "from": "Van",
+      "until": "Tot",
+      "limits": "Maximaal toegestaan: 24 uur. Maximaal 3 apparaten kunnen tegelijk één link gebruiken.",
+      "create": "Link aanmaken"
+    }
+  }
+}

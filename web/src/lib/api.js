@@ -55,9 +55,19 @@ async function request(method, path, { params, body } = {}) {
   }
 
   if (!res.ok) {
-    throw new ApiError(payload.error || `Request to ${path} failed: HTTP ${res.status}`, res.status, payload);
+    throw apiError(path, res.status, payload);
   }
   return payload;
+}
+
+// The English stays the message (for logs); the code lets errorText translate it.
+function apiError(path, status, payload) {
+  if (payload.error) return new ApiError(payload.error, status, payload);
+  return new ApiError(`Request to ${path} failed: HTTP ${status}`, status, {
+    ...payload,
+    code: "http_failed",
+    params: { path, status },
+  });
 }
 
 const get = (path, params) => request("GET", path, { params });
@@ -86,7 +96,7 @@ async function uploadFile(path, file) {
   }
 
   if (!res.ok) {
-    throw new ApiError(payload.error || `Request to ${path} failed: HTTP ${res.status}`, res.status, payload);
+    throw apiError(path, res.status, payload);
   }
   return payload;
 }

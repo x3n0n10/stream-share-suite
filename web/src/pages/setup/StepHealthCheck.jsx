@@ -4,8 +4,11 @@ import ChannelSearchInput from "../../components/ChannelSearchInput.jsx";
 import ListInput from "../../components/ListInput.jsx";
 import { api } from "../../lib/api.js";
 import { describeFailures } from "../../lib/applyToAll.js";
+import { useTranslation } from "react-i18next";
+import { errorText } from "../../lib/serverText.js";
 
 export default function StepHealthCheck({ instances, onNext, onBack }) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState(null); // null until seeded; then key -> bool
   const [streamIds, setStreamIds] = useState({}); // key -> string
   const [checkTimes, setCheckTimes] = useState(null); // null until seeded
@@ -61,7 +64,8 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       );
       const failureMessage = describeFailures(
         instances.map((i) => ({ name: i.displayName })),
-        results
+        results,
+        t
       );
       if (failureMessage) {
         setError(failureMessage);
@@ -72,7 +76,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       );
       onNext("done");
     } catch (err) {
-      setError(err.message);
+      setError(errorText(err, t));
     } finally {
       setSaving(false);
     }
@@ -81,18 +85,17 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
   if (!loaded) {
     return (
       <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-white">Health check</h2>
-        <p className="mt-5 text-sm text-slate-400">Loading…</p>
+        <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.health")}</h2>
+        <p className="mt-5 text-sm text-slate-400">{t("common.loading")}</p>
       </Card>
     );
   }
 
   return (
     <Card className="p-6">
-      <h2 className="text-base font-semibold text-slate-900 dark:text-white">Health check</h2>
+      <h2 className="text-base font-semibold text-slate-900 dark:text-white">{t("setup.steps.health")}</h2>
       <p className="mt-1.5 max-w-prose text-sm text-slate-500 dark:text-slate-400">
-        Optional. Lets the VPN watchdog reconnect the tunnel when a provider blocks the current exit
-        IP — pick which instances to take into account.
+        {t("setup.health.intro")}
       </p>
 
       <div className="mt-5 flex flex-col gap-2">
@@ -109,11 +112,9 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
 
       {chosen.length > 0 && (
         <div className="mt-5 border-t border-slate-200 pt-5 dark:border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Probe channel per instance</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{t("setup.health.probeTitle")}</h3>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            In order for the health check to work, you need to specify a channel to probe for each instance. This channel
-            will be synthetically 'viewed' to see if it's accessible. Type a channel name to search and pick a result, 
-            or enter a stream ID directly if you already know it.
+            {t("setup.health.probeHelp")}
           </p>
           <div className="mt-3 flex flex-col gap-3">
             {chosen.map((instance) => (
@@ -124,7 +125,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
               // SchemaForm.jsx's FieldInput).
               <div key={instance.key} className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  {instance.displayName} — Stream ID
+                  {t("setup.health.streamId", { name: instance.displayName })}
                 </span>
                 <ChannelSearchInput
                   instanceKey={instance.key}
@@ -138,11 +139,9 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
 
           <div className="mt-4 flex flex-col gap-1.5">
             <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-              Check times (local) — usually twice a day should be enough.
-              Pick times that are usually outside of your own viewing hours,
-              so the health check doesn't interfere with you watching.
+              {t("setup.health.checkTimes")}
             </span>
-            <ListInput value={checkTimes} onChange={setCheckTimes} itemType="time" sort ariaLabel="Check times" />
+            <ListInput value={checkTimes} onChange={setCheckTimes} itemType="time" sort ariaLabel={t("setup.health.checkTimesLabel")} />
           </div>
         </div>
       )}
@@ -156,7 +155,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
       <div className="mt-5 flex items-center gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
         {onBack && (
           <Button tone="ghost" onClick={onBack}>
-            Back
+            {t("common.back")}
           </Button>
         )}
         <div className="ml-auto">
@@ -166,7 +165,7 @@ export default function StepHealthCheck({ instances, onNext, onBack }) {
             loading={saving}
             disabled={saving || (chosen.length > 0 && !allStreamIdsFilled)}
           >
-            {chosen.length > 0 ? "Continue" : "Skip"}
+            {chosen.length > 0 ? t("common.continue") : t("setup.health.skip")}
           </Button>
         </div>
       </div>

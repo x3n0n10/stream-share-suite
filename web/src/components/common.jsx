@@ -1,6 +1,8 @@
+import { useTranslation } from "react-i18next";
 import { IconAlert, IconRefresh } from "./Icons.jsx";
 import { useDelayedUnmount } from "../lib/useDelayedUnmount.js";
-import { formatRelativeTime } from "../lib/format.js";
+import { useFormat } from "../lib/useFormat.js";
+import { errorText, messageText } from "../lib/serverText.js";
 
 export const FIELD =
   "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 " +
@@ -8,11 +10,12 @@ export const FIELD =
   "focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white";
 
 export function RefreshButton({ onClick }) {
+  const { t } = useTranslation();
   return (
     <button
       onClick={onClick}
       className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-      aria-label="Refresh"
+      aria-label={t("common.refresh")}
     >
       <IconRefresh className="h-4 w-4" />
     </button>
@@ -20,9 +23,11 @@ export function RefreshButton({ onClick }) {
 }
 
 export function PollStatus({ updatedAt, children, className = "" }) {
+  const { t } = useTranslation();
+  const { formatRelativeTime } = useFormat();
   return (
     <p className={`text-xs text-slate-400 dark:text-slate-500 ${className}`}>
-      {updatedAt ? `Updated ${formatRelativeTime(updatedAt.toISOString())}` : "Loading…"}
+      {updatedAt ? t("common.updated", { when: formatRelativeTime(updatedAt.toISOString()) }) : t("common.loading")}
       {children}
     </p>
   );
@@ -75,6 +80,7 @@ export function StatusDot({ online }) {
 // when there's no usable info (not probed yet, older stream-share without
 // this field, or the last probe failed) — always optional, never blocks.
 export function TechSummary({ tech, className = "" }) {
+  const { t } = useTranslation();
   if (!tech || tech.error) return null;
 
   const parts = [];
@@ -90,11 +96,15 @@ export function TechSummary({ tech, className = "" }) {
       .map((a) => [a.codec?.toUpperCase(), a.channels ? `${a.channels}ch` : null, a.language].filter(Boolean).join(" "))
       .filter(Boolean)
       .join(", ");
-    if (audio) parts.push(`Audio: ${audio}`);
+    if (audio) parts.push(t("common.tech.audio", { list: audio }));
   }
   if (tech.subtitle_tracks?.length) {
     const langs = tech.subtitle_tracks.map((s) => s.language).filter(Boolean);
-    parts.push(langs.length ? `Subs: ${langs.join(", ")}` : `Subs: ${tech.subtitle_tracks.length}`);
+    parts.push(
+      langs.length
+        ? t("common.tech.subs", { list: langs.join(", ") })
+        : t("common.tech.subsCount", { count: tech.subtitle_tracks.length }),
+    );
   }
 
   if (parts.length === 0) return null;
@@ -111,13 +121,21 @@ export function EmptyState({ title, subtitle }) {
 }
 
 export function ErrorNote({ message }) {
+  const { t } = useTranslation();
   if (!message) return null;
   return (
     <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-300">
       <IconAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-      <span>{message}</span>
+      <span>{messageText(message, t)}</span>
     </div>
   );
+}
+
+// The banner for a failed poll; nothing while there is no error.
+export function RefreshError({ error }) {
+  const { t } = useTranslation();
+  if (!error) return null;
+  return <ErrorNote message={t("common.refreshFailed", { detail: errorText(error, t) })} />;
 }
 
 export function Skeleton({ className = "" }) {
@@ -128,6 +146,7 @@ export function Skeleton({ className = "" }) {
 // (see its renderControl) — pulled out here for toggles that live outside a
 // schema-driven form, like a stack-wide setting on a component's own card.
 export function OnOffToggle({ value, onChange, disabled }) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-2">
       {[false, true].map((opt) => (
@@ -142,16 +161,17 @@ export function OnOffToggle({ value, onChange, disabled }) {
               : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
           }`}
         >
-          {opt ? "On" : "Off"}
+          {opt ? t("common.on") : t("common.off")}
         </button>
       ))}
     </div>
   );
 }
 
-export function Select({ value, onChange, options }) {
+export function Select({ value, onChange, options, ariaLabel }) {
   return (
     <select
+      aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-700 shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
@@ -191,6 +211,7 @@ export function Button({ children, onClick, tone = "default", disabled, loading,
 }
 
 export function ConfirmDialog({ open, title, body, confirmLabel, tone = "rose", onConfirm, onCancel }) {
+  const { t } = useTranslation();
   const mounted = useDelayedUnmount(open, 150);
   if (!mounted) return null;
   return (
@@ -211,7 +232,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel, tone = "rose", 
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{body}</p>
         <div className="mt-5 flex justify-end gap-2">
           <Button tone="ghost" onClick={onCancel}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button tone={tone} onClick={onConfirm}>
             {confirmLabel}

@@ -15,6 +15,7 @@ import { copyFileSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "no
 import os from "node:os";
 import path from "node:path";
 import { getDatabase, getDatabasePath, closeDatabase, openDatabase } from "../store/db.js";
+import { SuiteError, sendError } from "../errors.js";
 
 // The first 16 bytes of every SQLite file, always — cheap, reliable proof an
 // upload is at least the right *kind* of file before anything touches disk.
@@ -40,13 +41,13 @@ export function createBackupRouter() {
       getDatabase().exec(`VACUUM INTO '${tmpFile.replace(/'/g, "''")}'`);
     } catch (err) {
       rmSync(tmpDir, { recursive: true, force: true });
-      return res.status(500).json({ error: `Backup failed: ${err.message}` });
+      return sendError(res, 500, new SuiteError("backup_failed", `Backup failed: ${err.message}`, { detail: err.message }));
     }
 
     res.download(tmpFile, backupFilename(), (err) => {
       rmSync(tmpDir, { recursive: true, force: true });
       if (err && !res.headersSent) {
-        res.status(500).json({ error: "Backup download failed" });
+        sendError(res, 500, new SuiteError("backup_download_failed", "Backup download failed"));
       }
     });
   });
@@ -55,10 +56,10 @@ export function createBackupRouter() {
   router.post("/restore", express.raw({ type: "application/octet-stream", limit: "50mb" }), (req, res) => {
     const upload = req.body;
     if (!Buffer.isBuffer(upload) || upload.length < SQLITE_HEADER.length) {
-      return res.status(400).json({ error: "No file uploaded." });
+      return sendError(res, 400, new SuiteError("no_file_uploaded", "No file uploaded."));
     }
     if (upload.toString("latin1", 0, SQLITE_HEADER.length) !== SQLITE_HEADER) {
-      return res.status(400).json({ error: "That doesn't look like a SQLite database file." });
+      return sendError(res, 400, new SuiteError("not_sqlite", "That doesn't look like a SQLite database file."));
     }
 
     const dbPath = getDatabasePath();
@@ -89,7 +90,7 @@ export function createBackupRouter() {
       if (backedUp) renameSync(safetyCopy, dbPath);
       else rmSync(safetyCopy, { force: true });
       openDatabase(dataDir);
-      res.status(400).json({ error: `Restore failed: ${err.message}` });
+      sendError(res, 400, new SuiteError("restore_failed", `Restore failed: ${err.message}`, { detail: err.message }));
     }
   });
 

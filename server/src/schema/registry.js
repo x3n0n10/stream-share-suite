@@ -103,7 +103,7 @@ export function validate(schema, values) {
 
     if (missing) {
       if (isRequired(field, values, schema)) {
-        errors.push({ key: field.key, message: `${field.label} is required.` });
+        errors.push({ key: field.key, code: "required", message: `${field.label} is required.` });
       }
       continue;
     }
@@ -112,13 +112,18 @@ export function validate(schema, values) {
     // ones — an optional field holding a value outside its own options is
     // wrong whether or not it had to be filled in.
     if (field.type === "select" && !field.options.includes(value)) {
-      errors.push({ key: field.key, message: `${field.label} must be one of: ${field.options.join(", ")}.` });
+      const options = field.options.join(", ");
+      errors.push({ key: field.key, code: "not_one_of", message: `${field.label} must be one of: ${options}.`, params: { options } });
     }
 
     // Optional `pattern` (a RegExp) with a `patternMessage`, for free-text
     // values that end up in a path or a config file.
     if (field.pattern && !field.pattern.test(String(value))) {
-      errors.push({ key: field.key, message: field.patternMessage || `${field.label} is not valid.` });
+      errors.push({
+        key: field.key,
+        code: field.patternMessage ? "pattern" : "invalid",
+        message: field.patternMessage || `${field.label} is not valid.`,
+      });
     }
 
     // A structured editor (see field.type "errorSlates") can't produce
@@ -130,7 +135,7 @@ export function validate(schema, values) {
       try {
         JSON.parse(value);
       } catch {
-        errors.push({ key: field.key, message: `${field.label} must be valid JSON.` });
+        errors.push({ key: field.key, code: "invalid_json", message: `${field.label} must be valid JSON.` });
       }
     }
   }

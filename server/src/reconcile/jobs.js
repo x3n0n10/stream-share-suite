@@ -6,6 +6,7 @@
 // shared store would be worth adding for.
 
 import { randomUUID } from "node:crypto";
+import { SuiteError } from "../errors.js";
 
 const jobs = new Map();
 
@@ -28,13 +29,22 @@ export function createJob(kind) {
   return job;
 }
 
-export function appendLog(job, line) {
-  job.log.push({ at: Date.now(), line });
+// `code` and `params` let the web app translate the line; `line` stays English.
+export function appendLog(job, line, { code, params } = {}) {
+  job.log.push({ at: Date.now(), line, ...(code && { code, params }) });
 }
+
+export function appendError(job, err) {
+  appendLog(job, `Error: ${err.message}`, { code: "error", params: { message: err.message } });
+}
+
+// A step `log(line, extra)` callback bound to one job.
+export const jobLogger = (job) => (line, extra) => appendLog(job, line, extra);
 
 export function finishJob(job, error) {
   job.status = error ? "failed" : "success";
   job.error = error ? error.message : null;
+  if (error instanceof SuiteError) job.errorI18n = { code: error.code, params: error.params };
   job.finishedAt = Date.now();
   setTimeout(() => jobs.delete(job.id), RETENTION_MS).unref();
 }

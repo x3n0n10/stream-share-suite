@@ -23,6 +23,7 @@ import { gluetunContainerName } from "./gluetun.js";
 import { postgresContainerName } from "./postgres.js";
 import { instanceContainerName, allocatedPorts } from "./instance.js";
 import { instanceKeyFor } from "./provisioning.js";
+import { SuiteError } from "../errors.js";
 
 // Env vars every renderer computes and sets itself rather than asking for —
 // importing one back in as extraEnv would just be feeding a value straight
@@ -111,7 +112,7 @@ function isConfigured(kind, key = "") {
 
 async function importGluetun(inspect, { overwrite }) {
   if (isConfigured("gluetun") && !overwrite) {
-    throw new Error("gluetun is already configured. Import again with overwrite to replace it.");
+    throw new SuiteError("gluetun_already_configured", "gluetun is already configured. Import again with overwrite to replace it.");
   }
 
   const env = parseEnvArray(inspect.Config?.Env);
@@ -134,7 +135,7 @@ async function importGluetun(inspect, { overwrite }) {
 
 async function importPostgres(inspect, { overwrite }) {
   if (isConfigured("postgres") && !overwrite) {
-    throw new Error("PostgreSQL is already configured. Import again with overwrite to replace it.");
+    throw new SuiteError("postgres_already_configured", "PostgreSQL is already configured. Import again with overwrite to replace it.");
   }
 
   const env = parseEnvArray(inspect.Config?.Env);
@@ -167,7 +168,7 @@ async function importInstance(inspect) {
   // instance row pointed at it instead of refreshing the first.
   const already = listComponents("instance").find((row) => row.adopted_container_id === inspect.Id);
   if (already) {
-    throw new Error(`This container is already imported as the instance "${already.key}".`);
+    throw new SuiteError("already_imported", `This container is already imported as the instance "${already.key}".`, { key: already.key });
   }
 
   const env = parseEnvArray(inspect.Config?.Env);
@@ -186,7 +187,7 @@ async function importInstance(inspect) {
   if (Number.isFinite(port) && port > 0) {
     const clashingKey = allocatedPorts().get(port);
     if (clashingKey) {
-      throw new Error(`Port ${port} is already used by ${clashingKey} — resolve that first.`);
+      throw new SuiteError("port_in_use", `Port ${port} is already used by ${clashingKey} — resolve that first.`, { port, key: clashingKey });
     }
     values.port = String(port);
   }
@@ -210,13 +211,13 @@ async function importInstance(inspect) {
 
 export async function importCandidate(containerId, kind, { overwrite = false } = {}) {
   const inspect = await inspectContainer(containerId);
-  if (!inspect) throw new Error(`No container found for ${containerId}.`);
+  if (!inspect) throw new SuiteError("container_not_found", `No container found for ${containerId}.`, { containerId });
   if (isManaged(inspect.Config?.Labels || {})) {
-    throw new Error("This container is already managed by the Suite.");
+    throw new SuiteError("container_already_managed", "This container is already managed by the Suite.");
   }
 
   if (kind === "gluetun") return importGluetun(inspect, { overwrite });
   if (kind === "postgres") return importPostgres(inspect, { overwrite });
   if (kind === "instance") return importInstance(inspect);
-  throw new Error(`Unknown import kind: ${kind}`);
+  throw new SuiteError("unknown_import_kind", `Unknown import kind: ${kind}`, { kind });
 }

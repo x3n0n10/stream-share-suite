@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import Layout from "../components/Layout.jsx";
 import { Card, Badge, EmptyState, ErrorNote, Button } from "../components/common.jsx";
 import { IconSearch, IconDownload, IconCopy, IconCheck, IconChevronDown } from "../components/Icons.jsx";
 import { api } from "../lib/api.js";
 import { copyToClipboard } from "../lib/clipboard.js";
-import { titleCase } from "../lib/format.js";
+import { streamTypeText } from "../lib/format.js";
+import { errorText } from "../lib/serverText.js";
 
 function resultKey(r) {
   return `${r.instance_id}::${r.StreamType}::${r.StreamID}`;
@@ -56,21 +58,23 @@ function groupResults(results) {
 // Download / Copy URL controls shared between movie cards and episode rows
 // within an expanded series.
 function VodActions({ result, state, onDownload, onCopy }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2">
       <Button tone="ghost" loading={state.copying} onClick={() => onCopy(result)}>
         {state.copied ? <IconCheck className="h-3.5 w-3.5" /> : <IconCopy className="h-3.5 w-3.5" />}
-        {state.copied ? "Copied" : "Copy URL"}
+        {state.copied ? t("common.copied") : t("vod.copyUrl")}
       </Button>
       <Button tone="ghost" loading={state.downloading} onClick={() => onDownload(result)}>
         <IconDownload className="h-3.5 w-3.5" />
-        Download
+        {t("vod.download")}
       </Button>
     </div>
   );
 }
 
 export default function Vod() {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -97,7 +101,7 @@ export default function Vod() {
       setErrors(data.errors || []);
       setSubmittedQuery(q);
     } catch (err) {
-      setSearchError(err.message);
+      setSearchError(err);
     } finally {
       setLoading(false);
     }
@@ -114,7 +118,7 @@ export default function Vod() {
       const data = await api.vodDownload(result.instance_id, result.StreamID, result.Title, result.StreamType);
       window.open(data.download_url, "_blank", "noopener");
     } catch (err) {
-      patchRow(key, { error: err.message });
+      patchRow(key, { error: err });
     } finally {
       patchRow(key, { downloading: false });
     }
@@ -129,7 +133,7 @@ export default function Vod() {
       patchRow(key, { copied: true });
       setTimeout(() => patchRow(key, { copied: false }), 2000);
     } catch (err) {
-      patchRow(key, { error: err.message });
+      patchRow(key, { error: err });
     } finally {
       patchRow(key, { copying: false });
     }
@@ -140,32 +144,31 @@ export default function Vod() {
   }
 
   return (
-    <Layout title="VOD Search">
+    <Layout title={t("nav.vod")}>
       <p className="mb-4 text-xs text-slate-400 dark:text-slate-500">
-        Need a live channel link for a time window? Use{" "}
-        <Link to="/shares" className="text-accent-600 hover:underline dark:text-accent-400">
-          Share links
-        </Link>
-        .
+        <Trans
+          i18nKey="vod.shareLinksHint"
+          components={{ link: <Link to="/shares" className="text-accent-600 hover:underline dark:text-accent-400" /> }}
+        />
       </p>
       <form onSubmit={runSearch} className="flex gap-2">
         <input
           type="search"
           autoFocus
-          placeholder="Search movies and series across all instances…"
+          placeholder={t("vod.searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full max-w-md rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500 dark:border-slate-700 dark:bg-slate-900"
         />
         <Button onClick={runSearch} loading={loading} disabled={!query.trim()}>
           <IconSearch className="h-4 w-4" />
-          Search
+          {t("vod.search")}
         </Button>
       </form>
 
       {searchError && (
         <div className="mt-3">
-          <ErrorNote message={`Search failed: ${searchError}`} />
+          <ErrorNote message={t("common.searchFailed", { detail: errorText(searchError, t) })} />
         </div>
       )}
       {errors.length > 0 && (
@@ -179,13 +182,13 @@ export default function Vod() {
       <div className="mt-6">
         {!submittedQuery && !loading ? (
           <EmptyState
-            title="Search for a movie or series"
-            subtitle="Results are pulled live from every instance that has an Xtream provider configured — nothing is indexed or stored here."
+            title={t("vod.initialTitle")}
+            subtitle={t("vod.initialHint")}
           />
         ) : loading ? (
-          <EmptyState title="Searching…" />
+          <EmptyState title={t("vod.searching")} />
         ) : items.length === 0 ? (
-          <EmptyState title={`No results for "${submittedQuery}"`} subtitle="Try a different title or spelling." />
+          <EmptyState title={t("vod.noResults", { query: submittedQuery })} subtitle={t("vod.noResultsHint")} />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((item) => {
@@ -196,7 +199,7 @@ export default function Vod() {
                   <Card key={item.key} className="flex flex-col p-4">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-medium leading-snug text-slate-900 dark:text-white">{r.Title}</p>
-                      <Badge tone="slate">{titleCase(r.StreamType)}</Badge>
+                      <Badge tone="slate">{streamTypeText(t, r.StreamType)}</Badge>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                       {r.Category && <span>{r.Category}</span>}
@@ -208,7 +211,7 @@ export default function Vod() {
 
                     {state.error && (
                       <div className="mt-2">
-                        <ErrorNote message={state.error} />
+                        <ErrorNote message={errorText(state.error, t)} />
                       </div>
                     )}
 
@@ -229,13 +232,13 @@ export default function Vod() {
                     <p className="text-sm font-medium leading-snug text-slate-900 dark:text-white">
                       {item.seriesTitle}
                     </p>
-                    <Badge tone="accent">Series</Badge>
+                    <Badge tone="accent">{streamTypeText(t, "series")}</Badge>
                   </button>
                   <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                     {item.category && <span>{item.category}</span>}
                     {item.year && <span>{item.year}</span>}
                     <span>
-                      {item.episodes.length} episode{item.episodes.length === 1 ? "" : "s"}
+                      {t("vod.episodeCount", { count: item.episodes.length })}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-slate-400">{item.instance_name}</p>
@@ -245,7 +248,7 @@ export default function Vod() {
                     className="mt-3 flex items-center gap-1 text-xs font-medium text-accent-600 hover:underline dark:text-accent-400"
                   >
                     <IconChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                    {isOpen ? "Hide episodes" : "Show episodes"}
+                    {isOpen ? t("vod.hideEpisodes") : t("vod.showEpisodes")}
                   </button>
 
                   {isOpen && (
@@ -261,7 +264,7 @@ export default function Vod() {
                             </p>
                             {state.error && (
                               <div className="mt-1">
-                                <ErrorNote message={state.error} />
+                                <ErrorNote message={errorText(state.error, t)} />
                               </div>
                             )}
                             <div className="mt-1.5">
