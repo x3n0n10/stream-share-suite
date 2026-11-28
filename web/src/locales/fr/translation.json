@@ -463,6 +463,10 @@
         "catchupDurationHours": {
           "label": "Heures de catchup à conserver"
         },
+        "catchupPauseGraceMinutes": {
+          "label": "Minutes de conservation d'une chaîne en pause",
+          "help": "Durée pendant laquelle une chaîne en pause garde sa connexion au fournisseur et continue d'enregistrer. Tant qu'elle est en pause, les autres spectateurs reçoivent une solution de secours ou un message « déjà utilisée »."
+        },
         "catalogStorage": {
           "label": "Conserver le catalogue du fournisseur en",
           "help": "La mémoire est la plus rapide, mais la RAM augmente avec le catalogue du fournisseur (plus de 700 Mo pour un très grand). Le disque utilise bien moins de RAM (environ 90 Mo) et demande environ 2 à 3 fois la taille du catalogue dans le dossier de cache, avec des recherches un peu plus lentes.",

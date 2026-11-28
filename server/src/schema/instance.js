@@ -245,6 +245,15 @@ export const INSTANCE_SCHEMA = {
       dependsOn: { key: "catchupEnabled", equals: "true" },
     },
     {
+      key: "catchupPauseGraceMinutes",
+      envVar: "CATCHUP_PAUSE_GRACE_MINUTES",
+      label: "Minutes a paused channel is kept",
+      help: 'How long a paused channel keeps its provider connection and keeps recording. While it is paused, other viewers get a fallback or an "in use" message.',
+      group: "Caching",
+      default: "5",
+      dependsOn: { key: "catchupEnabled", equals: "true" },
+    },
+    {
       key: "catalogStorage",
       envVar: "CATALOG_STORAGE",
       label: "Keep provider catalogue on",

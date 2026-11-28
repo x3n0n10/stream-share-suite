@@ -457,6 +457,10 @@
         "catchupDurationHours": {
           "label": "Stunden Catchup, die behalten werden"
         },
+        "catchupPauseGraceMinutes": {
+          "label": "Minuten, die ein pausierter Kanal behalten wird",
+          "help": "Wie lange ein pausierter Kanal seine Anbieterverbindung behält und weiter aufzeichnet. Solange er pausiert ist, erhalten andere Zuschauer einen Ersatz oder die Meldung \"in Benutzung\"."
+        },
         "catalogStorage": {
           "label": "Anbieterkatalog speichern in",
           "help": "Arbeitsspeicher ist am schnellsten, aber der RAM wächst mit dem Katalog des Anbieters (über 700 MB bei einem sehr großen). Festplatte braucht viel weniger RAM (etwa 90 MB) und im Cache-Ordner etwa das 2- bis 3-Fache der Katalogsgröße, bei etwas langsameren Suchen.",
