@@ -463,6 +463,10 @@
         "catchupDurationHours": {
           "label": "Horas de catchup a conservar"
         },
+        "catchupPauseGraceMinutes": {
+          "label": "Minutos que se conserva un canal en pausa",
+          "help": "Cuánto tiempo un canal en pausa mantiene su conexión con el proveedor y sigue grabando. Mientras está en pausa, los demás espectadores reciben una alternativa o un mensaje de «en uso»."
+        },
         "catalogStorage": {
           "label": "Guardar el catálogo del proveedor en",
           "help": "La memoria es lo más rápido, pero la RAM crece con el catálogo del proveedor (más de 700 MB para uno muy grande). El disco usa mucha menos RAM (unos 90 MB) y necesita unas 2-3 veces el tamaño del catálogo en la carpeta de caché, con búsquedas algo más lentas.",

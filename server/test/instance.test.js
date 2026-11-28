@@ -785,3 +785,10 @@ test("errorSlateRetryMaxMinutes is overridable", () => {
   const env = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, errorSlateEnabled: "true", errorSlateRetryMaxMinutes: "30" });
   assert.equal(env.ERROR_SLATE_RETRY_MAX_MINUTES, "30");
 });
+
+test("renderEnv emits CATCHUP_PAUSE_GRACE_MINUTES only when catchup is on", () => {
+  const on = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, catchupEnabled: "true" });
+  assert.equal(on.CATCHUP_PAUSE_GRACE_MINUTES, "5");
+  const off = renderEnv(INSTANCE_SCHEMA, { ...PROVIDER, catchupEnabled: "false" });
+  assert.equal("CATCHUP_PAUSE_GRACE_MINUTES" in off, false);
+});

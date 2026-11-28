@@ -457,6 +457,10 @@
         "catchupDurationHours": {
           "label": "Uren catchup om te bewaren"
         },
+        "catchupPauseGraceMinutes": {
+          "label": "Minuten dat een gepauzeerd kanaal bewaard blijft",
+          "help": "Hoe lang een gepauzeerd kanaal zijn providerverbinding behoudt en blijft opnemen. Zolang het gepauzeerd is, krijgen andere kijkers een alternatief of een melding dat het kanaal \"in gebruik\" is."
+        },
         "catalogStorage": {
           "label": "Providercatalogus bewaren in",
           "help": "Geheugen is het snelst, maar het RAM groeit mee met de catalogus van de provider (meer dan 700 MB voor een zeer grote). Schijf gebruikt veel minder RAM (ongeveer 90 MB) en heeft ongeveer 2-3 keer de omvang van de catalogus nodig in de cachemap, met iets tragere zoekopdrachten.",
